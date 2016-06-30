@@ -1,0 +1,424 @@
+//
+// Created by CyberPro4 on 24/06/2016.
+//
+
+#ifndef CPORT_REMI_H
+#define CPORT_REMI_H
+
+#include <iostream>
+#include <list>
+#include <sstream>
+
+//#include <thread>       //std::this_thread::sleep_for std::thread
+#include <chrono>
+
+#define HAVE_STRUCT_TIMESPEC // ?? TODO: WTF
+
+#ifdef WIN32
+ 
+    #include <Windows.h>
+  
+    #define     remi_socket               SOCKET
+    #define     remi_socket_len           int
+
+	
+	#define     remi_socket_setaddr( sck , adr )      sck.S_un.S_addr = adr
+	#define     remi_socket_addr( sck )               sck.S_un.S_addr
+ 
+    #define     remi_thread_result        DWORD
+    #define     remi_thread_callback      LPTHREAD_START_ROUTINE
+    #define     remi_thread_param         LPVOID
+    #define     remi_thread               HANDLE
+  
+#endif
+ 
+#ifdef LINUX
+     
+    #define     SOCKET_ERROR    -1
+    #define     SOCKADDR        sockaddr
+    #define     SOCKADDR_IN     sockaddr_in
+    #define     INVALID_SOCKET  -1
+    #define     remi_socket       int
+    #define     remi_socket_len   socklen_t
+    #define     remi_socket_setaddr( sck , adr )      sck.s_addr = adr
+    #define     remi_socket_addr( sck )               sck.s_addr
+ 
+    #define     remi_thread               pthread_t
+    #define     remi_thread_result        void*   
+    #define     remi_thread_param         void*
+    typedef     void* (*remi_thread_callback)( remi_thread_param param );
+ 
+ 
+    #include <unistd.h>
+    #include <sys/types.h>
+    #include <sys/socket.h>
+    #include <arpa/inet.h>
+    #include <netinet/in.h>
+    #include <stdio.h>
+    #include <string.h>
+ 
+    #define     Sleep(a)    usleep( a * 1000 )
+ 
+#endif
+
+int				remi_timestamp();
+
+remi_thread		remi_createThread( remi_thread_callback callback , remi_thread_param param );
+
+namespace remi {
+
+    namespace utils {
+
+        std::string toPix( int v );
+
+        std::string join(std::list<std::string> stringList , std::string glue );
+
+		std::string string_encode(std::string text);
+
+		std::string sformat( std::string format , ... );
+
+		std::list<std::string> split( std::string subject , std::string delimiter );
+
+		std::string base64( std::string );
+
+		std::string url_decode( std::string from );
+
+		template< class org >
+		org list_at( std::list<org> list , int index ){
+			int c = 0;
+			for( org item : list ){
+				if( c == index )
+					return item;
+				c++;
+			}
+		}
+
+		class TimerListener {
+		public:
+			virtual void timer() = 0;
+		};
+
+        //Timer utility. Calls a function (in a parallel std::thread) at a predefined 'millisecondsInterval' until stopFlag turns True.
+        class Timer {
+        public:
+            
+            Timer( int millisecondsInterval , TimerListener* listener = NULL );
+
+            void stop();
+
+			void start();
+
+			void setInterval( int millisecondsInterval );
+
+			bool has_passed();
+
+			void tick();
+
+			double elapsed();
+
+        private:
+
+            remi_thread     _t;
+
+			TimerListener*	_listener;
+
+            int             _millisecondsInterval;
+
+            bool            _stopFlag;
+
+			bool			_passed;
+
+			typedef std::chrono::high_resolution_clock clock_;
+			typedef std::chrono::duration<double, std::ratio<1> > second_;
+
+			std::chrono::time_point<clock_>		_start;
+
+			static remi_thread_result thread_entry( remi_thread_param p );
+        };
+    };
+
+    template<class T> class DictionaryValue {
+    public:
+
+        DictionaryValue( std::string name , T value ){
+            this->name = name;
+            this->value = value;
+        }
+
+        std::string     name;
+        T  value;
+    };
+
+    template<class T> class Dictionary {
+
+    public:
+
+        Dictionary(){}
+
+        bool has( std::string name ){
+            DictionaryValue<T>* value = this->getDictionaryValue( name );
+            if( value != NULL )
+                return true;
+            return false;
+        }
+
+        long size(){
+            return this->_library.size();
+        }
+
+        std::list<std::string> keys(){
+            std::list<std::string> k;
+            for( DictionaryValue<T>* currentAttribute : _library ){
+                k.push_front( currentAttribute->name );
+            }
+
+            return k;
+        }
+
+        const T operator [] ( std::string name ) const {
+            return get(name);
+        }
+
+        const T get( std::string name ) const {
+            DictionaryValue<T>* objectAttribute = this->getDictionaryValue( name );
+            if( objectAttribute != NULL )
+                return objectAttribute->value;
+        }
+
+        void remove( std::string name ){
+            DictionaryValue<T>* dictionaryValue = this->getDictionaryValue( name );
+            if( dictionaryValue != NULL ) {
+                _library.remove( dictionaryValue );
+                delete dictionaryValue;
+            }
+        }
+
+        void set( std::string name, T value ){
+            DictionaryValue<T>* dictionaryValue = this->getDictionaryValue(name );
+            if( dictionaryValue == NULL ) {
+                DictionaryValue<T> *_value = new DictionaryValue<T>(name, value);
+                _library.push_front(_value);
+            } else {
+                dictionaryValue->value = value;
+            }
+        }
+
+        void clear(){
+            for( DictionaryValue<T>* currentAttribute : _library ){
+                delete currentAttribute;
+            }
+
+            _library.clear();
+        }
+
+
+    private:
+
+        DictionaryValue<T>* getDictionaryValue( std::string name ) const {
+            if( this->_library.size() == 0 )
+                return NULL;
+
+
+            for( DictionaryValue<T>* dictionaryValue : _library ){
+                if( dictionaryValue->name.compare( name ) == 0 ){
+                    return dictionaryValue;
+                }
+            }
+
+            return NULL;
+        }
+
+        std::list<DictionaryValue<T>*> _library;
+
+    };
+
+    namespace utils {
+
+        std::string join( Dictionary<std::string> from , std::string nameValueGlue , std::string itemsGlue );
+
+        std::string toCss( Dictionary<std::string> values );
+
+    };
+
+
+    template<class T> class VersionedDictionary : public Dictionary<T> {
+
+    public:
+
+        VersionedDictionary(){
+            this->_version = 0;
+        }
+
+        void set( std::string name , T value, int version_increment = 1 ){
+            /*if( has( name ) ){
+                if( getAttribute( name ).compare( value ) != 0 )
+                    _version += version_increment;
+            } else
+                _version += version_increment;*/
+            _version += version_increment;
+
+            return Dictionary<T>::set(name, value);
+        }
+
+        void clear( int version_increment = 1 ){
+            _version += version_increment;
+            Dictionary<T>::clear();
+        }
+
+        long getVersion(){
+            return _version;
+        }
+
+    private:
+
+        long _version;
+    };
+
+    class EventManagerListener {
+
+    public:
+
+        EventManagerListener();
+
+        virtual void onEvent( std::string eventName ) = 0;
+
+    };
+
+    class EventManager {
+
+    public:
+
+        EventManager();
+
+        void propagate( std::string eventName, void* params );
+
+        void propagate( std::string eventName );
+
+        void registerListener( std::string eventName , EventManagerListener* listener, void* funcName = NULL );
+
+    private:
+
+        Dictionary<EventManagerListener*>  _listeners;
+    };
+
+    class Represantable {
+    public:
+        virtual std::string repr() = 0;
+    };
+
+    class StringRepresantable {
+    public:
+
+        StringRepresantable(std::string v );
+
+        std::string repr();
+
+    private:
+
+        std::string v;
+    };
+
+    class Tag : Represantable {
+
+    public:
+
+        Tag();
+
+        Tag( std::string type );
+
+        void addClass( std::string name );
+
+        void removeClass( std::string name );
+
+        std::string getIdentifier();
+
+
+        std::string repr();
+
+        void addChild( std::string key, Tag* child );
+
+        Represantable * getChild(std::string key );
+
+    public:
+
+        std::list<std::string>              _classes;
+
+        VersionedDictionary<std::string>    attributes;
+        VersionedDictionary<std::string>    style;
+
+        VersionedDictionary<Represantable *>       children;
+
+        std::string     _type;
+
+    private:
+
+        std::list<Represantable *>              _render_children_list;
+
+    };
+
+
+
+    class Widget : public Tag {
+
+    public:
+
+        enum Layout {
+            Horizontal = 1,
+            Vertical = 0
+        };
+
+        static const std::string Event_OnClick;
+        static const std::string Event_OnDblClick;
+        static const std::string Event_OnMouseDown;
+        static const std::string Event_OnMouseMove;
+        static const std::string Event_OnMouseOver;
+        static const std::string Event_OnMouseOut;
+        static const std::string Event_OnMouseLeave;
+        static const std::string Event_OnMouseUp;
+        static const std::string Event_OnTouchMove;
+        static const std::string Event_OnTouchStart;
+        static const std::string Event_OnTouchEnd;
+        static const std::string Event_OnTouchEnter;
+        static const std::string Event_OnTouchLeave;
+        static const std::string Event_OnTouchCancel;
+        static const std::string Event_OnKeyDown;
+        static const std::string Event_OnKeyPress;
+        static const std::string Event_OnKeyUp;
+        static const std::string Event_OnChange;
+        static const std::string Event_OnFocus;
+        static const std::string Event_OnBlur;
+        static const std::string Event_OnContextMenu;
+        static const std::string Event_OnUpdate;
+
+        Widget();
+
+        Widget( std::string type );
+
+        void setSize( int width, int height );
+
+        void setLayoutOrientation( Widget::Layout orientation );
+
+        void redraw();
+
+        void addChild( std::string key, Tag* child );
+
+        void onFocus();
+
+        void setOnFocusListener( void* listener , void* fname );
+
+		void setOnClickListener( EventManagerListener* listener);
+
+        void setEventListener( std::string eventName , EventManagerListener* listener );
+
+    private:
+
+        void defaults();
+
+        EventManager    _eventManager;
+        Widget::Layout  _layout_orientation;
+
+    };
+
+}
+
+#endif //CPORT_REMI_H
