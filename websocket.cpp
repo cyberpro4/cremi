@@ -4,7 +4,7 @@
 #include <string>
 #include <stdio.h>
 
-#include <openssl\sha.h>
+#include <openssl/sha.h>
 
 using namespace remi::server;
 

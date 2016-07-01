@@ -1,10 +1,11 @@
 #include "remi_server.h"
 
-#include <sys\types.h>
+
 #ifndef _WIN32
 #include <sys/select.h>
 #include <sys/socket.h>
 #else
+#include <sys\types.h>
 //#include <winsock2.h>
 #endif
 #include <string.h>

@@ -32,7 +32,7 @@
   
 #endif
  
-#ifdef LINUX
+#ifdef __unix__
      
     #define     SOCKET_ERROR    -1
     #define     SOCKADDR        sockaddr

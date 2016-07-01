@@ -8,9 +8,9 @@
 #include <stdarg.h>
 #include <memory>
 
-#include <openssl\sha.h>
-#include <openssl\bio.h>
-#include <openssl\buffer.h>
+#include <openssl/sha.h>
+#include <openssl/bio.h>
+#include <openssl/buffer.h>
 #include <openssl/evp.h>
 
 #include <regex>
@@ -43,7 +43,7 @@ remi_thread   remi_createThread( remi_thread_callback callback , remi_thread_par
 		return CreateThread( NULL , 0 , callback , param , 0 , 0 );
 	#endif
 
-	#ifdef LINUX
+	#ifdef __unix__
 		pthread_t       th;
 		pthread_create( &th , NULL , callback , param );
 		return th;
