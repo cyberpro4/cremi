@@ -104,6 +104,14 @@ void remi::utils::open_browser( std::string url ){
 
 #endif
 
+#if defined(__unix__)
+
+    std::string cmd = "xdg-open " + url;
+
+    system( cmd.c_str() );
+
+#endif
+
 }
 
 std::string remi::utils::url_decode( std::string from ){
