@@ -96,6 +96,16 @@ std::string remi::utils::base64( std::string str ){
 
 }
 
+void remi::utils::open_browser( std::string url ){
+
+#ifdef _WIN32
+
+	ShellExecuteA( NULL , "open" , url.c_str() , NULL , NULL , 0 );
+
+#endif
+
+}
+
 std::string remi::utils::url_decode( std::string from ){
 	std::smatch match;
 	std::string out = from;

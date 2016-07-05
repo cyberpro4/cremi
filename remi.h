@@ -32,7 +32,7 @@
   
 #endif
  
-#ifdef __unix__
+#if defined(__unix__) || defined(__MACH__)
      
     #define     SOCKET_ERROR    -1
     #define     SOCKADDR        sockaddr
@@ -82,6 +82,8 @@ namespace remi {
 		std::string base64( std::string );
 
 		std::string url_decode( std::string from );
+
+		void open_browser( std::string url );
 
 		template< class org >
 		org list_at( std::list<org> list , int index ){
