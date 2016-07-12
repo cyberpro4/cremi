@@ -1,5 +1,7 @@
 
+
 #include "websocket.h"
+
 
 #include <string>
 #include <stdio.h>
@@ -7,6 +9,7 @@
 #include <openssl/sha.h>
 
 using namespace remi::server;
+using namespace remi;
 
 remi_thread_result WebsocketClientInterface_threadEntry( remi_thread_param param ){
 	((WebsocketClientInterface*)param)->_run();
@@ -17,6 +20,7 @@ WebsocketClientInterface::WebsocketClientInterface( remi_socket clientSock , str
     _sock = clientSock;
     _stopFlag = false;
 	_handshakeDone = false;
+
 	_t = remi_createThread( (remi_thread_callback)&WebsocketClientInterface_threadEntry , this );
 
 	_secondsSinceLastPing = remi_timestamp();
@@ -169,13 +173,28 @@ void WebsocketClientInterface::on_message( std::string message){
 
 	std::list<std::string> chunks = utils::split( message, "/" );
 
-	if( chunks.size() > 3 ){
+	if( chunks.size() > 3 ){ // msgtype,widget,function,params
 
 		if( utils::list_at( chunks , 0 ) == "callback" ){
-			std::string widget_id = utils::list_at( chunks , 1 );
+			std::string s_widget_id = utils::list_at( chunks , 1 );
+
 			std::string function_name = utils::list_at( chunks , 2 );
 
-			std::cout << "ws: call id = " << widget_id << " . " << function_name << std::endl;
+			std::cout << "ws: call id = " << s_widget_id << " . " << function_name << std::endl;
+
+			int widget_id;
+			if( utils::sscan( s_widget_id , "%d" , &widget_id  ) != 1 )
+				return;
+
+			Widget* widget = (Widget*)( (void*)widget_id );
+
+			widget->propagate( function_name );
+
+			//std::cout << widget->repr();
+
+			/*if( _listener != NULL ){
+				_listener->onEvent( function_name );
+			}*/
 		}
 
 	}
@@ -203,6 +222,7 @@ void WebsocketClientInterface::send_message( std::string message){
 	if( message_length <= 125 ) {
 
 		*lpmsg = message_length;
+		lpmsg++;
 		buffer_length -= 8;
 
 	} else if( message_length >= 126 && message_length <= 65535 ){
@@ -235,10 +255,12 @@ remi_thread_result WebsocketServer_threadEntry( remi_thread_param WebsocketServe
 	return 0;
 }
 
-WebsocketServer::WebsocketServer(int port){
+WebsocketServer::WebsocketServer( int port ){
     _port = port;
     _stopFlag = false;
+
     _socketFd = socket(AF_INET, SOCK_STREAM, 0);
+
     if(_socketFd < 0){
         //cerr << "WebsocketServer::WebsocketServer - cannot open socket" << endl;
         //return 0;

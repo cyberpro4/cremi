@@ -94,6 +94,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="remi.cpp" />
     <ClCompile Include="remi_server.cpp" />
+    <ClCompile Include="test.cpp" />
     <ClCompile Include="websocket.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

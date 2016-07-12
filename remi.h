@@ -29,6 +29,8 @@
     #define     remi_thread_callback      LPTHREAD_START_ROUTINE
     #define     remi_thread_param         LPVOID
     #define     remi_thread               HANDLE
+
+	#define _CRT_SECURE_NO_WARNINGS 1
   
 #endif
  
@@ -76,6 +78,8 @@ namespace remi {
 		std::string string_encode(std::string text);
 
 		std::string sformat( std::string format , ... );
+
+		int sscan( std::string from , std::string format , ... );
 
 		std::list<std::string> split( std::string subject , std::string delimiter );
 
@@ -286,11 +290,11 @@ namespace remi {
 
     };
 
-    class EventManager {
+    class EventEmitter {
 
     public:
 
-        EventManager();
+        EventEmitter();
 
         void propagate( std::string eventName, void* params );
 
@@ -360,7 +364,7 @@ namespace remi {
 
 
 
-    class Widget : public Tag {
+    class Widget : public Tag , public EventEmitter {
 
     public:
 
@@ -410,16 +414,21 @@ namespace remi {
 
 		void setOnClickListener( EventManagerListener* listener);
 
-        void setEventListener( std::string eventName , EventManagerListener* listener );
-
     private:
 
         void defaults();
 
-        EventManager    _eventManager;
         Widget::Layout  _layout_orientation;
 
     };
+
+	class HBox : public Widget {
+
+	public:
+
+		HBox();
+
+	};
 
 }
 

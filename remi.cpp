@@ -179,6 +179,19 @@ std::string remi::utils::string_encode(std::string text){
 	return text;
 }
 
+int remi::utils::sscan( std::string from , std::string format , ... ){
+
+	va_list ap;
+
+	va_start( ap, format );
+
+	int r = vsscanf( from.c_str() , format.c_str() , ap );
+
+	va_end(ap);
+
+	return r;
+}
+
 std::string remi::utils::sformat( std::string fmt_str , ... ){
 
 	// From http://stackoverflow.com/questions/2342162/stdstring-formatting-like-sprintf
@@ -291,20 +304,20 @@ std::string remi::utils::toCss( Dictionary<std::string> values ){
 
 EventManagerListener::EventManagerListener(){}
 
-EventManager::EventManager(){}
+EventEmitter::EventEmitter(){}
 
-void EventManager::propagate( std::string eventName, void* params ){
+void EventEmitter::propagate( std::string eventName, void* params ){
     if( _listeners.has( eventName ) == false )
         return;
 
     _listeners.get( eventName )->onEvent( eventName );
 }
 
-void EventManager::propagate( std::string eventName ){
+void EventEmitter::propagate( std::string eventName ){
     propagate( eventName , NULL );
 }
 
-void EventManager::registerListener( std::string eventName , EventManagerListener* listener, void* funcName ){
+void EventEmitter::registerListener( std::string eventName , EventManagerListener* listener, void* funcName ){
     _listeners.set( eventName , listener );
 }
 
@@ -437,10 +450,10 @@ void Widget::addChild( std::string key, Tag* child ){
     }																					   
 																						   
     Tag::addChild( key , child );														   
-}																						   
-																						   
+}
+
 void Widget::onFocus(){
-    _eventManager.propagate( Widget::Event_OnFocus );
+    propagate( Widget::Event_OnFocus );
 }
 
 void Widget::setOnFocusListener( void* listener , void* fname ){
@@ -457,12 +470,12 @@ void Widget::setOnClickListener( EventManagerListener* listener ){
 
 	std::ostringstream oss;
 	
-	oss << "sendCallback( '" << getIdentifier() << "', '' );" ;
+	oss << "sendCallback( '" << getIdentifier() << "', '" << Widget::Event_OnClick << "' );" ;
 	oss << "event.stopPropagation();event.preventDefault();";
 	
 	attributes.set( Widget::Event_OnClick , oss.str() );
 	
-	_eventManager.registerListener( Widget::Event_OnClick, listener );
+	registerListener( Widget::Event_OnClick, listener );
 }
 
 
@@ -472,9 +485,19 @@ void Widget::defaults(){
 }
 
 
-void Widget::setEventListener(std::string eventName, EventManagerListener *listener) {
+/*void Widget::setEventListener(std::string eventName, EventManagerListener *listener) {
 
     attributes.set( eventName , "sendCallBack();event.stopPropagation();event.preventDefault();return false;");
 
     _eventManager.registerListener( eventName , listener );
+}*/
+
+
+HBox::HBox() : Widget(){
+
+	style.set("display", "flex");
+	style.set("justify-content" , "space-around" );
+	style.set("align-items" , "center" );
+	style.set("flex-direction" , "row" );
+
 }

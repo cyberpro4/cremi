@@ -11,7 +11,7 @@ namespace remi {
 		class WebsocketClientInterface{
         
 		public:
-			WebsocketClientInterface(remi_socket clientSock , struct sockaddr_in clientAddr);
+			WebsocketClientInterface(remi_socket clientSock , struct sockaddr_in clientAddr );
 			void* _run();
 
 			void stop();
@@ -55,10 +55,14 @@ namespace remi {
 			//key, instance    key should be generated with address and port number
 			Dictionary<WebsocketClientInterface*> _clients;
 
-			struct sockaddr_in _address;
-			int _port;
-			remi_socket _socketFd;
-			bool _stopFlag;
+			struct sockaddr_in			_address;
+
+			int				_port;
+
+			remi_socket		_socketFd;
+
+			bool			_stopFlag;
+
             
 		};
 

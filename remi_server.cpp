@@ -140,8 +140,6 @@ void AnonymousServer::start(void* user_data){
 
 	_serverInfo = (void*)daemon;
 
-	remi::utils::open_browser( "http://localhost:91" );
-
 }
 
 ServerResponse* App::serve(std::string url){

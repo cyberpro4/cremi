@@ -15,11 +15,28 @@ using namespace remi;
 
 
 
-void test(){
-    cout << "tick" << endl;
+int run_test(){
+
+#ifdef _WIN32
+
+
+	MEMORYSTATUSEX memInfo;
+	memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+	GlobalMemoryStatusEx(&memInfo);
+	DWORDLONG totalVirtualMem = memInfo.ullTotalPageFile;
+
+	return 0;
+
+#else
+
+	return 1;
+
+#endif
+
 }
 
-class TestApp : public remi::server::App , public remi::EventManagerListener {
+
+class TestApp : public remi::server::App , public EventManagerListener {
 
 public:
 
@@ -36,6 +53,7 @@ public:
 	}
 
 	virtual void onEvent( std::string eventName ){
+		cout << "App::" << eventName;
 	}
 
 };
@@ -44,8 +62,12 @@ public:
 
 int main() {
 
+	//return run_test();
+
 	remi::server::Server<TestApp>* srv = new remi::server::Server<TestApp>();
 	srv->start();
+
+	//remi::utils::open_browser( "http://localhost:91" );
 
 	(void)getchar();
 
