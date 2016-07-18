@@ -388,19 +388,32 @@ std::string Tag::repr(){
     return html.str();
 }
 
-void Tag::addChild( std::string key, Tag* child ){
+void Tag::addChild( Represantable* child , std::string key ){
 
-    if( child == NULL || key.length() < 1 )
+    if( child == NULL )
         return;
 
-    child->attributes.set( "parent_widget" , this->getIdentifier() );
+	std::string _key = key;
+	if( _key.length() < 1 ){
+		_key = utils::sformat( "%d" , (int)(void*)child );
+	}
 
-    if( children.has( key ) ){
-        _render_children_list.remove( children.get(key) );
+	if( dynamic_cast<Tag*>(child) != 0 ){
+		Tag* _tag = dynamic_cast<Tag*>(child);
+		_tag->attributes.set( "parent_widget" , this->getIdentifier() );
+	}
+    
+
+    if( children.has( _key ) ){
+        _render_children_list.remove( children.get(_key) );
     }
 
-    _render_children_list.push_front( child );
-    children.set( key, child );
+    _render_children_list.push_back( child );
+    children.set( _key, child );
+}
+
+void Tag::addChild( std::string child, std::string key ){
+	addChild( new StringRepresantable( child ) , key );
 }
 
 Represantable * Tag::getChild(std::string key ){
@@ -431,9 +444,9 @@ void Widget::redraw(){
     //TODO server . update_event set()													   
 }																						   
 																						   
-void Widget::addChild( std::string key, Tag* child ){									   
+void Widget::addChild( Represantable* child, std::string key ){					   
 																						   
-    if( _layout_orientation == Widget::Layout::Horizontal ){							   
+    if( _layout_orientation == Widget::Layout::Horizontal && dynamic_cast<Tag*>(child) != NULL ){							   
         /*																				   
          * From python this make no sense at all:										   
          * Maybe for VersionedDictionary?												   
@@ -446,10 +459,10 @@ void Widget::addChild( std::string key, Tag* child ){
 		 *																				   
          */																				   
 																						   
-        child->style.set( "float" , "left" );											   
+        dynamic_cast<Tag*>(child)->style.set( "float" , "left" );											   
     }																					   
 																						   
-    Tag::addChild( key , child );														   
+    Tag::addChild( child , key );														   
 }
 
 void Widget::onFocus(){
@@ -468,12 +481,9 @@ void Widget::setOnFocusListener( void* listener , void* fname ){
 
 void Widget::setOnClickListener( EventManagerListener* listener ){
 
-	std::ostringstream oss;
-	
-	oss << "sendCallback( '" << getIdentifier() << "', '" << Widget::Event_OnClick << "' );" ;
-	oss << "event.stopPropagation();event.preventDefault();";
-	
-	attributes.set( Widget::Event_OnClick , oss.str() );
+	attributes[Widget::Event_OnClick] = utils::sformat(
+		"sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",
+		getIdentifier().c_str(), Widget::Event_OnClick.c_str() );
 	
 	registerListener( Widget::Event_OnClick, listener );
 }
@@ -495,9 +505,67 @@ void Widget::defaults(){
 
 HBox::HBox() : Widget(){
 
-	style.set("display", "flex");
-	style.set("justify-content" , "space-around" );
-	style.set("align-items" , "center" );
-	style.set("flex-direction" , "row" );
+	style["display"] = "flex";
 
+	style["justify-content"] = "space-around";
+
+	style["align-items"] = "center";
+
+	style["flex-direction"] = "row";
+
+}
+
+void TextWidget::setText( std::string text ){
+	((Tag*)this)->addChild( text , std::string("text") );
+}
+
+std::string TextWidget::text(){
+	Represantable* repr = getChild("text");
+	return ((StringRepresantable*)repr)->repr();
+}
+
+
+Button::Button( std::string text ) : TextWidget(){
+
+	_type = "button";
+
+	setText(text);
+
+	attributes[Widget::Event_OnClick] = utils::sformat(
+		"sendCallback('%s','%s');",
+		getIdentifier().c_str(), Widget::Event_OnClick.c_str()
+	);
+}
+
+void Button::setEnabled( bool en ){
+	if( en ){
+		attributes["disabled"] = "disabled";
+	} else {
+		attributes.remove("disabled");
+	}
+}
+
+bool Button::enabled(){
+	return attributes.has("disabled");
+}
+
+TextInput::TextInput( bool single_line ){
+
+	_type = "textarea";
+
+	attributes[Widget::Event_OnClick] = "";
+	attributes[Widget::Event_OnChange] = utils::sformat(
+		"var params={};params['new_value']=document.getElementById('%s').value; \
+		sendCallbackParam('%s','%s',params);", 
+		getIdentifier().c_str(), getIdentifier().c_str(), Widget::Event_OnChange.c_str()
+	);
+
+	setText("");
+
+	if( single_line ){
+		attributes["resize"] = "none";
+		attributes["rows"] = "1";
+	}
+
+	// TODO: hint?
 }

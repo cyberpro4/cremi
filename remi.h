@@ -146,10 +146,26 @@ namespace remi {
     template<class T> class DictionaryValue {
     public:
 
+		DictionaryValue( std::string name ){
+			this->name = name;
+		}
+
         DictionaryValue( std::string name , T value ){
             this->name = name;
             this->value = value;
         }
+
+		void operator = ( T v ){
+			value = v;
+		}
+
+		operator T (){
+			return value;
+		}
+
+		operator const T () const {
+			return (const T )value;
+		}
 
         std::string     name;
         T  value;
@@ -181,9 +197,14 @@ namespace remi {
             return k;
         }
 
-        const T operator [] ( std::string name ) const {
-            return get(name);
-        }
+		DictionaryValue<T> & operator [] ( std::string name ) {
+			DictionaryValue<T>* objectAttribute = this->getDictionaryValue( name );
+			if( objectAttribute == NULL ){
+				objectAttribute = new DictionaryValue<T>( name );
+				_library.push_front( objectAttribute );
+			}
+			return (*objectAttribute);
+		}
 
         const T get( std::string name ) const {
             DictionaryValue<T>* objectAttribute = this->getDictionaryValue( name );
@@ -312,7 +333,7 @@ namespace remi {
         virtual std::string repr() = 0;
     };
 
-    class StringRepresantable {
+    class StringRepresantable : public Represantable {
     public:
 
         StringRepresantable(std::string v );
@@ -324,7 +345,7 @@ namespace remi {
         std::string v;
     };
 
-    class Tag : Represantable {
+    class Tag : public Represantable {
 
     public:
 
@@ -341,7 +362,9 @@ namespace remi {
 
         std::string repr();
 
-        void addChild( std::string key, Tag* child );
+        void addChild( Represantable* child, std::string key = "" );
+
+		void addChild( std::string child, std::string key = "" );
 
         Represantable * getChild(std::string key );
 
@@ -406,7 +429,7 @@ namespace remi {
 
         void redraw();
 
-        void addChild( std::string key, Tag* child );
+        void addChild( Represantable* child, std::string key = "" );
 
         void onFocus();
 
@@ -427,6 +450,33 @@ namespace remi {
 	public:
 
 		HBox();
+
+	};
+
+	class TextWidget : public Widget {
+
+	public:
+
+		void setText( std::string text );
+
+		std::string text();
+
+	};
+
+	class Button : public TextWidget {
+	public:
+
+		Button( std::string text );
+
+		void setEnabled( bool en );
+		bool enabled();
+		
+	};
+
+	class TextInput : public TextWidget {
+	public:
+
+		TextInput( bool single_line = true );
 
 	};
 

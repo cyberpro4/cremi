@@ -48,6 +48,12 @@ public:
 		tag1->style.set("height", "200px");
 		tag1->style.set("background-color", "red");
 		tag1->setOnClickListener(this);
+
+		remi::TextInput* ti1 = new remi::TextInput();
+		tag1->addChild( ti1 );
+
+		remi::Button* btn1 = new remi::Button("Press me");
+		tag1->addChild( btn1 );
 	
 		return tag1;
 	}
@@ -62,7 +68,6 @@ public:
 
 int main() {
 
-	//return run_test();
 
 	remi::server::Server<TestApp>* srv = new remi::server::Server<TestApp>();
 	srv->start();

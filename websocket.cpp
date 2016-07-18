@@ -72,7 +72,7 @@ bool WebsocketClientInterface::readNextMessage(){
 	unsigned int _l = length_buf[1] & 127;
 	payload_len = _l;
 
-	bool mask_enable = length_buf[1] & (1 << 7);
+	bool mask_enable = (length_buf[1] & (1 << 7)) != 0;
 
 	// manage payload len 126 / 127
 	if( payload_len == 126 ){
