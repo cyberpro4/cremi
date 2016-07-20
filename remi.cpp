@@ -528,6 +528,18 @@ HBox::HBox() : Widget(){
 
 }
 
+VBox::VBox() : Widget(){
+
+	style["display"] = "flex";
+
+	style["justify-content"] = "space-around";
+
+	style["align-items"] = "center";
+
+	style["flex-direction"] = "column";
+
+}
+
 void TextWidget::setText( std::string text ){
 	((Tag*)this)->addChild( text , std::string("text") );
 }

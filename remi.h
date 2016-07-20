@@ -471,6 +471,14 @@ namespace remi {
 
 	};
 
+	class VBox : public Widget {
+
+	public:
+
+		VBox();
+
+	};
+
 	class TextWidget : public Widget {
 
 	public:

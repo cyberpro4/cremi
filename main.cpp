@@ -43,20 +43,23 @@ private:
 public:
 
 	virtual Widget* main(){
-		mainContainer = new remi::Widget("div");
+		mainContainer = new remi::VBox();
 
-		mainContainer->addClass("myclass2");
-		mainContainer->style.set("width", "100px");
+		//mainContainer->addClass("myclass2");
+		mainContainer->style.set("width", "200px");
 		mainContainer->style.set("height", "200px");
-		mainContainer->style.set("background-color", "red");
+		//mainContainer->style.set("background-color", "red");
 		//tag1->setOnClickListener(this);
 
 		remi::TextInput* ti1 = new remi::TextInput();
 		ti1->setOnChangeListener(this);
+		ti1->style.set("width", "100px");
+		ti1->style.set("height", "24px");
 		mainContainer->addChild(ti1);
 
 		remi::Button* btn1 = new remi::Button("Press me");
 		btn1->setOnClickListener( this );
+		btn1->style.set("width", "100px");
 		mainContainer->addChild(btn1);
 
 		return mainContainer;
