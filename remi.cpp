@@ -298,7 +298,7 @@ std::string remi::utils::join( Dictionary<std::string> from , std::string nameVa
     return out.str();
 }
 
-std::string remi::utils::toCss( Dictionary<std::string> values ){
+std::string remi::utils::toCss( Dictionary<std::string>& values ){
     return join( values , ": " , ";" );
 }
 

@@ -232,7 +232,7 @@ namespace remi {
 
         void clear(){
             for( DictionaryValue<T>* currentAttribute : _library ){
-                delete currentAttribute;
+				delete currentAttribute;
             }
 
             _library.clear();
@@ -266,7 +266,7 @@ namespace remi {
 
         std::string join( Dictionary<std::string> from , std::string nameValueGlue , std::string itemsGlue );
 
-        std::string toCss( Dictionary<std::string> values );
+        std::string toCss( Dictionary<std::string>& values );
 
     };
 
