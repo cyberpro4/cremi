@@ -202,6 +202,10 @@ ServerResponse* App::serve(std::string url){
 	return new ServerResponse( utils::string_encode( output.str() ) );
 }
 
+void App::show(remi::Widget* _w){
+	this->_rootWidget = _w; //here will be necessary to force the new rootWidget update
+}
+
 void AnonymousServer::serve_forever(){
 }
 

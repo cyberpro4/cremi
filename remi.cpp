@@ -698,6 +698,9 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 }
 
 void GenericDialog::setOnConfirmListener(EventManagerListener* listener){
-	//this->hide();
-	registerListener(TextInput::Event_OnEnter, listener);
+	registerListener(GenericDialog::Event_OnConfirm, listener);
+}
+
+void GenericDialog::setOnCancelListener(EventManagerListener* listener){
+	registerListener(GenericDialog::Event_OnCancel, listener);
 }

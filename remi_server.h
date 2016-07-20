@@ -65,6 +65,8 @@ namespace remi {
 
 			ServerResponse*		serve( std::string url );
 
+			void show( Widget* _w );
+
 		private:
 
 			Widget* _rootWidget;

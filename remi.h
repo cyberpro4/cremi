@@ -537,6 +537,8 @@ namespace remi {
 
 		void setOnConfirmListener(EventManagerListener* listener);
 
+		void setOnCancelListener(EventManagerListener* listener);
+
 	private:
 
 		Widget*		_container;

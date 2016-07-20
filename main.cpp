@@ -39,7 +39,7 @@ int run_test(){
 class TestApp : public remi::server::App , public EventManagerListener {
 private:
 	remi::Widget *mainContainer;
-
+	remi::TextInput* ti1;
 public:
 
 	virtual Widget* main(){
@@ -51,7 +51,7 @@ public:
 		//mainContainer->style.set("background-color", "red");
 		//tag1->setOnClickListener(this);
 
-		remi::TextInput* ti1 = new remi::TextInput();
+		ti1 = new remi::TextInput();
 		ti1->setOnChangeListener(this);
 		ti1->style.set("width", "100px");
 		ti1->style.set("height", "24px");
@@ -69,6 +69,8 @@ public:
 		if( eventName == Widget::Event_OnChange )
 			std::cout << "TestApp." << eventName << eventData->params;
 		mainContainer->style.set("background-color", "green");
+		this->show(ti1);
+
 	}
 
 };
