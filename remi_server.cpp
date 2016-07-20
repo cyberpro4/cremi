@@ -186,6 +186,8 @@ ServerResponse* App::serve(std::string url){
 			<< "<meta content = 'utf-8' http - equiv = 'encoding'>"
 			<< "<meta name = \"viewport\" content = \"width=device-width, initial-scale=1.0\">"
 
+			<< "<link href=\"res/style.css\" rel=\"stylesheet\" / >"
+
 			<< "<script>var net_interface_ip = 'localhost';</script>"
 			<< "<script>var wsport = 92;</script>"
 			<< "<script>var pending_messages_queue_length = 10;</script>"

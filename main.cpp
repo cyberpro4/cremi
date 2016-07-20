@@ -37,32 +37,35 @@ int run_test(){
 
 
 class TestApp : public remi::server::App , public EventManagerListener {
+private:
+	remi::Widget *mainContainer;
 
 public:
 
 	virtual Widget* main(){
-		remi::Widget *tag1 = new remi::Widget("div");
+		mainContainer = new remi::Widget("div");
 
-		tag1->addClass("myclass2");
-		tag1->style.set("width", "100px");
-		tag1->style.set("height", "200px");
-		tag1->style.set("background-color", "red");
+		mainContainer->addClass("myclass2");
+		mainContainer->style.set("width", "100px");
+		mainContainer->style.set("height", "200px");
+		mainContainer->style.set("background-color", "red");
 		//tag1->setOnClickListener(this);
 
 		remi::TextInput* ti1 = new remi::TextInput();
 		ti1->setOnChangeListener(this);
-		tag1->addChild( ti1 );
+		mainContainer->addChild(ti1);
 
 		remi::Button* btn1 = new remi::Button("Press me");
-		//btn1->setOnClickListener( this );
-		tag1->addChild( btn1 );
-	
-		return tag1;
+		btn1->setOnClickListener( this );
+		mainContainer->addChild(btn1);
+
+		return mainContainer;
 	}
 
 	virtual void onEvent( std::string eventName , Event* eventData ){
 		if( eventName == Widget::Event_OnChange )
 			std::cout << "TestApp." << eventName << eventData->params;
+		mainContainer->style.set("background-color", "green");
 	}
 
 };
@@ -71,7 +74,7 @@ int main() {
 
 	remi::server::Server<TestApp>* srv = new remi::server::Server<TestApp>();
 	srv->start();
-
+	
 	//remi::utils::open_browser( "http://localhost:91" );
 
 	(void)getchar();
