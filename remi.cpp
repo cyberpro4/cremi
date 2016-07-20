@@ -283,7 +283,7 @@ void remi::utils::Timer::stop(){
 
 
 
-std::string remi::utils::join( Dictionary<std::string> from , std::string nameValueGlue , std::string itemsGlue ){
+std::string remi::utils::join( Dictionary<std::string>& from , std::string nameValueGlue , std::string itemsGlue ){
     std::ostringstream out;
 
     bool first = true;
@@ -683,4 +683,9 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
     self.baseAppInstance = None
 	*/        
 	
+}
+
+void GenericDialog::setOnConfirmListener(EventManagerListener* listener){
+	//this->hide();
+	registerListener(TextInput::Event_OnEnter, listener);
 }

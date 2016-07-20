@@ -264,7 +264,7 @@ namespace remi {
 
     namespace utils {
 
-        std::string join( Dictionary<std::string> from , std::string nameValueGlue , std::string itemsGlue );
+        std::string join( Dictionary<std::string>& from , std::string nameValueGlue , std::string itemsGlue );
 
         std::string toCss( Dictionary<std::string>& values );
 
@@ -526,6 +526,8 @@ namespace remi {
 		static const std::string Event_OnCancel;
 
 		GenericDialog( std::string title = "" , std::string message = "" );
+
+		void setOnConfirmListener(EventManagerListener* listener);
 
 	private:
 
