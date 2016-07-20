@@ -145,9 +145,6 @@ void WebsocketClientInterface::handshake(){
 	std::string sha1( (const char*)key_sha1 );
 
 	std::string b64 = utils::base64( sha1 );
-	
-
-	std::cout << b64 << std::endl;
 
 	std::ostringstream response_s;
 	response_s 
@@ -164,7 +161,7 @@ void WebsocketClientInterface::handshake(){
 
 void WebsocketClientInterface::on_message( std::string message){
 
-	std::cout << "ws: " << message << std::endl;
+	//std::cout << "ws: " << message;
 
 	if( message == "pong" )
 		return;
@@ -180,7 +177,10 @@ void WebsocketClientInterface::on_message( std::string message){
 
 			std::string function_name = utils::list_at( chunks , 2 );
 
-			std::cout << "ws: call id = " << s_widget_id << " . " << function_name << std::endl;
+			void* params;
+
+			std::cout << "ws: call id = " <<  s_widget_id << "." << function_name << std::endl;
+				;
 
 			int widget_id;
 			if( utils::sscan( s_widget_id , "%d" , &widget_id  ) != 1 )
@@ -188,13 +188,15 @@ void WebsocketClientInterface::on_message( std::string message){
 
 			Widget* widget = (Widget*)( (void*)widget_id );
 
-			widget->propagate( function_name );
+			Event* event = new Event( function_name );
+			event->source = widget;
+			
+			/*if( chunks.size() >= 4 )
+				event->params = utils::list_at( chunks , 4 );*/
 
-			//std::cout << widget->repr();
+			widget->propagate( event );
 
-			/*if( _listener != NULL ){
-				_listener->onEvent( function_name );
-			}*/
+			delete event;
 		}
 
 	}

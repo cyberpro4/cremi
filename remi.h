@@ -238,6 +238,9 @@ namespace remi {
             _library.clear();
         }
 
+		~Dictionary(){
+			clear();
+		}
 
     private:
 
@@ -301,33 +304,6 @@ namespace remi {
         long _version;
     };
 
-    class EventManagerListener {
-
-    public:
-
-        EventManagerListener();
-
-        virtual void onEvent( std::string eventName ) = 0;
-
-    };
-
-    class EventEmitter {
-
-    public:
-
-        EventEmitter();
-
-        void propagate( std::string eventName, void* params );
-
-        void propagate( std::string eventName );
-
-        void registerListener( std::string eventName , EventManagerListener* listener, void* funcName = NULL );
-
-    private:
-
-        Dictionary<EventManagerListener*>  _listeners;
-    };
-
     class Represantable {
     public:
         virtual std::string repr() = 0;
@@ -386,6 +362,46 @@ namespace remi {
     };
 
 
+	class Event {
+	public:
+
+		Event();
+		Event( std::string name );
+
+		Tag*			source;
+
+		std::string		name;
+
+		std::string		params;
+
+	};
+
+    class EventManagerListener {
+
+    public:
+
+        EventManagerListener();
+
+        virtual void onEvent( std::string eventName , Event* eventData ) = 0;
+
+    };
+
+    class EventEmitter {
+
+    public:
+
+        EventEmitter();
+
+        void propagate( Event* eventData );
+
+        void registerListener( std::string eventName , EventManagerListener* listener, void* funcName = NULL );
+
+    private:
+
+        Dictionary<EventManagerListener*>  _listeners;
+    };
+
+
 
     class Widget : public Tag , public EventEmitter {
 
@@ -423,6 +439,8 @@ namespace remi {
 
         Widget( std::string type );
 
+		void setWidth( int width );
+		void setHeight( int height );
         void setSize( int width, int height );
 
         void setLayoutOrientation( Widget::Layout orientation );
@@ -435,7 +453,7 @@ namespace remi {
 
         void setOnFocusListener( void* listener , void* fname );
 
-		void setOnClickListener( EventManagerListener* listener);
+		void setOnClickListener( EventManagerListener* listener );
 
     private:
 
@@ -476,7 +494,45 @@ namespace remi {
 	class TextInput : public TextWidget {
 	public:
 
+		static const std::string Event_OnEnter;
+
 		TextInput( bool single_line = true );
+
+		void setPlaceholder( std::string text );
+		std::string placeholder();
+
+		void setOnChangeListener( EventManagerListener* listener );
+
+		void setOnKeyDownListener( EventManagerListener* listener );
+
+		void setOnEnterListener( EventManagerListener* listener );
+
+	};
+
+	class Label : public TextWidget {
+
+	public:
+
+		Label( std::string text = "" );
+
+	};
+
+
+	class GenericDialog : public Widget {
+
+	public:
+
+		static const std::string Event_OnConfirm;
+		static const std::string Event_OnCancel;
+
+		GenericDialog( std::string title = "" , std::string message = "" );
+
+	private:
+
+		Widget*		_container;
+		Button*		_confirmButton;
+		Button*		_cancelButton;
+		Widget*		_hLay;
 
 	};
 

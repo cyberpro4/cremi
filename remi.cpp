@@ -74,6 +74,11 @@ const std::string Widget::Event_OnBlur = "OnBlur";
 const std::string Widget::Event_OnContextMenu = "OnContextMenu";
 const std::string Widget::Event_OnUpdate = "OnUpdate";
 
+const std::string TextInput::Event_OnEnter = "OnEnter";
+
+const std::string GenericDialog::Event_OnConfirm = "OnConfirm";
+const std::string GenericDialog::Event_OnCancel = "OnCancel";
+
 std::string remi::utils::base64( std::string str ){
 
   BIO *bmem, *b64;
@@ -215,8 +220,6 @@ std::string remi::utils::sformat( std::string fmt_str , ... ){
 
 }
 
-
-
 utils::Timer::Timer( int millisecondsInterval, TimerListener* listener ){
     _stopFlag = false;
 
@@ -300,21 +303,24 @@ std::string remi::utils::toCss( Dictionary<std::string> values ){
 }
 
 
+Event::Event(){
+	source = NULL;
+}
 
+Event::Event( std::string name ){
+	source = NULL;
+	this->name = name;
+}
 
 EventManagerListener::EventManagerListener(){}
 
 EventEmitter::EventEmitter(){}
 
-void EventEmitter::propagate( std::string eventName, void* params ){
-    if( _listeners.has( eventName ) == false )
+void EventEmitter::propagate( Event* eventData ){
+    if( _listeners.has( eventData->name ) == false )
         return;
 
-    _listeners.get( eventName )->onEvent( eventName );
-}
-
-void EventEmitter::propagate( std::string eventName ){
-    propagate( eventName , NULL );
+    _listeners.get( eventData->name )->onEvent( eventData->name , eventData );
 }
 
 void EventEmitter::registerListener( std::string eventName , EventManagerListener* listener, void* funcName ){
@@ -431,6 +437,14 @@ Widget::Widget( std::string type ) {
     defaults();
 }
 
+void Widget::setWidth( int width ){
+	style.set( "width" , utils::toPix( width ) );
+}
+
+void Widget::setHeight( int height ){
+	style.set( "height" , utils::toPix( height ) );
+}
+
 void Widget::setSize( int width, int height ){
     style.set( "width" , utils::toPix( width ) );
     style.set( "height" , utils::toPix( height ) );
@@ -466,7 +480,7 @@ void Widget::addChild( Represantable* child, std::string key ){
 }
 
 void Widget::onFocus(){
-    propagate( Widget::Event_OnFocus );
+    //propagate( Widget::Event_OnFocus );
 }
 
 void Widget::setOnFocusListener( void* listener , void* fname ){
@@ -487,7 +501,6 @@ void Widget::setOnClickListener( EventManagerListener* listener ){
 	
 	registerListener( Widget::Event_OnClick, listener );
 }
-
 
 void Widget::defaults(){
     _layout_orientation = Layout::Vertical;
@@ -568,4 +581,106 @@ TextInput::TextInput( bool single_line ){
 	}
 
 	// TODO: hint?
+}
+
+void TextInput::setOnChangeListener( EventManagerListener* listener ){
+	registerListener( Widget::Event_OnChange, listener );
+}
+
+void TextInput::setOnKeyDownListener( EventManagerListener* listener ){
+	attributes[Widget::Event_OnKeyDown] = utils::sformat(
+		"var params={};params['new_value']=document.getElementById('%s').value;" \
+        "sendCallbackParam('%s','%s',params);" ,
+		getIdentifier().c_str(), getIdentifier().c_str(), Widget::Event_OnChange.c_str()
+	);
+	registerListener( Widget::Event_OnKeyDown , listener );
+}
+
+void TextInput::setOnEnterListener( EventManagerListener* listener ){
+	attributes[TextInput::Event_OnEnter] = utils::sformat( "\
+            if (event.keyCode == 13) { \
+                var params={};\
+                params['new_value']=document.getElementById('%s').value; \
+                document.getElementById('%s').value = ''; \
+                document.getElementById('%s').onchange = ''; \
+                sendCallbackParam('%s','%s',params); \
+                return false; \
+            }" ,
+			getIdentifier().c_str(), getIdentifier().c_str(),
+			getIdentifier().c_str(), getIdentifier().c_str(),
+			TextInput::Event_OnEnter.c_str()
+	);
+
+	registerListener( TextInput::Event_OnEnter , listener );
+}
+
+void TextInput::setPlaceholder( std::string text ){
+	attributes["placeholder"] = text;
+}
+
+std::string TextInput::placeholder(){
+	return  attributes["placeholder"];
+}
+
+Label::Label( std::string text ){
+	_type = "p";
+	setText( text );
+}
+
+GenericDialog::GenericDialog( std::string title , std::string message ){
+	setLayoutOrientation( Widget::Layout::Vertical );
+	style["display"] = "block";
+	style["overflow"] = "auto";
+
+	if( title.length() > 0 ){
+		Label *l = new Label( title );
+		l->addClass( "DialogTitle" ); //FIXME: css class named "DialogTitle" should be "GenericDialogTitle"?
+		addChild( l );
+	}
+
+	if( message.length() > 0 ){
+		Label *l = new Label( message );
+		l->style["margin"] = "5px";
+		addChild( l );
+	}
+
+	_container = new Widget();
+	_container->style["display"] = "block";
+	_container->style["overflow"] = "auto";
+	_container->style["margin"] = "5px";
+	_container->setLayoutOrientation(Widget::Layout::Vertical);
+
+	_confirmButton = new Button("Ok");
+	_confirmButton->setSize(100, 30);
+	_confirmButton->style["margin"] = "3px";
+
+	_cancelButton = new Button("Cancel");
+	_cancelButton->setSize(100, 30);
+	_cancelButton->style["margin"] = "3px";
+    
+	_hLay = new Widget();
+	_hLay->setHeight( 35 );
+	_hLay->style["display"] = "block";
+	_hLay->style["overflow"] = "visible";
+    _hLay->addChild(_confirmButton);
+	_hLay->addChild(_cancelButton);
+
+	_confirmButton->style["float"] = "right";
+	_cancelButton->style["float"] = "right";
+
+	addChild(_container);
+	addChild(_hLay);
+
+	_confirmButton->attributes[Widget::Event_OnClick] = utils::sformat( "sendCallback('%s','%s');" , 
+		getIdentifier().c_str(), GenericDialog::Event_OnConfirm );
+
+	_cancelButton->attributes[Widget::Event_OnClick] = utils::sformat( "sendCallback('%s','%s');" , 
+		getIdentifier().c_str(), GenericDialog::Event_OnCancel );
+
+	/*
+    self.inputs = {}
+
+    self.baseAppInstance = None
+	*/        
+	
 }
