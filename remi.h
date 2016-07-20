@@ -8,6 +8,7 @@
 #include <iostream>
 #include <list>
 #include <sstream>
+#include <map>
 
 //#include <thread>       //std::this_thread::sleep_for std::thread
 #include <chrono>
@@ -535,6 +536,12 @@ namespace remi {
 
 		GenericDialog( std::string title = "" , std::string message = "" );
 
+		void add_field_with_label(std::string key, std::string label_description, Widget* field);
+
+		void add_field(std::string key, Widget* field);
+
+		Widget* get_field(std::string key);
+
 		void setOnConfirmListener(EventManagerListener* listener);
 
 		void setOnCancelListener(EventManagerListener* listener);
@@ -545,6 +552,7 @@ namespace remi {
 		Button*		_confirmButton;
 		Button*		_cancelButton;
 		Widget*		_hLay;
+		std::map<std::string, Widget*> _inputs;
 
 	};
 

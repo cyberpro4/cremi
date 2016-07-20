@@ -40,6 +40,9 @@ class TestApp : public remi::server::App , public EventManagerListener {
 private:
 	remi::Widget *mainContainer;
 	remi::TextInput* ti1;
+
+	remi::GenericDialog* dialog;
+
 public:
 
 	virtual Widget* main(){
@@ -57,20 +60,30 @@ public:
 		ti1->style.set("height", "24px");
 		mainContainer->addChild(ti1);
 
-		remi::Button* btn1 = new remi::Button("Press me");
+		remi::Button* btn1 = new remi::Button("Show dialog");
 		btn1->setOnClickListener( this );
 		btn1->style.set("width", "100px");
 		mainContainer->addChild(btn1);
+
+		dialog = new remi::GenericDialog("Dialog", "This is a generic input dialog");
+		remi::TextInput* ti2 = new remi::TextInput(true);
+		dialog->add_field_with_label("input", "Insert a text", ti2);
+		dialog->setOnConfirmListener(this);
+		dialog->setOnCancelListener(this);
 
 		return mainContainer;
 	}
 
 	virtual void onEvent( std::string eventName , Event* eventData ){
-		if( eventName == Widget::Event_OnChange )
+		if ( eventName == Widget::Event_OnClick ){
 			std::cout << "TestApp." << eventName << eventData->params;
-		mainContainer->style.set("background-color", "green");
-		this->show(ti1);
+			show(dialog);
+		}
 
+		if ( eventName == GenericDialog::Event_OnConfirm ){
+			std::cout << "Inserted text:" << eventName << eventData->params;
+			show(mainContainer);
+		}
 	}
 
 };

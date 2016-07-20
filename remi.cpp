@@ -697,6 +697,34 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 	
 }
 
+void GenericDialog::add_field_with_label(std::string key, std::string label_description, Widget* field){
+	this->_inputs[key] = field;
+	Label* label = new Label(label_description);
+	label->style.set("margin", "0px 5px");
+	label->style.set("min - width", "30%");
+	HBox* container = new HBox();
+	container->style.set("overflow", "auto");
+	container->style.set("padding", "3px");
+	container->addChild(label, "lbl" + key);
+	container->addChild(this->_inputs[key], key);
+	this->_container->addChild(container, key);
+}
+
+void GenericDialog::add_field(std::string key, Widget* field){
+	this->_inputs[key] = field;
+	Widget* container = new Widget();
+	container->style.set("display", "block");
+	container->style.set("overflow", "auto");
+	container->style.set("padding", "3px");
+	container->setLayoutOrientation(Widget::Layout::Horizontal);
+	container->addChild(this->_inputs[key], key);
+	this->_container->addChild(container, key);
+}
+
+Widget* GenericDialog::get_field(std::string key){
+	return this->_inputs[key];
+}
+
 void GenericDialog::setOnConfirmListener(EventManagerListener* listener){
 	registerListener(GenericDialog::Event_OnConfirm, listener);
 }
