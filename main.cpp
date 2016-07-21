@@ -36,7 +36,7 @@ int run_test(){
 }
 
 
-class TestApp : public remi::server::App , public EventManagerListener {
+class TestApp : public remi::server::App , public EventListener {
 private:
 	remi::Widget *mainContainer;
 	remi::TextInput* ti1;
@@ -76,19 +76,28 @@ public:
 
 	virtual void onEvent( std::string eventName , Event* eventData ){
 		if ( eventName == Widget::Event_OnClick ){
-			std::cout << "TestApp." << eventName << eventData->params;
+			std::cout << "TestApp." << eventName ;
 			show(dialog);
 		}
 
 		if ( eventName == GenericDialog::Event_OnConfirm ){
-			std::cout << "Inserted text:" << eventName << eventData->params;
+			std::cout << "Inserted text:" << eventName;
 			show(mainContainer);
 		}
 	}
 
 };
 
+Dictionary<int> t(){
+	Dictionary<int> a1;
+	a1["a1"] = 10;
+
+	return a1;
+}
+
 int main() {
+
+	Dictionary<int> a2 = t();
 
 	remi::server::Server<TestApp>* srv = new remi::server::Server<TestApp>();
 	srv->start();

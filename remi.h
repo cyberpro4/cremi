@@ -151,6 +151,11 @@ namespace remi {
 			this->name = name;
 		}
 
+		/*DictionaryValue( const DictionaryValue<T> & d ){
+			this->name = d.name;
+			this->value = d.value;
+		}*/
+
         DictionaryValue( std::string name , T value ){
             this->name = name;
             this->value = value;
@@ -177,6 +182,12 @@ namespace remi {
     public:
 
         Dictionary(){}
+
+		Dictionary( Dictionary<T> & d ){
+			for( DictionaryValue<T>* value : d._library ){
+				_library.push_front( new DictionaryValue<T>( value->name , value->value ) );
+			}
+		}
 
         bool has( std::string name ){
             DictionaryValue<T>* value = this->getDictionaryValue( name );
@@ -205,6 +216,13 @@ namespace remi {
 				_library.push_front( objectAttribute );
 			}
 			return (*objectAttribute);
+		}
+
+		void operator = ( const Dictionary<T> & d ){
+			clear();
+			for( DictionaryValue<T>* value : d._library ){
+				_library.push_front( new DictionaryValue<T>( value->name , value->value ) );
+			}
 		}
 
         const T get( std::string name ) const {
@@ -373,38 +391,38 @@ namespace remi {
 
 		std::string		name;
 
-		std::string		params;
+		Dictionary<std::string>			params;
 
 	};
 
-    class EventManagerListener {
+    class EventListener {
 
     public:
 
-        EventManagerListener();
+        EventListener();
 
         virtual void onEvent( std::string eventName , Event* eventData ) = 0;
 
     };
 
-    class EventEmitter {
+    class EventDispatcher : public EventListener {
 
     public:
 
-        EventEmitter();
+        EventDispatcher();
 
-        void propagate( Event* eventData );
+        void registerListener( std::string eventName , EventListener* listener, void* funcName = NULL );
 
-        void registerListener( std::string eventName , EventManagerListener* listener, void* funcName = NULL );
+		virtual void onEvent( std::string eventName , Event* eventData );
 
     private:
 
-        Dictionary<EventManagerListener*>  _listeners;
+        Dictionary<EventListener*>  _listeners;
     };
 
 
 
-    class Widget : public Tag , public EventEmitter {
+    class Widget : public Tag , public EventDispatcher {
 
     public:
 
@@ -454,7 +472,7 @@ namespace remi {
 
         void setOnFocusListener( void* listener , void* fname );
 
-		void setOnClickListener( EventManagerListener* listener );
+		void setOnClickListener( EventListener* listener );
 
     private:
 
@@ -510,11 +528,13 @@ namespace remi {
 		void setPlaceholder( std::string text );
 		std::string placeholder();
 
-		void setOnChangeListener( EventManagerListener* listener );
+		void setOnChangeListener( EventListener* listener );
 
-		void setOnKeyDownListener( EventManagerListener* listener );
+		void setOnKeyDownListener( EventListener* listener );
 
-		void setOnEnterListener( EventManagerListener* listener );
+		void setOnEnterListener( EventListener* listener );
+
+		virtual void onEvent( std::string name , Event* event );
 
 	};
 
@@ -542,9 +562,9 @@ namespace remi {
 
 		Widget* get_field(std::string key);
 
-		void setOnConfirmListener(EventManagerListener* listener);
+		void setOnConfirmListener(EventListener* listener);
 
-		void setOnCancelListener(EventManagerListener* listener);
+		void setOnCancelListener(EventListener* listener);
 
 	private:
 

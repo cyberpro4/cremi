@@ -26,6 +26,8 @@ namespace remi {
             
 		private:
 
+			Dictionary<std::string>		parseParams( std::string paramString );
+
 			remi_thread		_t;
 
 			remi_socket		_sock;

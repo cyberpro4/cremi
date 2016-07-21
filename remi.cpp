@@ -312,18 +312,19 @@ Event::Event( std::string name ){
 	this->name = name;
 }
 
-EventManagerListener::EventManagerListener(){}
+EventListener::EventListener(){}
 
-EventEmitter::EventEmitter(){}
+EventDispatcher::EventDispatcher(){}
 
-void EventEmitter::propagate( Event* eventData ){
-    if( _listeners.has( eventData->name ) == false )
+void EventDispatcher::onEvent( std::string eventName , Event* eventData ){
+
+	if( _listeners.has( eventData->name ) == false )
         return;
 
     _listeners.get( eventData->name )->onEvent( eventData->name , eventData );
 }
 
-void EventEmitter::registerListener( std::string eventName , EventManagerListener* listener, void* funcName ){
+void EventDispatcher::registerListener( std::string eventName , EventListener* listener, void* funcName ){
     _listeners.set( eventName , listener );
 }
 
@@ -493,7 +494,7 @@ void Widget::setOnFocusListener( void* listener , void* fname ){
 
 }
 
-void Widget::setOnClickListener( EventManagerListener* listener ){
+void Widget::setOnClickListener( EventListener* listener ){
 
 	attributes[Widget::Event_OnClick] = utils::sformat(
 		"sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",
@@ -595,11 +596,20 @@ TextInput::TextInput( bool single_line ){
 	// TODO: hint?
 }
 
-void TextInput::setOnChangeListener( EventManagerListener* listener ){
+void TextInput::setOnChangeListener( EventListener* listener ){
 	registerListener( Widget::Event_OnChange, listener );
 }
 
-void TextInput::setOnKeyDownListener( EventManagerListener* listener ){
+void TextInput::onEvent( std::string name , Event* event ){
+
+	if( name == Widget::Event_OnChange && event->params.has("new_value") ){
+		setText( event->params["new_value"] );
+	}
+
+	Widget::onEvent( name , event );
+}
+
+void TextInput::setOnKeyDownListener( EventListener* listener ){
 	attributes[Widget::Event_OnKeyDown] = utils::sformat(
 		"var params={};params['new_value']=document.getElementById('%s').value;" \
         "sendCallbackParam('%s','%s',params);" ,
@@ -608,7 +618,7 @@ void TextInput::setOnKeyDownListener( EventManagerListener* listener ){
 	registerListener( Widget::Event_OnKeyDown , listener );
 }
 
-void TextInput::setOnEnterListener( EventManagerListener* listener ){
+void TextInput::setOnEnterListener( EventListener* listener ){
 	attributes[TextInput::Event_OnEnter] = utils::sformat( "\
             if (event.keyCode == 13) { \
                 var params={};\
@@ -725,10 +735,10 @@ Widget* GenericDialog::get_field(std::string key){
 	return this->_inputs[key];
 }
 
-void GenericDialog::setOnConfirmListener(EventManagerListener* listener){
+void GenericDialog::setOnConfirmListener(EventListener* listener){
 	registerListener(GenericDialog::Event_OnConfirm, listener);
 }
 
-void GenericDialog::setOnCancelListener(EventManagerListener* listener){
+void GenericDialog::setOnCancelListener(EventListener* listener){
 	registerListener(GenericDialog::Event_OnCancel, listener);
 }

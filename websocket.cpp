@@ -8,6 +8,8 @@
 
 #include <openssl/sha.h>
 
+#include <regex>
+
 using namespace remi::server;
 using namespace remi;
 
@@ -159,7 +161,35 @@ void WebsocketClientInterface::handshake(){
 	_handshakeDone = true;
 }
 
-void WebsocketClientInterface::on_message( std::string message){
+Dictionary<std::string>	WebsocketClientInterface::parseParams( std::string paramString ){
+	/*std::smatch match;
+	std::string out = paramString;*/
+	Dictionary<std::string> ret;
+
+	bool firstMatch = true;
+
+	//std::regex_search( out, match, std::regex("[^\\|]+\\|?" ) );
+
+	for( std::string m : utils::split(paramString,"|") ){
+
+		if( firstMatch ){
+			firstMatch = false;
+			continue;
+		}
+
+		std::list<std::string> parts = utils::split(m , "=");
+
+		if( parts.size() != 2 )
+			continue;
+
+		ret[utils::list_at(parts, 0)] = utils::list_at(parts,1);
+
+	}
+
+	return ret;
+}
+
+void WebsocketClientInterface::on_message( std::string message ){
 
 	//std::cout << "ws: " << message;
 
@@ -186,15 +216,19 @@ void WebsocketClientInterface::on_message( std::string message){
 			if( utils::sscan( s_widget_id , "%d" , &widget_id  ) != 1 )
 				return;
 
+			
+
 			Widget* widget = (Widget*)( (void*)widget_id );
 
 			Event* event = new Event( function_name );
 			event->source = widget;
 			
-			/*if( chunks.size() >= 4 )
-				event->params = utils::list_at( chunks , 4 );*/
+			if( chunks.size() >= 4 )
+				//event->params = utils::list_at( chunks , 4 );
+				event->params = parseParams( utils::list_at( chunks , 3 ) );
 
-			widget->propagate( event );
+			//widget->propagate( event );
+			widget->onEvent( event->name , event );
 
 			delete event;
 		}

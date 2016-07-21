@@ -53,6 +53,7 @@ body {
     font-size: 14px;
     font-weight: 400;
     min-height: 100%;
+	background-color: #efefef;
 }
 *[hidden] {
     display: none!important
