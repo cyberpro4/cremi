@@ -88,16 +88,10 @@ public:
 
 };
 
-Dictionary<int> t(){
-	Dictionary<int> a1;
-	a1["a1"] = 10;
 
-	return a1;
-}
 
 int main() {
 
-	Dictionary<int> a2 = t();
 
 	remi::server::Server<TestApp>* srv = new remi::server::Server<TestApp>();
 	srv->start();

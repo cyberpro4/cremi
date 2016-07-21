@@ -89,6 +89,7 @@
     <ClInclude Include="remi.h" />
     <ClInclude Include="remi_server.h" />
     <ClInclude Include="websocket.h" />
+    <ClInclude Include="xdp.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

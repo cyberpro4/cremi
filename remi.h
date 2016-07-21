@@ -151,11 +151,6 @@ namespace remi {
 			this->name = name;
 		}
 
-		/*DictionaryValue( const DictionaryValue<T> & d ){
-			this->name = d.name;
-			this->value = d.value;
-		}*/
-
         DictionaryValue( std::string name , T value ){
             this->name = name;
             this->value = value;
