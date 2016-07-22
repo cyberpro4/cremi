@@ -693,11 +693,11 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 	addChild(_container);
 	addChild(_hLay);
 
-	_confirmButton->attributes[Widget::Event_OnClick] = utils::sformat( "sendCallback('%s','%s');" , 
-		getIdentifier().c_str(), GenericDialog::Event_OnConfirm );
+	_confirmButton->attributes[Widget::Event_OnClick] = utils::sformat( "sendCallback('%s','%s');" ,
+		getIdentifier().c_str(), GenericDialog::Event_OnConfirm.c_str() );
 
-	_cancelButton->attributes[Widget::Event_OnClick] = utils::sformat( "sendCallback('%s','%s');" , 
-		getIdentifier().c_str(), GenericDialog::Event_OnCancel );
+	_cancelButton->attributes[Widget::Event_OnClick] = utils::sformat( "sendCallback('%s','%s');",
+		getIdentifier().c_str(), GenericDialog::Event_OnCancel.c_str() );
 
 	/*
     self.inputs = {}
@@ -705,6 +705,15 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
     self.baseAppInstance = None
 	*/        
 	
+}
+
+void GenericDialog::onEvent(std::string name, Event* event){
+
+	if (name == GenericDialog::Event_OnConfirm){
+		
+	}
+
+	Widget::onEvent(name, event);
 }
 
 void GenericDialog::add_field_with_label(std::string key, std::string label_description, Widget* field){
