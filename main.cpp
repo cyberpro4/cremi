@@ -76,12 +76,12 @@ public:
 
 	virtual void onEvent( std::string eventName , Event* eventData ){
 		if ( eventName == Widget::Event_OnClick ){
-			std::cout << "TestApp." << eventName ;
+			std::cout << "TestApp." << eventName << endl ;
 			show(dialog);
 		}
 
 		if ( eventName == GenericDialog::Event_OnConfirm ){
-			std::cout << "Inserted text:" << eventName;
+			std::cout << "Inserted text: " << ((remi::TextInput*)dialog->get_field("input"))->text() << eventName << endl;
 			show(mainContainer);
 		}
 	}

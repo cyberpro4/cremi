@@ -560,6 +560,8 @@ namespace remi {
 
 		GenericDialog( std::string title = "" , std::string message = "" );
 
+		void onEvent(std::string name, Event* event);
+
 		void add_field_with_label(std::string key, std::string label_description, Widget* field);
 
 		void add_field(std::string key, Widget* field);

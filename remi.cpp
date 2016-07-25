@@ -720,6 +720,15 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 	
 }
 
+void GenericDialog::onEvent(std::string name, Event* event){
+
+	if (name == GenericDialog::Event_OnConfirm){
+		
+	}
+
+	Widget::onEvent(name, event);
+}
+
 void GenericDialog::add_field_with_label(std::string key, std::string label_description, Widget* field){
 	this->_inputs[key] = field;
 	Label* label = new Label(label_description);
