@@ -64,7 +64,7 @@
  
 #endif
 
-int				remi_timestamp();
+long long int	remi_timestamp();
 
 remi_thread		remi_createThread( remi_thread_callback callback , remi_thread_param param );
 
@@ -93,16 +93,19 @@ namespace remi {
 		template< class org >
 		org list_at( std::list<org> list , int index ){
 			int c = 0;
+            org fitem;
 			for( org item : list ){
 				if( c == index )
-					return item;
+					fitem = item;
 				c++;
 			}
+
+            return fitem;
 		}
 
 		class TimerListener {
 		public:
-			virtual void timer() = 0;
+			virtual void onTimer() = 0;
 		};
 
         //Timer utility. Calls a function (in a parallel std::thread) at a predefined 'millisecondsInterval' until stopFlag turns True.
@@ -110,12 +113,15 @@ namespace remi {
         public:
             
             Timer( int millisecondsInterval , TimerListener* listener = NULL );
+			Timer();
 
             void stop();
 
 			void start();
 
 			void setInterval( int millisecondsInterval );
+
+			void setListener( TimerListener* listener );
 
 			bool has_passed();
 
@@ -222,8 +228,11 @@ namespace remi {
 
         const T get( std::string name ) const {
             DictionaryValue<T>* objectAttribute = this->getDictionaryValue( name );
-            if( objectAttribute != NULL )
-                return objectAttribute->value;
+
+            /*if( objectAttribute != NULL )
+                return objectAttribute->value;*/
+
+            return objectAttribute->value;
         }
 
         void remove( std::string name ){

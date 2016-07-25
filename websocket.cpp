@@ -104,13 +104,13 @@ bool WebsocketClientInterface::readNextMessage(){
 	char *buf = new char [ payload_len +1 ];
 	memset( buf , 0 , payload_len+1 );
 
-	int _rv = -1;
-	if( (_rv = recv( _sock , buf , payload_len , 0 )) != payload_len ){
+	ssize_t _rv = -1;
+	if( (_rv = recv( _sock , buf , payload_len , 0 )) != (ssize_t)payload_len ){
 		delete buf;
 		return false;
 	}
 
-	for(int l = 0; l < payload_len; l++ ){
+	for(ssize_t l = 0; l < _rv; l++ ){
 		buf[l] = buf[l] ^ mask[ l % 4 ];
 	}
 
@@ -206,8 +206,6 @@ void WebsocketClientInterface::on_message( std::string message ){
 			std::string s_widget_id = utils::list_at( chunks , 1 );
 
 			std::string function_name = utils::list_at( chunks , 2 );
-
-			void* params;
 
 			std::cout << "ws: call id = " <<  s_widget_id << "." << function_name << std::endl;
 				;
@@ -330,17 +328,23 @@ void* WebsocketServer::_listenAsync(void* data){
 
         if( client != INVALID_SOCKET ){
 
-			//std::string key = uniqueClientKey(clientSock);
-			std::string key = "remove_me";
+#ifdef WIN32
+			// Clients keys are "[IP_ADDRESS]:[PORT]"
+			std::string key = utils::sformat( "%d.%d.%d.%d:%d" , 
+				(int)clientSock.sin_addr.S_un.S_un_b.s_b1,
+				(int)clientSock.sin_addr.S_un.S_un_b.s_b2,
+				(int)clientSock.sin_addr.S_un.S_un_b.s_b3,
+				(int)clientSock.sin_addr.S_un.S_un_b.s_b4,
+				(int)clientSock.sin_port
+			);
+#else
+			std::string key = utils::sformat( "%s:%d" , 
+				inet_ntoa( clientSock.sin_addr ),
+				clientSock.sin_port );
+#endif
+
             _clients.set(key , new WebsocketClientInterface( client , clientSock ) );
 
-            //_log( "new client" );
-
-            /*NetServer_ClientThread_Data*    data = new NetServer_ClientThread_Data;
-            data->socket = client;
-            data->server = netClass;
-            //CreateThread( 0 , 0 , (LPTHREAD_START_ROUTINE)&NetServer_ClientThread , data , 0 , 0 );*/
-            //remi_createThread( (remi_thread_callback)&NetServer_ClientThread , data );
         }
  
         Sleep( 100 );

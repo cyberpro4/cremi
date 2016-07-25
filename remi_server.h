@@ -82,7 +82,7 @@ namespace remi {
 
 		};
 
-		class AnonymousServer {
+		class AnonymousServer : private utils::TimerListener {
 
 		public:
 
@@ -96,6 +96,8 @@ namespace remi {
 
 			void stop();
 
+			void onTimer();
+
 			ServerResponse*		serve( std::string url );
 
 			virtual App* buildInstance() = 0;
@@ -105,6 +107,8 @@ namespace remi {
 			void* _serverInfo;
 
 			App* _guiInstance;
+
+			utils::Timer	_updateTimer;
 
 		};
 

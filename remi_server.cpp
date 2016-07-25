@@ -126,16 +126,27 @@ size_t *upload_data_size, void **con_cls)
 
 AnonymousServer::AnonymousServer(){
 	_guiInstance = NULL;
+	_updateTimer.setInterval( 100 );
+	_updateTimer.setListener( this );
+	_updateTimer.start();
 }
 
 void AnonymousServer::address(){
+}
+
+void AnonymousServer::onTimer(){
+	
 }
 
 void AnonymousServer::start(void* user_data){
 
 	struct MHD_Daemon *daemon;
 
-	daemon = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY, 91, NULL, NULL,
+	int		port = 91;
+
+	std::cout << "cRemi Http server listening on port " << port << std::endl;
+
+	daemon = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY, port, NULL, NULL,
 		&__remi_server_answer, this, MHD_OPTION_END);
 
 	_serverInfo = (void*)daemon;

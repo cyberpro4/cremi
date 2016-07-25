@@ -17,7 +17,7 @@
 
 using namespace remi;
 
-int		remi_timestamp(){
+long long int	remi_timestamp(){
 #ifdef _WIN32
 
 	FILETIME ft = {0};
@@ -32,7 +32,9 @@ int		remi_timestamp(){
     long long int hns = li.QuadPart;
 
 	return (int)(hns / 1000 / 1000);
+#else
 
+	return time( NULL );
 
 #endif
 }
@@ -149,7 +151,6 @@ std::list<std::string> remi::utils::split( std::string subject , std::string del
 	std::list<std::string> list;
 
 	size_t found = 0;
-	size_t start = 0;
 
 	while( true ){
 
@@ -230,6 +231,18 @@ utils::Timer::Timer( int millisecondsInterval, TimerListener* listener ){
 	start();
 }
 
+utils::Timer::Timer(){
+	_stopFlag = false;
+
+    _millisecondsInterval = 0;
+
+	_listener = NULL;
+}
+
+void utils::Timer::setListener( TimerListener* listener ){
+	_listener = listener;
+}
+
 remi_thread_result utils::Timer::thread_entry( remi_thread_param instance ){
 	((utils::Timer*)instance)->tick();
 	return 0;
@@ -245,7 +258,7 @@ void remi::utils::Timer::setInterval( int msecInterval ){
 }
 
 bool utils::Timer::has_passed(){
-	return elapsed() > _millisecondsInterval;
+	return elapsed() > (_millisecondsInterval/1000.f);
 }
 
 void remi::utils::Timer::tick(){
@@ -253,10 +266,10 @@ void remi::utils::Timer::tick(){
 		if( has_passed() ){
 			_passed = true;
 			if( _listener != NULL ){
-				_listener->timer();
+				_listener->onTimer();
 			}
 
-			stop();
+			//stop();
 		}
 
 		Sleep( 2 );
@@ -694,10 +707,10 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 	addChild(_hLay);
 
 	_confirmButton->attributes[Widget::Event_OnClick] = utils::sformat( "sendCallback('%s','%s');" , 
-		getIdentifier().c_str(), GenericDialog::Event_OnConfirm );
+		getIdentifier().c_str(), GenericDialog::Event_OnConfirm.c_str() );
 
 	_cancelButton->attributes[Widget::Event_OnClick] = utils::sformat( "sendCallback('%s','%s');" , 
-		getIdentifier().c_str(), GenericDialog::Event_OnCancel );
+		getIdentifier().c_str(), GenericDialog::Event_OnCancel.c_str() );
 
 	/*
     self.inputs = {}
