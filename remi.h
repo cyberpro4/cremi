@@ -322,9 +322,18 @@ namespace remi {
             return _version;
         }
 
+		void alignVersion(){
+			_lastVersion = _version;
+		}
+
+		bool isChanged(){
+			return _version != _lastVersion;
+		}
+
     private:
 
         long _version;
+		long _lastVersion;
     };
 
     class Represantable {
@@ -366,6 +375,12 @@ namespace remi {
 		void addChild( std::string child, std::string key = "" );
 
         Represantable * getChild(std::string key );
+
+		void setUpdated();
+
+		bool isChanged(){
+			return attributes.isChanged() || style.isChanged() || children.isChanged();
+		}
 
     public:
 

@@ -13,6 +13,7 @@
 #include <map>
 #include <string>
 
+
 namespace remi {
 
 	namespace server {
@@ -66,6 +67,8 @@ namespace remi {
 			ServerResponse*		serve( std::string url );
 
 			void show( Widget* _w );
+
+			bool update(remi::Tag* child_widget = NULL, bool avoid_update_because_new_subchild = false);
 
 		private:
 

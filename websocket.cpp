@@ -104,13 +104,13 @@ bool WebsocketClientInterface::readNextMessage(){
 	char *buf = new char [ payload_len +1 ];
 	memset( buf , 0 , payload_len+1 );
 
-	ssize_t _rv = -1;
-	if( (_rv = recv( _sock , buf , payload_len , 0 )) != (ssize_t)payload_len ){
+	size_t _rv = -1;
+	if( (_rv = recv( _sock , buf , payload_len , 0 )) != (size_t)payload_len ){
 		delete buf;
 		return false;
 	}
 
-	for(ssize_t l = 0; l < _rv; l++ ){
+	for(size_t l = 0; l < _rv; l++ ){
 		buf[l] = buf[l] ^ mask[ l % 4 ];
 	}
 
