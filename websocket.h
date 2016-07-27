@@ -50,6 +50,8 @@ namespace remi {
 			void*	_listenAsync(void* data);
 
 			void	stop();
+
+			void	sendToAllClients(std::string message);
             
 		private:
 			remi_thread _t;

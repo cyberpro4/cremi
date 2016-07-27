@@ -352,3 +352,16 @@ void* WebsocketServer::_listenAsync(void* data){
 
 	return NULL;
 }
+
+void WebsocketServer::sendToAllClients(std::string message){
+	//for (std::list<std::string>::iterator key_iterator = _clients.keys().begin(); key_iterator != _clients.keys().end(); key_iterator++){
+	for (std::string key : _clients.keys()){
+		WebsocketClientInterface* ws = _clients.get(key);
+
+		//a client may die, destroy here the instance of send fails
+		//try{
+			ws->send_message(message);
+		/*}
+		catch (Exception e){}*/
+	}
+}

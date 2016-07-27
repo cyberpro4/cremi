@@ -225,15 +225,12 @@ bool App::update(remi::Tag* child_tag, bool avoid_update_because_new_subchild){
 	if (child_tag == NULL)child_tag = this->_rootWidget;
 
 	if (child_tag->isChanged()){
-		for (ws in client.websockets){
-			//log.debug('update_widget: %s type: %s' % (child_tag->getIdentifier().c_str(), child_tag->class_name));
-			try{
-				std::string html = child_tag->repr();
-				ws.send_message('update_widget,' + __id + ',' + to_websocket(html));
-			}catch (Exception e){
-				client.websockets.remove(ws);
-			}
-		}
+		
+		std::string html = child_tag->repr();
+		std::ostringstream output;
+		output << "update_widget," << child_tag->getIdentifier().c_str() << "," << html;
+		this->_webSocketServer->sendToAllClients(output.str());
+		
 		//update children dictionaries __version__ in order to avoid nested updates
 		child_tag->setUpdated();
 		return true;
@@ -242,8 +239,8 @@ bool App::update(remi::Tag* child_tag, bool avoid_update_because_new_subchild){
 	bool changed_or = false;
 	
 	//checking if subwidgets changed
-	for (std::list<std::string>::iterator key_iterator = child_tag->children.keys().begin(); key_iterator != child_tag->children.keys().end(); key_iterator++){
-		Represantable* represantable = child_tag->children.get(*key_iterator);
+	for (std::string key : child_tag->children.keys()){
+		Represantable* represantable = child_tag->children.get(key);
 		if (dynamic_cast<Tag*>(represantable) != 0){
 			changed_or |= this->update((remi::Widget*)represantable, avoid_update_because_new_subchild);
 		}

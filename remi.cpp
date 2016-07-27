@@ -441,6 +441,7 @@ Represantable * Tag::getChild(std::string key ){
 }
 
 void Tag::setUpdated(){
+	attributes.alignVersion(); style.alignVersion(); children.alignVersion();
 	for (Represantable* represantable : _render_children_list){
 		if (dynamic_cast<Tag*>(represantable) != 0){
 			Tag* _tag = dynamic_cast<Tag*>(represantable);
