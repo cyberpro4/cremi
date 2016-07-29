@@ -3,6 +3,8 @@
 #define _REMI_WEBSOCKET__
 
 #include "remi.h"
+#include <iostream>
+using namespace std;
 
 namespace remi {
 

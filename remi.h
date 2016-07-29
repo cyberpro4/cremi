@@ -9,6 +9,10 @@
 #include <list>
 #include <sstream>
 #include <map>
+#include <codecvt>
+#include <string>
+#include <locale>
+#include <iomanip>
 
 //#include <thread>       //std::this_thread::sleep_for std::thread
 #include <chrono>
@@ -77,6 +81,8 @@ namespace remi {
         std::string join(std::list<std::string> stringList , std::string glue );
 
 		std::string string_encode(std::string text);
+
+		std::string escape_json(const std::string &s);
 
 		std::string sformat( std::string format , ... );
 

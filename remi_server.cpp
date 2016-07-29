@@ -215,6 +215,10 @@ ServerResponse* App::serve(std::string url){
 
 void App::show(remi::Widget* _w){
 	this->_rootWidget = _w; //here will be necessary to force the new rootWidget update
+	std::string html = remi::utils::string_encode(remi::utils::escape_json(_w->repr()));
+	std::ostringstream output;
+	output << "show_window," << _w->getIdentifier().c_str() << "," << html;
+	this->_webSocketServer->sendToAllClients(output.str());
 }
 
 bool App::update(remi::Tag* child_tag, bool avoid_update_because_new_subchild){
@@ -226,7 +230,7 @@ bool App::update(remi::Tag* child_tag, bool avoid_update_because_new_subchild){
 
 	if (child_tag->isChanged()){
 		
-		std::string html = child_tag->repr();
+		std::string html = remi::utils::string_encode(remi::utils::escape_json(child_tag->repr()));
 		std::ostringstream output;
 		output << "update_widget," << child_tag->getIdentifier().c_str() << "," << html;
 		this->_webSocketServer->sendToAllClients(output.str());

@@ -54,7 +54,7 @@ function websocketOnMessage (evt){
     index = received_msg.indexOf(',')+1;
     var content = received_msg.substr(index,received_msg.length-index);
 
-    /*console.debug('command:' + command);*/
+    
     /*console.debug('content:' + content);*/
 
     if( command=='show_window' ){
@@ -83,6 +83,8 @@ function websocketOnMessage (evt){
         if(comTimeout!=null)clearTimeout(comTimeout);
     }else if( command=='ping'){
         ws.send('pong');
+    }else{
+        //console.debug(">>>>UNKNOWN MESSAGE TYPE: " + decodeURIComponent(received_msg));
     }
 };
 

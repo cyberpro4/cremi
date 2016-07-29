@@ -261,10 +261,11 @@ void WebsocketClientInterface::send_message( std::string message){
 
 	} else if( message_length >= 126 && message_length <= 65535 ){
 
-		buffer_length -= 4;
+		buffer_length -= 6;
 		*lpmsg = 126;lpmsg++;
 		unsigned short _m = message_length;
-		memcpy( lpmsg , &_m , 2 );
+		lpmsg[0] = (_m >> 8) & 0xff;
+		lpmsg[1] = (_m >> 0) & 0xff;
 		lpmsg += 2;
 
 	} else {
@@ -360,7 +361,8 @@ void WebsocketServer::sendToAllClients(std::string message){
 
 		//a client may die, destroy here the instance of send fails
 		//try{
-			ws->send_message(message);
+		//cout << message << endl;
+			ws->send_message(message.c_str());
 		/*}
 		catch (Exception e){}*/
 	}

@@ -182,7 +182,34 @@ std::string remi::utils::join(std::list<std::string> stringList , std::string gl
 }
 
 std::string remi::utils::string_encode(std::string text){
-	return text;
+	std::locale loc(std::locale(), new std::codecvt_utf8<char>);
+	std::ostringstream o;
+	o.imbue(loc);
+	o << text;
+	return o.str();
+}
+
+std::string remi::utils::escape_json(const std::string &s) {
+	std::ostringstream escaped;
+	escaped.fill('0');
+	escaped << std::hex;
+
+	for (char i : s) {
+		std::string::value_type c = i;
+
+		// Keep alphanumeric and other accepted characters intact
+		if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+			escaped << c;
+			continue;
+		}
+
+		// Any other characters are percent-encoded
+		escaped << std::uppercase;
+		escaped << '%' << std::setw(2) << int((unsigned char)c);
+		escaped << std::nouppercase;
+	}
+
+	return escaped.str();
 }
 
 int remi::utils::sscan( std::string from , std::string format , ... ){
