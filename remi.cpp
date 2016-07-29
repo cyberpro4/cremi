@@ -589,16 +589,6 @@ VBox::VBox() : Widget(){
 
 }
 
-void TextWidget::setText( std::string text ){
-	((Tag*)this)->addChild( text , std::string("text") );
-}
-
-std::string TextWidget::text(){
-	Represantable* repr = getChild("text");
-	return ((StringRepresantable*)repr)->repr();
-}
-
-
 Button::Button( std::string text ) : TextWidget(){
 
 	_type = "button";
@@ -690,6 +680,15 @@ void TextInput::setPlaceholder( std::string text ){
 
 std::string TextInput::placeholder(){
 	return  attributes["placeholder"];
+}
+
+void TextWidget::setText(std::string text){
+	((Tag*)this)->addChild(text, std::string("text"));
+}
+
+std::string TextWidget::text(){
+	Represantable* repr = getChild("text");
+	return ((StringRepresantable*)repr)->repr();
 }
 
 Label::Label( std::string text ){

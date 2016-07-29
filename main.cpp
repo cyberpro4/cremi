@@ -38,11 +38,11 @@ int run_test(){
 
 class TestApp : public remi::server::App , public EventListener {
 private:
-	remi::Widget *mainContainer;
-	remi::TextInput* ti1;
+	remi::Widget*			mainContainer;
+	remi::TextInput*		ti1;
 
-	remi::GenericDialog* dialog;
-
+	remi::GenericDialog*	dialog;
+	remi::Label*			label;
 public:
 
 	virtual Widget* main(){
@@ -53,6 +53,9 @@ public:
 		mainContainer->style.set("height", "200px");
 		//mainContainer->style.set("background-color", "red");
 		//tag1->setOnClickListener(this);
+
+		label = new remi::Label("CRemi");
+		mainContainer->addChild(label);
 
 		ti1 = new remi::TextInput();
 		ti1->setOnChangeListener(this);
@@ -75,13 +78,22 @@ public:
 	}
 
 	virtual void onEvent( std::string eventName , Event* eventData ){
+		std::ostringstream o;
 		if ( eventName == Widget::Event_OnClick ){
 			std::cout << "TestApp." << eventName << endl ;
 			show(dialog);
 		}
 
 		if ( eventName == GenericDialog::Event_OnConfirm ){
-			std::cout << "Inserted text: " << ((remi::TextInput*)dialog->get_field("input"))->text() << eventName << endl;
+			o << "Dialog confirmed: " << ((remi::TextInput*)dialog->get_field("input"))->text();
+			label->setText( o.str() );
+			((remi::TextInput*)dialog->get_field("input"))->setText("");
+			show(mainContainer);
+		}
+
+		if (eventName == GenericDialog::Event_OnCancel){
+			label->setText("Dialog canceled.");
+			((remi::TextInput*)dialog->get_field("input"))->setText("");
 			show(mainContainer);
 		}
 	}
