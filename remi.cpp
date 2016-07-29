@@ -81,6 +81,8 @@ const std::string TextInput::Event_OnEnter = "OnEnter";
 const std::string GenericDialog::Event_OnConfirm = "OnConfirm";
 const std::string GenericDialog::Event_OnCancel = "OnCancel";
 
+const std::string ListView::Event_OnSelection = "OnSelection";
+
 std::string remi::utils::base64( std::string str ){
 
   BIO *bmem, *b64;
@@ -797,4 +799,54 @@ void GenericDialog::setOnConfirmListener(EventListener* listener){
 
 void GenericDialog::setOnCancelListener(EventListener* listener){
 	registerListener(GenericDialog::Event_OnCancel, listener);
+}
+
+
+ListView::ListView(){
+	_type = "ul";
+	this->selectedItem = NULL;
+}
+
+void ListView::addChild(Represantable* child, std::string key){
+	((ListItem*)child)->setOnClickListener(this);
+	Tag::addChild(child, key);
+}
+
+void ListView::setOnSelectionListener(EventListener* listener){
+	registerListener(ListView::Event_OnSelection, listener);
+}
+
+void ListView::onEvent(std::string name, Event* event){
+	if (name == Widget::Event_OnClick){
+		
+		selectItem(dynamic_cast<ListItem*>(event->source));
+		
+		Event e(ListView::Event_OnSelection);
+		e.source = this;
+		//e.params["selectedItem"] = this->selectedItem;
+		Widget::onEvent(ListView::Event_OnSelection, &e);
+		onSelectionListener->onSelection(this, this->selectedItem);
+	}
+}
+
+void ListView::selectByKey(std::string key){
+	
+	if (!children.has(key))return;
+	
+	selectItem(dynamic_cast<ListItem*>(children.get(key)));
+	
+}
+
+void ListView::selectItem(ListItem* item){
+	if (this->selectedItem != NULL)this->selectedItem->attributes.remove("selected");
+
+	this->selectedItem = item;
+	this->selectedItem->attributes["selected"] = "true";
+}
+
+
+
+ListItem::ListItem(std::string text){
+	_type = "li";
+	setText( text );
 }

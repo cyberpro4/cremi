@@ -36,24 +36,36 @@ int run_test(){
 }
 
 
-class TestApp : public remi::server::App , public EventListener {
+class TestApp : public remi::server::App , public EventListener, public ListView::ListViewOnSelectionListener {
 private:
 	remi::Widget*			mainContainer;
 	remi::TextInput*		ti1;
 
 	remi::GenericDialog*	dialog;
 	remi::Label*			label;
+
+	remi::ListView*			listView;
+
 public:
 
 	virtual Widget* main(){
 		mainContainer = new remi::VBox();
 
 		//mainContainer->addClass("myclass2");
-		mainContainer->style.set("width", "200px");
-		mainContainer->style.set("height", "200px");
+		mainContainer->style.set("width", "300px");
+		mainContainer->style.set("height", "500px");
 		//mainContainer->style.set("background-color", "red");
 		//tag1->setOnClickListener(this);
 
+		listView = new ListView();
+		listView->addChild(new ListItem("item1"));
+		listView->addChild(new ListItem("item2"));
+		listView->onSelectionListener = this;
+		listView->style["padding"] = "0px";
+		listView->style["width"] = "200px";
+		mainContainer->addChild(listView);
+
+		
 		label = new remi::Label("CRemi");
 		mainContainer->addChild(label);
 
@@ -96,6 +108,12 @@ public:
 			((remi::TextInput*)dialog->get_field("input"))->setText("");
 			show(mainContainer);
 		}
+	}
+
+	void onSelection(ListView* list, ListItem* item){
+		std::ostringstream o;
+		o << "ListView selection: " << item->text();
+		label->setText(o.str());
 	}
 
 };

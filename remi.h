@@ -603,6 +603,41 @@ namespace remi {
 
 	};
 
+
+	class ListItem : public TextWidget {
+	public:
+
+		ListItem(std::string text = "");
+
+
+	};
+
+	class ListView : public Widget {
+	public:
+		class ListViewOnSelectionListener{ public: virtual void onSelection(ListView*, ListItem*) = 0; };
+	public:
+
+		static const std::string Event_OnSelection;
+
+		ListView();
+
+		void addChild(Represantable* child, std::string key = "");
+
+		void setOnSelectionListener(EventListener* listener);
+
+		virtual void onEvent(std::string name, Event* event);
+
+		void selectByKey(std::string key);
+
+		void selectItem(ListItem* item);
+
+	public: //members
+		ListItem*	selectedItem;
+		ListViewOnSelectionListener* onSelectionListener;
+
+	};
+	
+	
 }
 
 #endif //CPORT_REMI_H
