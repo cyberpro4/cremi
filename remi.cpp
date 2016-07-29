@@ -757,11 +757,11 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 }
 
 void GenericDialog::onEvent(std::string name, Event* event){
-
 	if (name == GenericDialog::Event_OnConfirm){
-		
+		onConfirmListener->onConfirm(this);
+	}else if (name == GenericDialog::Event_OnCancel){
+		onCancelListener->onCancel(this);
 	}
-
 	Widget::onEvent(name, event);
 }
 
@@ -791,14 +791,6 @@ void GenericDialog::add_field(std::string key, Widget* field){
 
 Widget* GenericDialog::get_field(std::string key){
 	return this->_inputs[key];
-}
-
-void GenericDialog::setOnConfirmListener(EventListener* listener){
-	registerListener(GenericDialog::Event_OnConfirm, listener);
-}
-
-void GenericDialog::setOnCancelListener(EventListener* listener){
-	registerListener(GenericDialog::Event_OnCancel, listener);
 }
 
 

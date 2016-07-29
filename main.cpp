@@ -36,7 +36,11 @@ int run_test(){
 }
 
 
-class TestApp : public remi::server::App , public EventListener, public ListView::ListViewOnSelectionListener {
+class TestApp : public remi::server::App , 
+				public EventListener, 
+				public ListView::ListViewOnSelectionListener, 
+				public GenericDialog::GenericDialogOnConfirmListener,
+				public GenericDialog::GenericDialogOnCancelListener {
 private:
 	remi::Widget*			mainContainer;
 	remi::TextInput*		ti1;
@@ -83,8 +87,8 @@ public:
 		dialog = new remi::GenericDialog("Dialog", "This is a generic input dialog");
 		remi::TextInput* ti2 = new remi::TextInput(true);
 		dialog->add_field_with_label("input", "Insert a text", ti2);
-		dialog->setOnConfirmListener(this);
-		dialog->setOnCancelListener(this);
+		dialog->onConfirmListener = this;
+		dialog->onCancelListener = this;
 
 		return mainContainer;
 	}
@@ -95,25 +99,26 @@ public:
 			std::cout << "TestApp." << eventName << endl ;
 			show(dialog);
 		}
-
-		if ( eventName == GenericDialog::Event_OnConfirm ){
-			o << "Dialog confirmed: " << ((remi::TextInput*)dialog->get_field("input"))->text();
-			label->setText( o.str() );
-			((remi::TextInput*)dialog->get_field("input"))->setText("");
-			show(mainContainer);
-		}
-
-		if (eventName == GenericDialog::Event_OnCancel){
-			label->setText("Dialog canceled.");
-			((remi::TextInput*)dialog->get_field("input"))->setText("");
-			show(mainContainer);
-		}
 	}
 
 	void onSelection(ListView* list, ListItem* item){
 		std::ostringstream o;
 		o << "ListView selection: " << item->text();
 		label->setText(o.str());
+	}
+
+	void onConfirm(GenericDialog* dialog){
+		std::ostringstream o;
+		o << "Dialog confirmed: " << ((remi::TextInput*)dialog->get_field("input"))->text();
+		label->setText(o.str());
+		((remi::TextInput*)dialog->get_field("input"))->setText("");
+		show(mainContainer);
+	}
+
+	void onCancel(GenericDialog* dialog){
+		label->setText("Dialog canceled.");
+		((remi::TextInput*)dialog->get_field("input"))->setText("");
+		show(mainContainer);
 	}
 
 };

@@ -573,7 +573,12 @@ namespace remi {
 
 
 	class GenericDialog : public Widget {
+	public:
+		class GenericDialogOnConfirmListener{ public: virtual void onConfirm(GenericDialog*) = 0; };
+		class GenericDialogOnCancelListener{ public: virtual void onCancel(GenericDialog*) = 0; };
 
+		GenericDialogOnConfirmListener* onConfirmListener;
+		GenericDialogOnCancelListener* onCancelListener;
 	public:
 
 		static const std::string Event_OnConfirm;
@@ -589,10 +594,6 @@ namespace remi {
 
 		Widget* get_field(std::string key);
 
-		void setOnConfirmListener(EventListener* listener);
-
-		void setOnCancelListener(EventListener* listener);
-
 	private:
 
 		Widget*		_container;
@@ -600,7 +601,6 @@ namespace remi {
 		Button*		_cancelButton;
 		Widget*		_hLay;
 		std::map<std::string, Widget*> _inputs;
-
 	};
 
 
@@ -615,6 +615,8 @@ namespace remi {
 	class ListView : public Widget {
 	public:
 		class ListViewOnSelectionListener{ public: virtual void onSelection(ListView*, ListItem*) = 0; };
+
+		ListViewOnSelectionListener* onSelectionListener;
 	public:
 
 		static const std::string Event_OnSelection;
@@ -633,7 +635,6 @@ namespace remi {
 
 	public: //members
 		ListItem*	selectedItem;
-		ListViewOnSelectionListener* onSelectionListener;
 
 	};
 	
