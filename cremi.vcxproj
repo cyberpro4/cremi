@@ -41,8 +41,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)\openssl-1.0.2h-vs2013\include;$(SolutionDir)\libmicrohttpd-0.9.50\src\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\openssl-1.0.2h-vs2013\lib;$(SolutionDir)\libmicrohttpd-0.9.50\w32\VS2013\Output;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\libmicrohttpd-0.9.50\src\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\libmicrohttpd-0.9.50\w32\VS2013\Output;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -60,7 +60,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%(AdditionalDependencies);libmicrohttpd.lib;ssleay32MD.lib;ssleay32MT.lib;libeay32MD.lib</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies);libmicrohttpd.lib</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>LIBCMT.lib</IgnoreSpecificDefaultLibraries>
     </Link>
