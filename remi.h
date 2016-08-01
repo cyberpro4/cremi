@@ -13,6 +13,7 @@
 #include <string>
 #include <locale>
 #include <iomanip>
+#include <stdio.h>
 
 //#include <thread>       //std::this_thread::sleep_for std::thread
 #include <chrono>
@@ -90,7 +91,8 @@ namespace remi {
 
 		std::list<std::string> split( std::string subject , std::string delimiter );
 
-		std::string base64( std::string );
+		//std::string base64( std::string );
+		std::string SHA1(std::string&);
 
 		std::string url_decode( std::string from );
 

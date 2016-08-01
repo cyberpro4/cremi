@@ -8,10 +8,7 @@
 #include <stdarg.h>
 #include <memory>
 
-#include <openssl/sha.h>
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
-#include <openssl/evp.h>
+#include "TinySHA1.hpp"
 
 #include <regex>
 
@@ -83,26 +80,41 @@ const std::string GenericDialog::Event_OnCancel = "OnCancel";
 
 const std::string ListView::Event_OnSelection = "OnSelection";
 
-std::string remi::utils::base64( std::string str ){
+std::string remi::utils::SHA1(std::string& val){
+	sha1::SHA1 s;
+	s.processBytes(val.c_str(), val.size());
+	uint32_t digest[5];
+	s.getDigest(digest);
 
-  BIO *bmem, *b64;
-  BUF_MEM *bptr;
+	char sha1_data[21];
+	sha1_data[3] = (digest[0] >> 0) & 0xff;
+	sha1_data[2] = (digest[0] >> 8) & 0xff;
+	sha1_data[1] = (digest[0] >> 16) & 0xff;
+	sha1_data[0] = (digest[0] >> 24) & 0xff;
 
-  b64 = BIO_new(BIO_f_base64());
-  bmem = BIO_new(BIO_s_mem());
-  b64 = BIO_push(b64, bmem);
-  BIO_write(b64, str.c_str(), str.length() );
-  BIO_flush(b64);
-  BIO_get_mem_ptr(b64, &bptr);
+	sha1_data[7] = (digest[1] >> 0) & 0xff;
+	sha1_data[6] = (digest[1] >> 8) & 0xff;
+	sha1_data[5] = (digest[1] >> 16) & 0xff;
+	sha1_data[4] = (digest[1] >> 24) & 0xff;
 
-  char *buff = (char *)malloc(bptr->length);
-  memcpy(buff, bptr->data, bptr->length-1);
-  buff[bptr->length-1] = 0;
+	sha1_data[11] = (digest[2] >> 0) & 0xff;
+	sha1_data[10] = (digest[2] >> 8) & 0xff;
+	sha1_data[9] = (digest[2] >> 16) & 0xff;
+	sha1_data[8] = (digest[2] >> 24) & 0xff;
 
-  BIO_free_all(b64);
+	sha1_data[15] = (digest[3] >> 0) & 0xff;
+	sha1_data[14] = (digest[3] >> 8) & 0xff;
+	sha1_data[13] = (digest[3] >> 16) & 0xff;
+	sha1_data[12] = (digest[3] >> 24) & 0xff;
 
-  return buff;
+	sha1_data[19] = (digest[4] >> 0) & 0xff;
+	sha1_data[18] = (digest[4] >> 8) & 0xff;
+	sha1_data[17] = (digest[4] >> 16) & 0xff;
+	sha1_data[16] = (digest[4] >> 24) & 0xff;
 
+	sha1_data[20] = 0;
+	
+	return std::string(sha1_data);
 }
 
 void remi::utils::open_browser( std::string url ){

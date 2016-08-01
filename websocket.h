@@ -3,6 +3,8 @@
 #define _REMI_WEBSOCKET__
 
 #include "remi.h"
+#include "base64.h"
+#include "TinySHA1.hpp"
 #include <iostream>
 using namespace std;
 

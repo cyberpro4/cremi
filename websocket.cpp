@@ -1,12 +1,7 @@
-
-
 #include "websocket.h"
-
 
 #include <string>
 #include <stdio.h>
-
-#include <openssl/sha.h>
 
 #include <regex>
 
@@ -142,11 +137,9 @@ void WebsocketClientInterface::handshake(){
 
 	unsigned char key_sha1[64] = {0};
 
-	SHA1( (const unsigned char*)key.c_str() , key.length() , key_sha1 );
-	
-	std::string sha1( (const char*)key_sha1 );
+	std::string sha1_1(remi::utils::SHA1(key));
 
-	std::string b64 = utils::base64( sha1 );
+	std::string b64 = base64_encode((unsigned char*)sha1_1.c_str(), sha1_1.length());
 
 	std::ostringstream response_s;
 	response_s 
