@@ -448,7 +448,52 @@ namespace remi {
 
 
     class Widget : public Tag , public EventDispatcher {
+	public:
+		class WidgetOnClickListener{ public: virtual void onClick(Widget*) = 0; };
+		class WidgetOnDblClickListener{ public: virtual void onDblClick(Widget*) = 0; };
+		class WidgetOnMouseDownListener{ public: virtual void onMouseDown(Widget*, int x, int y) = 0; };
+		class WidgetOnMouseMoveListener{ public: virtual void onMouseMove(Widget*, int x, int y) = 0; };
+		class WidgetOnMouseOverListener{ public: virtual void onMouseOver(Widget*) = 0; };
+		class WidgetOnMouseOutListener{ public: virtual void onMouseOut(Widget*) = 0; };
+		class WidgetOnMouseLeaveListener{ public: virtual void onMouseLeave(Widget*) = 0; };
+		class WidgetOnMouseUpListener{ public: virtual void onMouseUp(Widget*, int x, int y) = 0; };
+		class WidgetOnTouchMoveListener{ public: virtual void onTouchMove(Widget*, int x, int y) = 0; };
+		class WidgetOnTouchStartListener{ public: virtual void onTouchStart(Widget*, int x, int y) = 0; };
+		class WidgetOnTouchEndListener{ public: virtual void onTouchEnd(Widget*, int x, int y) = 0; };
+		class WidgetOnTouchEnterListener{ public: virtual void onTouchEnter(Widget*, int x, int y) = 0; };
+		class WidgetOnTouchLeaveListener{ public: virtual void onTouchLeave(Widget*) = 0; };
+		class WidgetOnTouchCancelListener{ public: virtual void onTouchCancel(Widget*) = 0; };
+		class WidgetOnKeyDownListener{ public: virtual void onKeyDown(Widget*) = 0; };
+		class WidgetOnKeyPressListener{ public: virtual void onKeyPress(Widget*) = 0; };
+		class WidgetOnKeyUpListener{ public: virtual void onKeyUp(Widget*) = 0; };
+		class WidgetOnChangeListener{ public: virtual void onChange(Widget*) = 0; };
+		class WidgetOnFocusListener{ public: virtual void onFocus(Widget*) = 0; };
+		class WidgetOnBlurListener{ public: virtual void onBlur(Widget*) = 0; };
+		class WidgetOnContextMenuListener{ public: virtual void onContextMenu(Widget*) = 0; };
+		class WidgetOnUpdateListener{ public: virtual void onUpdate(Widget*) = 0; };
 
+		WidgetOnClickListener* onClickListener;
+		WidgetOnDblClickListener* onDblClickListener;
+		WidgetOnMouseDownListener* onMouseDownListener;
+		WidgetOnMouseMoveListener* onMouseMoveListener;
+		WidgetOnMouseOverListener* onMouseOverListener;
+		WidgetOnMouseOutListener* onMouseOutListener;
+		WidgetOnMouseLeaveListener* onMouseLeaveListener;
+		WidgetOnMouseUpListener* onMouseUpListener;
+		WidgetOnTouchMoveListener* onTouchMoveListener;
+		WidgetOnTouchStartListener* onTouchStartListener;
+		WidgetOnTouchEndListener* onTouchEndListener;
+		WidgetOnTouchEnterListener* onTouchEnterListener;
+		WidgetOnTouchLeaveListener* onTouchLeaveListener;
+		WidgetOnTouchCancelListener* onTouchCancelListener;
+		WidgetOnKeyDownListener* onKeyDownListener;
+		WidgetOnKeyPressListener* onKeyPressListener;
+		WidgetOnKeyUpListener* onKeyUpListener;
+		WidgetOnChangeListener* onChangeListener;
+		WidgetOnFocusListener* onFocusListener;
+		WidgetOnBlurListener* onBlurListener;
+		WidgetOnContextMenuListener* onContextMenuListener;
+		WidgetOnUpdateListener* onUpdateListener;
     public:
 
         enum Layout {
@@ -493,11 +538,7 @@ namespace remi {
 
         void addChild( Represantable* child, std::string key = "" );
 
-        void onFocus();
-
-        void setOnFocusListener( void* listener , void* fname );
-
-		void setOnClickListener( EventListener* listener );
+		void onEvent(std::string name, Event* event);
 
     private:
 
@@ -544,6 +585,11 @@ namespace remi {
 	};
 
 	class TextInput : public TextWidget {
+	public:
+		class TextInputOnEnterListener{ public: virtual void onEnter(TextInput*, std::string text) = 0; };
+
+		TextInputOnEnterListener* onEnterListener;
+
 	public:
 
 		static const std::string Event_OnEnter;
@@ -612,7 +658,7 @@ namespace remi {
 
 	};
 
-	class ListView : public Widget {
+	class ListView : public Widget, public Widget::WidgetOnClickListener {
 	public:
 		class ListViewOnSelectionListener{ public: virtual void onSelection(ListView*, ListItem*) = 0; };
 
@@ -632,6 +678,8 @@ namespace remi {
 		void selectByKey(std::string key);
 
 		void selectItem(ListItem* item);
+
+		void onClick(Widget*);
 
 	public: //members
 		ListItem*	selectedItem;

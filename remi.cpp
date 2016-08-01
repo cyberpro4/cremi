@@ -530,41 +530,80 @@ void Widget::addChild( Represantable* child, std::string key ){
     Tag::addChild( child , key );														   
 }
 
-void Widget::onFocus(){
-    //propagate( Widget::Event_OnFocus );
-}
+void Widget::onEvent(std::string name, Event* event){
 
-void Widget::setOnFocusListener( void* listener , void* fname ){
-
-    /*self.attributes[self.EVENT_ONFOCUS] = \
-        "sendCallback('%s','%s');" \
-        "event.stopPropagation();event.preventDefault();" \
-        "return false;" % (self.identifier, self.EVENT_ONFOCUS)
-    self.eventManager.register_listener(self.EVENT_ONFOCUS, listener, funcname)*/
-
-}
-
-void Widget::setOnClickListener( EventListener* listener ){
-
-	attributes[Widget::Event_OnClick] = utils::sformat(
-		"sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",
-		getIdentifier().c_str(), Widget::Event_OnClick.c_str() );
-	
-	registerListener( Widget::Event_OnClick, listener );
+	if (name == Widget::Event_OnClick){
+		if(onClickListener!=NULL)onClickListener->onClick(this);
+	}
+	else if (name == Widget::Event_OnDblClick){
+		if(onDblClickListener != NULL)onDblClickListener->onDblClick(this);
+	}
+	else if (name == Widget::Event_OnChange){
+		if (onChangeListener != NULL)onChangeListener->onChange(this);
+	}
+	/*
+	WidgetOnMouseDownListener* onMouseDownListener;
+	WidgetOnMouseMoveListener* onMouseMoveListener;
+	WidgetOnMouseOverListener* onMouseOverListener;
+	WidgetOnMouseOutListener* onMouseOutListener;
+	WidgetOnMouseLeaveListener* onMouseLeaveListener;
+	WidgetOnMouseUpListener* onMouseUpListener;
+	WidgetOnTouchMoveListener* onTouchMoveListener;
+	WidgetOnTouchStartListener* onTouchStartListener;
+	WidgetOnTouchEndListener* onTouchEndListener;
+	WidgetOnTouchEnterListener* onTouchEnterListener;
+	WidgetOnTouchLeaveListener* onTouchLeaveListener;
+	WidgetOnTouchCancelListener* onTouchCancelListener;
+	WidgetOnKeyDownListener* onKeyDownListener;
+	WidgetOnKeyPressListener* onKeyPressListener;
+	WidgetOnKeyUpListener* onKeyUpListener;
+	WidgetOnChangeListener* onChangeListener;
+	WidgetOnFocusListener* onFocusListener;
+	WidgetOnBlurListener* onBlurListener;
+	WidgetOnContextMenuListener* onContextMenuListener;
+	WidgetOnUpdateListener* onUpdateListener;
+	*/
 }
 
 void Widget::defaults(){
     _layout_orientation = Layout::Vertical;
     style.set( "margin" , "0px auto" );
+
+	attributes[Widget::Event_OnClick] = utils::sformat(
+		"sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",
+		getIdentifier().c_str(), Widget::Event_OnClick.c_str());
+
+	attributes[Widget::Event_OnDblClick] = utils::sformat(
+		"sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",
+		getIdentifier().c_str(), Widget::Event_OnDblClick.c_str());
+
+
+	onClickListener = NULL;
+	onDblClickListener = NULL;
+	onChangeListener = NULL;
+	onMouseDownListener = NULL;
+	onMouseMoveListener = NULL;
+	onMouseOverListener = NULL;
+	onMouseOutListener = NULL;
+	onMouseLeaveListener = NULL;
+	onMouseUpListener = NULL;
+	onTouchMoveListener = NULL;
+	onTouchStartListener = NULL;
+	onTouchEndListener = NULL;
+	onTouchEnterListener = NULL;
+	onTouchLeaveListener = NULL;
+	onTouchCancelListener = NULL;
+	onKeyDownListener = NULL;
+	onKeyPressListener = NULL;
+	onKeyUpListener = NULL;
+	onChangeListener = NULL;
+	onFocusListener = NULL;
+	onBlurListener = NULL;
+	onContextMenuListener = NULL;
+	onUpdateListener = NULL;
 }
 
 
-/*void Widget::setEventListener(std::string eventName, EventManagerListener *listener) {
-
-    attributes.set( eventName , "sendCallBack();event.stopPropagation();event.preventDefault();return false;");
-
-    _eventManager.registerListener( eventName , listener );
-}*/
 
 
 HBox::HBox() : Widget(){
@@ -636,14 +675,14 @@ TextInput::TextInput( bool single_line ){
 	// TODO: hint?
 }
 
-void TextInput::setOnChangeListener( EventListener* listener ){
-	registerListener( Widget::Event_OnChange, listener );
-}
-
 void TextInput::onEvent( std::string name , Event* event ){
 
 	if( name == Widget::Event_OnChange && event->params.has("new_value") ){
 		setText( event->params["new_value"] );
+		if (onChangeListener!=NULL)onChangeListener->onChange(this);
+	}else if (name == TextInput::Event_OnEnter && event->params.has("new_value")){
+		setText(event->params["new_value"]);
+		if(onEnterListener!=NULL)onEnterListener->onEnter(this, event->params["new_value"]);
 	}
 
 	Widget::onEvent( name , event );
@@ -703,6 +742,9 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 	style["display"] = "block";
 	style["overflow"] = "auto";
 
+	onConfirmListener = NULL;
+	onCancelListener = NULL;
+
 	if( title.length() > 0 ){
 		Label *l = new Label( title );
 		l->addClass( "DialogTitle" ); //FIXME: css class named "DialogTitle" should be "GenericDialogTitle"?
@@ -758,9 +800,9 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 
 void GenericDialog::onEvent(std::string name, Event* event){
 	if (name == GenericDialog::Event_OnConfirm){
-		onConfirmListener->onConfirm(this);
+		if (onConfirmListener!= NULL)onConfirmListener->onConfirm(this);
 	}else if (name == GenericDialog::Event_OnCancel){
-		onCancelListener->onCancel(this);
+		if (onCancelListener!=NULL)onCancelListener->onCancel(this);
 	}
 	Widget::onEvent(name, event);
 }
@@ -796,11 +838,14 @@ Widget* GenericDialog::get_field(std::string key){
 
 ListView::ListView(){
 	_type = "ul";
+
+	onSelectionListener = NULL;
+
 	this->selectedItem = NULL;
 }
 
 void ListView::addChild(Represantable* child, std::string key){
-	((ListItem*)child)->setOnClickListener(this);
+	((ListItem*)child)->onClickListener = this; //->setOnClickListener(this);
 	Tag::addChild(child, key);
 }
 
@@ -809,16 +854,17 @@ void ListView::setOnSelectionListener(EventListener* listener){
 }
 
 void ListView::onEvent(std::string name, Event* event){
-	if (name == Widget::Event_OnClick){
-		
-		selectItem(dynamic_cast<ListItem*>(event->source));
-		
-		Event e(ListView::Event_OnSelection);
-		e.source = this;
-		//e.params["selectedItem"] = this->selectedItem;
-		Widget::onEvent(ListView::Event_OnSelection, &e);
-		onSelectionListener->onSelection(this, this->selectedItem);
-	}
+}
+
+void ListView::onClick(Widget* widget){
+	selectItem(dynamic_cast<ListItem*>(widget));
+
+	Event e(ListView::Event_OnSelection);
+	e.source = this;
+	//e.params["selectedItem"] = this->selectedItem;
+	Widget::onEvent(ListView::Event_OnSelection, &e);
+
+	if (onSelectionListener != NULL)onSelectionListener->onSelection(this, this->selectedItem);
 }
 
 void ListView::selectByKey(std::string key){

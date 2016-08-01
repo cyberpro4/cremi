@@ -37,7 +37,8 @@ int run_test(){
 
 
 class TestApp : public remi::server::App , 
-				public EventListener, 
+				public Widget::WidgetOnClickListener,
+				public Widget::WidgetOnChangeListener,
 				public ListView::ListViewOnSelectionListener, 
 				public GenericDialog::GenericDialogOnConfirmListener,
 				public GenericDialog::GenericDialogOnCancelListener {
@@ -74,13 +75,13 @@ public:
 		mainContainer->addChild(label);
 
 		ti1 = new remi::TextInput();
-		ti1->setOnChangeListener(this);
+		ti1->onChangeListener = this;
 		ti1->style.set("width", "100px");
 		ti1->style.set("height", "24px");
 		mainContainer->addChild(ti1);
 
 		remi::Button* btn1 = new remi::Button("Show dialog");
-		btn1->setOnClickListener( this );
+		btn1->onClickListener = this;
 		btn1->style.set("width", "100px");
 		mainContainer->addChild(btn1);
 
@@ -93,13 +94,6 @@ public:
 		return mainContainer;
 	}
 
-	virtual void onEvent( std::string eventName , Event* eventData ){
-		std::ostringstream o;
-		if ( eventName == Widget::Event_OnClick ){
-			std::cout << "TestApp." << eventName << endl ;
-			show(dialog);
-		}
-	}
 
 	void onSelection(ListView* list, ListItem* item){
 		std::ostringstream o;
@@ -121,6 +115,16 @@ public:
 		show(mainContainer);
 	}
 
+	void onClick(Widget* w){
+		std::cout << "Event onClick" << endl;
+		show(dialog);
+	}
+
+	void onChange(Widget* w){
+		std::ostringstream o;
+		o << "Text changed: " << ti1->text();
+		label->setText(o.str());
+	}
 };
 
 
