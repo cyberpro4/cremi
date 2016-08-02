@@ -736,7 +736,7 @@ void TextInput::setOnKeyDownListener( EventListener* listener ){
 }
 
 void TextInput::setOnEnterListener( EventListener* listener ){
-	attributes[TextInput::Event_OnEnter] = utils::sformat( "\
+	attributes[TextInput::Event_OnKeyDown] = utils::sformat( "\
             if (event.keyCode == 13) { \
                 var params={};\
                 params['new_value']=document.getElementById('%s').value; \
@@ -874,21 +874,32 @@ Widget* GenericDialog::getField(std::string key){
 }
 
 
-InputDialog::InputDialog( std::string title , std::string message ) : _inputText( true ){
+InputDialog::InputDialog(std::string title, std::string message) : GenericDialog(title, message){
 
-	GenericDialog( title , message );
-
+	//GenericDialog( title , message );
+	
 	_inputText.setOnEnterListener( this );
 
 	addField("textinput", &_inputText);
 	_inputText.setText("");
 }
 
+std::string InputDialog::text(){
+	return _inputText.text();
+}
+
+void InputDialog::setText(std::string text){
+	_inputText.setText(text);
+}
+
 void InputDialog::onEvent( std::string name , Event* eventData ){
 
 	if( name == TextInput::Event_OnEnter ){
 		hide();
+		GenericDialog::onEvent(GenericDialog::Event_OnConfirm, eventData);
 	}
+
+	GenericDialog::onEvent(name, eventData);
 }
 
 

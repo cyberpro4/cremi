@@ -669,6 +669,10 @@ namespace remi {
 
 		virtual void onEvent( std::string name , Event* event );
 
+		std::string text();
+
+		void setText(std::string);
+
 	private:
 
 		TextInput	_inputText;

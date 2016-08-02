@@ -44,6 +44,10 @@ class TestApp : public remi::server::App ,
 				public GenericDialog::GenericDialogOnCancelListener {
 private:
 	remi::Widget*			mainContainer;
+	
+	remi::Button*			btn1;
+	remi::Button*			btn2;
+	
 	remi::TextInput*		ti1;
 
 	remi::GenericDialog*	dialog;
@@ -51,13 +55,15 @@ private:
 
 	remi::ListView*			listView;
 
+	remi::InputDialog*		inputDialog;
+
 public:
 
 	virtual Widget* main(){
 		mainContainer = new remi::VBox();
 
 		//mainContainer->addClass("myclass2");
-		mainContainer->style.set("width", "300px");
+		mainContainer->style.set("width", "400px");
 		mainContainer->style.set("height", "500px");
 		//mainContainer->style.set("background-color", "red");
 		//tag1->setOnClickListener(this);
@@ -80,16 +86,25 @@ public:
 		ti1->style.set("height", "24px");
 		mainContainer->addChild(ti1);
 
-		remi::Button* btn1 = new remi::Button("Show dialog");
+		btn1 = new remi::Button("Show generic dialog");
 		btn1->onClickListener = this;
 		btn1->style.set("width", "100px");
 		mainContainer->addChild(btn1);
+
+		btn2 = new remi::Button("Show input dialog");
+		btn2->onClickListener = this;
+		btn2->style.set("width", "100px");
+		mainContainer->addChild(btn2);
 
 		dialog = new remi::GenericDialog("Dialog", "This is a generic input dialog");
 		remi::TextInput* ti2 = new remi::TextInput(true);
 		dialog->addFieldWithLabel("input", "Insert a text", ti2);
 		dialog->onConfirmListener = this;
 		dialog->onCancelListener = this;
+
+		inputDialog = new remi::InputDialog("Input dialog", "Type a value:");
+		inputDialog->onCancelListener = this;
+		inputDialog->onConfirmListener = this;
 
 		return mainContainer;
 	}
@@ -102,22 +117,39 @@ public:
 	}
 
 	void onConfirm(GenericDialog* dialog){
-		std::ostringstream o;
-		o << "Dialog confirmed: " << ((remi::TextInput*)dialog->getField("input"))->text();
-		label->setText(o.str());
-		((remi::TextInput*)dialog->getField("input"))->setText("");
+		if (dialog == this->dialog){
+			std::ostringstream o;
+			o << "Dialog confirmed: " << ((remi::TextInput*)dialog->getField("input"))->text();
+			label->setText(o.str());
+			((remi::TextInput*)dialog->getField("input"))->setText("");
+		}else if(dialog == this->inputDialog){
+			std::ostringstream o;
+			o << "Input confirmed: " << inputDialog->text();
+			label->setText(o.str());
+			inputDialog->setText("");
+		}
 		show(mainContainer);
 	}
 
 	void onCancel(GenericDialog* dialog){
-		label->setText("Dialog canceled.");
-		((remi::TextInput*)dialog->getField("input"))->setText("");
+		if (dialog == this->dialog){
+			label->setText("Dialog canceled.");
+			((remi::TextInput*)dialog->getField("input"))->setText("");
+		}else if (dialog == this->inputDialog){
+			label->setText("Input canceled.");
+			inputDialog->setText("");
+		}
 		show(mainContainer);
 	}
 
 	void onClick(Widget* w){
-		std::cout << "Event onClick" << endl;
-		show(dialog);
+		if (w == this->btn1){
+			std::cout << "Event onClick" << endl;
+			show(dialog);
+		}else if(w == this->btn2){
+			std::cout << "Event onClick" << endl;
+			show(inputDialog);
+		}
 	}
 
 	void onChange(Widget* w){
