@@ -701,7 +701,30 @@ TextInput::TextInput( bool single_line ){
 		"var params={};params['new_value']=document.getElementById('%s').value; \
 		sendCallbackParam('%s','%s',params);", 
 		getIdentifier().c_str(), getIdentifier().c_str(), Widget::Event_OnChange.c_str()
-	);
+		);
+
+	//The onEnter event will be managed only in case of single_line
+	if (single_line){
+		attributes[TextInput::Event_OnKeyDown] = utils::sformat("\
+		if (event.keyCode == 13) { \
+			var params={};\
+			params['new_value']=document.getElementById('%s').value; \
+			document.getElementById('%s').value = ''; \
+			document.getElementById('%s').onchange = ''; \
+			sendCallbackParam('%s','%s',params); \
+			return false; \
+		}",
+		getIdentifier().c_str(), getIdentifier().c_str(),
+		getIdentifier().c_str(), getIdentifier().c_str(),
+		TextInput::Event_OnEnter.c_str()
+		);
+	}else{
+		attributes[Widget::Event_OnKeyDown] = utils::sformat(
+			"var params={};params['new_value']=document.getElementById('%s').value;" \
+			"sendCallbackParam('%s','%s',params);",
+			getIdentifier().c_str(), getIdentifier().c_str(), Widget::Event_OnChange.c_str()
+			);
+	}
 
 	setText("");
 
@@ -721,36 +744,12 @@ void TextInput::onEvent( std::string name , Event* event ){
 	}else if (name == TextInput::Event_OnEnter && event->params.has("new_value")){
 		setText(event->params["new_value"]);
 		if(onEnterListener!=NULL)onEnterListener->onEnter(this, event->params["new_value"]);
+	}else if (name == TextInput::Event_OnKeyDown && event->params.has("new_value")){
+		setText(event->params["new_value"]);
+		if (onKeyDownListener != NULL)onKeyDownListener->onKeyDown(this);
 	}
 
 	Widget::onEvent( name , event );
-}
-
-void TextInput::setOnKeyDownListener( EventListener* listener ){
-	attributes[Widget::Event_OnKeyDown] = utils::sformat(
-		"var params={};params['new_value']=document.getElementById('%s').value;" \
-        "sendCallbackParam('%s','%s',params);" ,
-		getIdentifier().c_str(), getIdentifier().c_str(), Widget::Event_OnChange.c_str()
-	);
-	registerListener( Widget::Event_OnKeyDown , listener );
-}
-
-void TextInput::setOnEnterListener( EventListener* listener ){
-	attributes[TextInput::Event_OnKeyDown] = utils::sformat( "\
-            if (event.keyCode == 13) { \
-                var params={};\
-                params['new_value']=document.getElementById('%s').value; \
-                document.getElementById('%s').value = ''; \
-                document.getElementById('%s').onchange = ''; \
-                sendCallbackParam('%s','%s',params); \
-                return false; \
-            }" ,
-			getIdentifier().c_str(), getIdentifier().c_str(),
-			getIdentifier().c_str(), getIdentifier().c_str(),
-			TextInput::Event_OnEnter.c_str()
-	);
-
-	registerListener( TextInput::Event_OnEnter , listener );
 }
 
 void TextInput::setPlaceholder( std::string text ){
@@ -878,7 +877,7 @@ InputDialog::InputDialog(std::string title, std::string message) : GenericDialog
 
 	//GenericDialog( title , message );
 	
-	_inputText.setOnEnterListener( this );
+	_inputText.onEnterListener = this;
 
 	addField("textinput", &_inputText);
 	_inputText.setText("");
@@ -893,15 +892,14 @@ void InputDialog::setText(std::string text){
 }
 
 void InputDialog::onEvent( std::string name , Event* eventData ){
-
-	if( name == TextInput::Event_OnEnter ){
-		hide();
-		GenericDialog::onEvent(GenericDialog::Event_OnConfirm, eventData);
-	}
-
 	GenericDialog::onEvent(name, eventData);
 }
 
+//lisener function for TextInputOnEnterListener interface
+void InputDialog::onEnter(TextInput* w, std::string text){
+	onConfirmListener->onConfirm(this);
+	hide();
+}
 
 ListView::ListView(){
 	_type = "ul";
@@ -912,12 +910,8 @@ ListView::ListView(){
 }
 
 void ListView::addChild(Represantable* child, std::string key){
-	((ListItem*)child)->onClickListener = this; //->setOnClickListener(this);
+	((ListItem*)child)->onClickListener = this;
 	Tag::addChild(child, key);
-}
-
-void ListView::setOnSelectionListener(EventListener* listener){
-	registerListener(ListView::Event_OnSelection, listener);
 }
 
 void ListView::onEvent(std::string name, Event* event){

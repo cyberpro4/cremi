@@ -661,7 +661,7 @@ namespace remi {
 		std::map<std::string, Widget*> _inputs;
 	};
 
-	class InputDialog : public GenericDialog {
+	class InputDialog : public GenericDialog, public TextInput::TextInputOnEnterListener {
 
 	public:
 
@@ -672,6 +672,8 @@ namespace remi {
 		std::string text();
 
 		void setText(std::string);
+
+		void onEnter(TextInput* w, std::string text);
 
 	private:
 
@@ -699,8 +701,6 @@ namespace remi {
 		ListView();
 
 		void addChild(Represantable* child, std::string key = "");
-
-		void setOnSelectionListener(EventListener* listener);
 
 		virtual void onEvent(std::string name, Event* event);
 
