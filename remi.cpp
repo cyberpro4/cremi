@@ -722,7 +722,7 @@ TextInput::TextInput( bool single_line ){
 		attributes[Widget::Event_OnKeyDown] = utils::sformat(
 			"var params={};params['new_value']=document.getElementById('%s').value;" \
 			"sendCallbackParam('%s','%s',params);",
-			getIdentifier().c_str(), getIdentifier().c_str(), Widget::Event_OnChange.c_str()
+			getIdentifier().c_str(), getIdentifier().c_str(), Widget::Event_OnKeyDown.c_str()
 			);
 	}
 
@@ -745,7 +745,9 @@ void TextInput::onEvent( std::string name , Event* event ){
 		setText(event->params["new_value"]);
 		if(onEnterListener!=NULL)onEnterListener->onEnter(this, event->params["new_value"]);
 	}else if (name == TextInput::Event_OnKeyDown && event->params.has("new_value")){
-		setText(event->params["new_value"]);
+		setText(event->params["new_value"]); 
+		//setting up this value with setText causes the refresh of clients and so the focus gets lost on the input field
+		this->setUpdated();
 		if (onKeyDownListener != NULL)onKeyDownListener->onKeyDown(this);
 	}
 
@@ -873,7 +875,7 @@ Widget* GenericDialog::getField(std::string key){
 }
 
 
-InputDialog::InputDialog(std::string title, std::string message) : GenericDialog(title, message){
+InputDialog::InputDialog(std::string title, std::string message) : GenericDialog(title, message), _inputText(true){
 
 	//GenericDialog( title , message );
 	
