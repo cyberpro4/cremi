@@ -4,6 +4,7 @@
 
 
 #include "remi.h"
+#include "remi_server.h"
 
 #include <stdarg.h>
 #include <memory>
@@ -520,7 +521,26 @@ void Widget::setLayoutOrientation(Widget::Layout orientation){
 void Widget::redraw(){
     //TODO server . update_event set()													   
 }																						   
-																						   
+								
+void Widget::setParentApp( remi::server::App* app ){
+
+	_parentApp = app;
+
+	for( std::string key : children.keys() ){
+
+		Widget* widget = dynamic_cast<Widget*>(children.get(key));
+
+		if( widget == 0 )
+			continue;
+
+		widget->setParentApp( app );
+	}
+
+}
+
+void Widget::hide(){
+}
+
 void Widget::addChild( Represantable* child, std::string key ){					   
 																						   
     if( _layout_orientation == Widget::Layout::Horizontal && dynamic_cast<Tag*>(child) != NULL ){							   
@@ -537,7 +557,11 @@ void Widget::addChild( Represantable* child, std::string key ){
          */																				   
 																						   
         dynamic_cast<Tag*>(child)->style.set( "float" , "left" );											   
-    }																					   
+	}
+
+	if( dynamic_cast<Widget*>(child) != 0 ){
+		dynamic_cast<Widget*>(child)->setParentApp( _parentApp );
+	}
 																						   
     Tag::addChild( child , key );														   
 }
@@ -613,6 +637,8 @@ void Widget::defaults(){
 	onBlurListener = NULL;
 	onContextMenuListener = NULL;
 	onUpdateListener = NULL;
+
+	_parentApp = 0;
 }
 
 
@@ -819,7 +845,7 @@ void GenericDialog::onEvent(std::string name, Event* event){
 	Widget::onEvent(name, event);
 }
 
-void GenericDialog::add_field_with_label(std::string key, std::string label_description, Widget* field){
+void GenericDialog::addFieldWithLabel(std::string key, std::string label_description, Widget* field){
 	this->_inputs[key] = field;
 	Label* label = new Label(label_description);
 	label->style.set("margin", "0px 5px");
@@ -832,7 +858,7 @@ void GenericDialog::add_field_with_label(std::string key, std::string label_desc
 	this->_container->addChild(container, key);
 }
 
-void GenericDialog::add_field(std::string key, Widget* field){
+void GenericDialog::addField(std::string key, Widget* field){
 	this->_inputs[key] = field;
 	Widget* container = new Widget();
 	container->style.set("display", "block");
@@ -843,8 +869,26 @@ void GenericDialog::add_field(std::string key, Widget* field){
 	this->_container->addChild(container, key);
 }
 
-Widget* GenericDialog::get_field(std::string key){
+Widget* GenericDialog::getField(std::string key){
 	return this->_inputs[key];
+}
+
+
+InputDialog::InputDialog( std::string title , std::string message ) : _inputText( true ){
+
+	GenericDialog( title , message );
+
+	_inputText.setOnEnterListener( this );
+
+	addField("textinput", &_inputText);
+	_inputText.setText("");
+}
+
+void InputDialog::onEvent( std::string name , Event* eventData ){
+
+	if( name == TextInput::Event_OnEnter ){
+		hide();
+	}
 }
 
 

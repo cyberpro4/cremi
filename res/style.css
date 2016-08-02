@@ -54,6 +54,7 @@ body {
     font-weight: 400;
     min-height: 100%;
 	background-color: #efefef;
+	padding-top: 10px;
 }
 *[hidden] {
     display: none!important

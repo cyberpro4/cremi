@@ -375,7 +375,6 @@ namespace remi {
 
         std::string getIdentifier();
 
-
         std::string repr();
 
         void addChild( Represantable* child, std::string key = "" );
@@ -447,6 +446,11 @@ namespace remi {
         Dictionary<EventListener*>  _listeners;
     };
 
+
+	namespace server {
+		class App;
+	}
+	
 
 
     class Widget : public Tag , public EventDispatcher {
@@ -542,11 +546,17 @@ namespace remi {
 
 		void onEvent(std::string name, Event* event);
 
+		void hide();
+
+		void setParentApp( server::App* app );
+
     private:
 
         void defaults();
 
         Widget::Layout  _layout_orientation;
+
+		server::App*			_parentApp;
 
     };
 
@@ -636,11 +646,11 @@ namespace remi {
 
 		void onEvent(std::string name, Event* event);
 
-		void add_field_with_label(std::string key, std::string label_description, Widget* field);
+		void addFieldWithLabel(std::string key, std::string label_description, Widget* field);
 
-		void add_field(std::string key, Widget* field);
+		void addField(std::string key, Widget* field);
 
-		Widget* get_field(std::string key);
+		Widget* getField(std::string key);
 
 	private:
 
@@ -649,6 +659,19 @@ namespace remi {
 		Button*		_cancelButton;
 		Widget*		_hLay;
 		std::map<std::string, Widget*> _inputs;
+	};
+
+	class InputDialog : public GenericDialog {
+
+	public:
+
+		InputDialog( std::string title = "" , std::string message = "" );
+
+		virtual void onEvent( std::string name , Event* event );
+
+	private:
+
+		TextInput	_inputText;
 	};
 
 

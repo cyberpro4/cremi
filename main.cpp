@@ -87,7 +87,7 @@ public:
 
 		dialog = new remi::GenericDialog("Dialog", "This is a generic input dialog");
 		remi::TextInput* ti2 = new remi::TextInput(true);
-		dialog->add_field_with_label("input", "Insert a text", ti2);
+		dialog->addFieldWithLabel("input", "Insert a text", ti2);
 		dialog->onConfirmListener = this;
 		dialog->onCancelListener = this;
 
@@ -103,15 +103,15 @@ public:
 
 	void onConfirm(GenericDialog* dialog){
 		std::ostringstream o;
-		o << "Dialog confirmed: " << ((remi::TextInput*)dialog->get_field("input"))->text();
+		o << "Dialog confirmed: " << ((remi::TextInput*)dialog->getField("input"))->text();
 		label->setText(o.str());
-		((remi::TextInput*)dialog->get_field("input"))->setText("");
+		((remi::TextInput*)dialog->getField("input"))->setText("");
 		show(mainContainer);
 	}
 
 	void onCancel(GenericDialog* dialog){
 		label->setText("Dialog canceled.");
-		((remi::TextInput*)dialog->get_field("input"))->setText("");
+		((remi::TextInput*)dialog->getField("input"))->setText("");
 		show(mainContainer);
 	}
 
