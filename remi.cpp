@@ -79,8 +79,6 @@ const std::string TextInput::Event_OnEnter = "OnEnter";
 const std::string GenericDialog::Event_OnConfirm = "OnConfirm";
 const std::string GenericDialog::Event_OnCancel = "OnCancel";
 
-const std::string ListView::Event_OnSelection = "OnSelection";
-
 std::string remi::utils::SHA1(std::string& val){
 	sha1::SHA1 s;
 	s.processBytes(val.c_str(), val.size());
@@ -922,11 +920,6 @@ void ListView::onEvent(std::string name, Event* event){
 void ListView::onClick(Widget* widget){
 	selectItem(dynamic_cast<ListItem*>(widget));
 
-	Event e(ListView::Event_OnSelection);
-	e.source = this;
-	//e.params["selectedItem"] = this->selectedItem;
-	Widget::onEvent(ListView::Event_OnSelection, &e);
-
 	if (onSelectionListener != NULL)onSelectionListener->onSelection(this, this->selectedItem);
 }
 
@@ -950,4 +943,18 @@ void ListView::selectItem(ListItem* item){
 ListItem::ListItem(std::string text){
 	_type = "li";
 	setText( text );
+}
+
+Image::Image(std::string url){
+	_type = "img";
+
+	setURL(url);
+}
+
+void Image::setURL(std::string url){
+	this->attributes["src"] = url;
+}
+
+std::string Image::url(){
+	return this->attributes["src"];
 }

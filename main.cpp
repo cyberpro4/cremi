@@ -57,14 +57,16 @@ private:
 
 	remi::InputDialog*		inputDialog;
 
+	remi::Image*			image;
+
 public:
 
 	virtual Widget* main(){
 		mainContainer = new remi::VBox();
 
 		//mainContainer->addClass("myclass2");
-		mainContainer->style.set("width", "400px");
-		mainContainer->style.set("height", "500px");
+		mainContainer->style.set("width", "500px");
+		mainContainer->style.set("height", "600px");
 		//mainContainer->style.set("background-color", "red");
 		//tag1->setOnClickListener(this);
 
@@ -97,14 +99,20 @@ public:
 		mainContainer->addChild(btn2);
 
 		dialog = new remi::GenericDialog("Dialog", "This is a generic input dialog");
+		dialog->style["width"] = "500px";
 		remi::TextInput* ti2 = new remi::TextInput(true);
 		dialog->addFieldWithLabel("input", "Insert a text", ti2);
 		dialog->onConfirmListener = this;
 		dialog->onCancelListener = this;
 
 		inputDialog = new remi::InputDialog("Input dialog", "Type a value:");
+		inputDialog->style["width"] = "500px";
 		inputDialog->onCancelListener = this;
 		inputDialog->onConfirmListener = this;
+
+		image = new remi::Image("http://vignette1.wikia.nocookie.net/matrix/images/f/f5/Matrix_Wiki_Seraph_Matrix.png/revision/latest?cb=20120808072031");
+		image->setSize(400, 300);
+		mainContainer->addChild(image);
 
 		return mainContainer;
 	}

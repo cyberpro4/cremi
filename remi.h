@@ -696,8 +696,6 @@ namespace remi {
 		ListViewOnSelectionListener* onSelectionListener;
 	public:
 
-		static const std::string Event_OnSelection;
-
 		ListView();
 
 		void addChild(Represantable* child, std::string key = "");
@@ -712,6 +710,17 @@ namespace remi {
 
 	public: //members
 		ListItem*	selectedItem;
+
+	};
+
+	class Image : public Widget{
+	public:
+
+		Image(std::string url);
+
+		void setURL(std::string);
+
+		std::string url();
 
 	};
 	
