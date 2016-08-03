@@ -68,6 +68,8 @@ namespace remi {
 
 			void show( Widget* _w );
 
+			void showRoot();
+
 			bool update(remi::Tag* child_widget = NULL, bool avoid_update_because_new_subchild = false);
 
 		private:

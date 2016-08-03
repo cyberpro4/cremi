@@ -156,7 +156,7 @@ public:
 			show(dialog);
 		}else if(w == this->btn2){
 			std::cout << "Event onClick" << endl;
-			show(inputDialog);
+			inputDialog->show( this );
 		}
 	}
 

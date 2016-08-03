@@ -548,6 +548,8 @@ namespace remi {
 
 		void hide();
 
+		void show( server::App* app );
+
 		void setParentApp( server::App* app );
 
     private:
@@ -720,6 +722,21 @@ namespace remi {
 	};
 	
 	
+	class Input : public Widget {
+
+	public:
+
+		Input();
+
+		void setValue( std::string value );
+		std::string getValue();
+
+		void setEnable( bool on );
+		bool isEnable();
+
+		void setReadOnly( bool on );
+		bool isReadOnly();
+	};
 }
 
 #endif //CPORT_REMI_H

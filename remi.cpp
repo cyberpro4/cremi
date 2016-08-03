@@ -534,6 +534,15 @@ void Widget::setParentApp( remi::server::App* app ){
 }
 
 void Widget::hide(){
+	if( _parentApp != NULL )
+		_parentApp->showRoot();
+}
+
+void Widget::show( server::App* app ){
+	if( app != NULL ){
+		_parentApp = app;
+		_parentApp->show( this );
+	}
 }
 
 void Widget::addChild( Represantable* child, std::string key ){					   
@@ -860,12 +869,11 @@ Widget* GenericDialog::getField(std::string key){
 
 
 InputDialog::InputDialog(std::string title, std::string message) : GenericDialog(title, message), _inputText(true){
-
-	//GenericDialog( title , message );
 	
 	_inputText.onEnterListener = this;
 
 	addField("textinput", &_inputText);
+
 	_inputText.setText("");
 }
 
@@ -939,4 +947,47 @@ void Image::setURL(std::string url){
 
 std::string Image::url(){
 	return this->attributes["src"];
+}
+
+Input::Input(){
+	_type = "input";
+
+	attributes[Event_OnClick] = "";
+	attributes[Event_OnChange] = utils::sformat( \
+            "var params={};params['value']=document.getElementById('%(id)s').value;" \
+            "sendCallbackParam('%s','%s',params);" , getIdentifier().c_str() , Event_OnChange.c_str() );
+}
+
+void Input::setValue( std::string value ){
+	attributes["value"] = value;
+}
+
+std::string Input::getValue(){
+	return attributes["value"];
+}
+
+void Input::setEnable( bool on ){
+
+	if( on )
+		attributes.remove("disabled");
+	else
+		attributes["disabled"] = "disabled";
+
+}
+
+bool Input::isEnable(){
+	return attributes.has("disabled");
+}
+
+void Input::setReadOnly( bool on ){
+
+	if( on )
+		attributes.remove("readonly");
+	else
+		attributes["readonly"] = "readonly";
+
+}
+
+bool Input::isReadOnly(){
+	return attributes.has("readonly");
 }

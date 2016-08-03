@@ -221,6 +221,10 @@ void App::show(remi::Widget* _w){
 	this->_webSocketServer->sendToAllClients(output.str());
 }
 
+void App::showRoot(){
+	show( _rootWidget );
+}
+
 bool App::update(remi::Tag* child_tag, bool avoid_update_because_new_subchild){
 	if (this == NULL)return false;
 	if (this->_rootWidget == NULL)return false;
@@ -274,6 +278,9 @@ void App::init(){
 	_staticResourcesPath = "./res/";
 
 	_rootWidget = this->main();
+
+	if( _rootWidget != NULL )
+		_rootWidget->setParentApp( this );
 
 	_webSocketServer = new WebsocketServer( 92 );
 }
