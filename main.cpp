@@ -9,6 +9,7 @@
 //#include <winsock2.h>
 #endif
 #include <string.h>
+#include <fstream>
 
 using namespace std;
 using namespace remi;
@@ -41,7 +42,8 @@ class TestApp : public remi::server::App ,
 				public Widget::WidgetOnChangeListener,
 				public ListView::ListViewOnSelectionListener, 
 				public GenericDialog::GenericDialogOnConfirmListener,
-				public GenericDialog::GenericDialogOnCancelListener {
+				public GenericDialog::GenericDialogOnCancelListener,
+				public FileUploader::FileUploaderOnDataListener{
 private:
 	remi::Widget*			mainContainer;
 	
@@ -58,6 +60,8 @@ private:
 	remi::InputDialog*		inputDialog;
 
 	remi::Image*			image;
+
+	remi::FileUploader*		fileUploader;
 
 public:
 
@@ -114,6 +118,10 @@ public:
 		image->setSize(400, 300);
 		mainContainer->addChild(image);
 
+		fileUploader = new remi::FileUploader();
+		fileUploader->onDataListener = this;
+		mainContainer->addChild(fileUploader);
+
 		return mainContainer;
 	}
 
@@ -164,6 +172,16 @@ public:
 		std::ostringstream o;
 		o << "Text changed: " << ti1->text();
 		label->setText(o.str());
+	}
+
+	void onData(FileUploader* w, std::string fileName, std::string data){
+		std::ostringstream filePathName;
+		filePathName << w->savePath() << "/" << fileName;
+		label->setText("File: " + filePathName.str());
+		ofstream myFile;
+		myFile.open(filePathName.str(), ios::out | ios::binary);
+		myFile << data;
+		myFile.close();
 	}
 };
 

@@ -205,25 +205,15 @@ function websocketOnOpen(evt){
 };
 
 function uploadFile(widgetID, eventSuccess, eventFail, eventData, file){
-    var url = '/';
-    var xhr = new XMLHttpRequest();
-    var fd = new FormData();
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('filename', file.name);
-    xhr.setRequestHeader('listener', widgetID);
-    xhr.setRequestHeader('listener_function', eventData);
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState == 4 && xhr.status == 200) {
-            /* Every thing ok, file uploaded */
-            var params={};params['filename']=file.name;
-            sendCallbackParam(widgetID, eventSuccess,params);
-            console.log('upload success: ' + file.name);
-        }else if(xhr.status == 400){
-            var params={};params['filename']=file.name;
-            sendCallbackParam(widgetID,eventFail,params);
-            console.log('upload failed: ' + file.name);
-        }
-    };
-    fd.append('upload_file', file);
-    xhr.send(fd);
-};
+    var reader = new FileReader();
+	reader.onloadend = function(evt) {
+        if (evt.target.readyState == FileReader.DONE) { 
+            console.debug(evt.target.result);
+            var params={};
+            params['file_name']=file.name;
+            params['file_data']=evt.target.result;
+            sendCallbackParam(widgetID, eventData, params);
+		}
+	};
+    reader.readAsBinaryString(file.slice(0,file.size-1));
+}

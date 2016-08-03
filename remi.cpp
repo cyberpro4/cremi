@@ -76,6 +76,10 @@ const std::string Widget::Event_OnUpdate = "OnUpdate";
 
 const std::string TextInput::Event_OnEnter = "OnEnter";
 
+const std::string FileUploader::Event_OnSuccess = "OnSuccess";
+const std::string FileUploader::Event_OnFail = "OnFail";
+const std::string FileUploader::Event_OnData = "OnData";
+
 std::string remi::utils::SHA1(std::string& val){
 	sha1::SHA1 s;
 	s.processBytes(val.c_str(), val.size());
@@ -990,4 +994,62 @@ void Input::setReadOnly( bool on ){
 
 bool Input::isReadOnly(){
 	return attributes.has("readonly");
+}
+
+
+FileUploader::FileUploader( std::string path, bool multipleSelectionAllowed ){
+	
+	onSuccessListener = NULL;
+	onFailListener = NULL;
+	onDataListener = NULL;
+
+	setSavePath(path);
+	setMultipleSelectionAllowed(multipleSelectionAllowed);
+
+	_type = "input";
+	this->attributes["type"] = "file";
+	this->attributes["accept"] = "*.*";
+
+	attributes[Widget::Event_OnChange] = utils::sformat(
+		"var files = this.files;" \
+		"for(var i=0; i<files.length; i++){" \
+		"uploadFile('%s','%s','%s','%s',files[i]);}",
+		getIdentifier().c_str(), FileUploader::Event_OnSuccess.c_str(), FileUploader::Event_OnFail.c_str(), FileUploader::Event_OnData.c_str()
+	);
+
+	this->attributes[Widget::Event_OnClick] = "event.stopPropagation();";
+	this->attributes[Widget::Event_OnDblClick] = "event.stopPropagation();";
+}
+
+void FileUploader::setSavePath(std::string path){
+	this->_path = path;
+}
+std::string FileUploader::savePath(){
+	return this->_path;
+}
+
+void FileUploader::setMultipleSelectionAllowed(bool value){
+	this->_multipleSelectionAllowed = value;
+	if ( this->_multipleSelectionAllowed ){
+		this->attributes["multiple"] = "multiple";
+	}else{
+		if (this->attributes.has("multiple")){
+			this->attributes.remove("multiple");
+		}
+	}
+}
+bool FileUploader::multipleSelectionAllowed(){
+	return this->_multipleSelectionAllowed;
+}
+
+void FileUploader::onEvent(std::string name, Event* event){
+	if ( name == FileUploader::Event_OnData ){
+		if (onDataListener != NULL)onDataListener->onData(this, event->params["file_name"], event->params["file_data"]);
+	}else if ( name == FileUploader::Event_OnSuccess ){
+		if (onSuccessListener != NULL)onSuccessListener->onSuccess(this);
+	}else if ( name == FileUploader::Event_OnFail ){
+		if (onFailListener != NULL)onFailListener->onFail(this);
+	}
+
+	Widget::onEvent(name, event);
 }

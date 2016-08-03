@@ -737,6 +737,37 @@ namespace remi {
 		void setReadOnly( bool on );
 		bool isReadOnly();
 	};
+
+	class FileUploader : public Widget {
+	public:
+		static const std::string Event_OnSuccess;
+		static const std::string Event_OnFail;
+		static const std::string Event_OnData;
+		//static const std::string Event_OnProgress;
+
+		class FileUploaderOnSuccessListener{ public: virtual void onSuccess(FileUploader*) = 0; };
+		FileUploaderOnSuccessListener* onSuccessListener;
+		class FileUploaderOnFailListener{ public: virtual void onFail(FileUploader*) = 0; };
+		FileUploaderOnFailListener* onFailListener;
+		class FileUploaderOnDataListener{ public: virtual void onData( FileUploader*, std::string fileName, std::string data ) = 0; };
+		FileUploaderOnDataListener* onDataListener;
+		
+	public:
+		FileUploader( std::string path = "./", bool multipleSelectionAllowed = true );
+
+		void setSavePath( std::string path );
+		std::string savePath();
+
+		void setMultipleSelectionAllowed( bool value );
+		bool multipleSelectionAllowed();
+
+		void onEvent(std::string name, Event* event);
+
+	private:
+		std::string _path;
+		bool _multipleSelectionAllowed;
+
+	};
 }
 
 #endif //CPORT_REMI_H
