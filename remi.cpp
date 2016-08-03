@@ -76,9 +76,6 @@ const std::string Widget::Event_OnUpdate = "OnUpdate";
 
 const std::string TextInput::Event_OnEnter = "OnEnter";
 
-const std::string GenericDialog::Event_OnConfirm = "OnConfirm";
-const std::string GenericDialog::Event_OnCancel = "OnCancel";
-
 std::string remi::utils::SHA1(std::string& val){
 	sha1::SHA1 s;
 	s.processBytes(val.c_str(), val.size());
@@ -803,11 +800,13 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 	_confirmButton = new Button("Ok");
 	_confirmButton->setSize(100, 30);
 	_confirmButton->style["margin"] = "3px";
+	_confirmButton->onClickListener = this;
 
 	_cancelButton = new Button("Cancel");
 	_cancelButton->setSize(100, 30);
 	_cancelButton->style["margin"] = "3px";
-    
+	_cancelButton->onClickListener = this;
+
 	_hLay = new Widget();
 	_hLay->setHeight( 35 );
 	_hLay->style["display"] = "block";
@@ -821,27 +820,14 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 	addChild(_container);
 	addChild(_hLay);
 
-	_confirmButton->attributes[Widget::Event_OnClick] = utils::sformat( "sendCallback('%s','%s');" , 
-		getIdentifier().c_str(), GenericDialog::Event_OnConfirm.c_str() );
-
-	_cancelButton->attributes[Widget::Event_OnClick] = utils::sformat( "sendCallback('%s','%s');" , 
-		getIdentifier().c_str(), GenericDialog::Event_OnCancel.c_str() );
-
-	/*
-    self.inputs = {}
-
-    self.baseAppInstance = None
-	*/        
-	
 }
 
-void GenericDialog::onEvent(std::string name, Event* event){
-	if (name == GenericDialog::Event_OnConfirm){
+void GenericDialog::onClick(Widget* w){
+	if (w==_confirmButton){
 		if (onConfirmListener!= NULL)onConfirmListener->onConfirm(this);
-	}else if (name == GenericDialog::Event_OnCancel){
+	}else if (w==_cancelButton){
 		if (onCancelListener!=NULL)onCancelListener->onCancel(this);
 	}
-	Widget::onEvent(name, event);
 }
 
 void GenericDialog::addFieldWithLabel(std::string key, std::string label_description, Widget* field){
@@ -889,10 +875,6 @@ std::string InputDialog::text(){
 
 void InputDialog::setText(std::string text){
 	_inputText.setText(text);
-}
-
-void InputDialog::onEvent( std::string name , Event* eventData ){
-	GenericDialog::onEvent(name, eventData);
 }
 
 //lisener function for TextInputOnEnterListener interface

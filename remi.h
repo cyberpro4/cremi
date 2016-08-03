@@ -630,7 +630,7 @@ namespace remi {
 	};
 
 
-	class GenericDialog : public Widget {
+	class GenericDialog : public Widget, public Widget::WidgetOnClickListener {
 	public:
 		class GenericDialogOnConfirmListener{ public: virtual void onConfirm(GenericDialog*) = 0; };
 		class GenericDialogOnCancelListener{ public: virtual void onCancel(GenericDialog*) = 0; };
@@ -639,18 +639,15 @@ namespace remi {
 		GenericDialogOnCancelListener* onCancelListener;
 	public:
 
-		static const std::string Event_OnConfirm;
-		static const std::string Event_OnCancel;
-
 		GenericDialog( std::string title = "" , std::string message = "" );
-
-		void onEvent(std::string name, Event* event);
 
 		void addFieldWithLabel(std::string key, std::string label_description, Widget* field);
 
 		void addField(std::string key, Widget* field);
 
 		Widget* getField(std::string key);
+
+		void onClick(Widget*);
 
 	private:
 
@@ -666,8 +663,6 @@ namespace remi {
 	public:
 
 		InputDialog( std::string title = "" , std::string message = "" );
-
-		virtual void onEvent( std::string name , Event* event );
 
 		std::string text();
 
