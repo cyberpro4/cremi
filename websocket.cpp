@@ -111,7 +111,7 @@ bool WebsocketClientInterface::readNextMessage(){
 
 	on_message( remi::utils::url_decode( buf ) );
 
-	delete buf;
+	delete [] buf;
 
 	return true;
 }
