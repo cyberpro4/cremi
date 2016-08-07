@@ -212,10 +212,12 @@ function uploadFile(widgetID, eventSuccess, eventFail, eventData, file){
         if (evt.target.readyState == FileReader.DONE) { 
             var params={};
             params['file_name']=file.name;
-            params['file_data']=String.fromCharCode.apply(null, new Uint8Array(evt.target.result));
+            //params['file_data']=String.fromCharCode.apply(null, new Uint8Array(evt.target.result));
+            params['file_data']=evt.target.result;
             sendCallbackParam(widgetID, eventData, params);
 		}
 	};
     
-    reader.readAsArrayBuffer(file.slice(0,file.size)); //readAsDataURL //readAsText //readAsBinaryString //readAsArrayBuffer
+    //reader.readAsArrayBuffer(file.slice(0,file.size)); //readAsDataURL //readAsText //readAsBinaryString //readAsArrayBuffer
+    reader.readAsText(file.slice(0,file.size), 'utf8');//'latin-1');//'ISO-8859-4');
 }
