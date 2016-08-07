@@ -135,24 +135,52 @@ void remi::utils::open_browser( std::string url ){
 
 }
 
-std::string remi::utils::url_decode( std::string from ){
+void remi::utils::url_decode(const char* from, unsigned long long len, char*& converted, unsigned long long* lenConverted ){
 	std::smatch match;
 	std::string out = from;
+	char r[2] = { 0 };
+	int v = 0;
 
-	while( std::regex_search( out, match, std::regex("%[0-9A-F]{2}") ) ){
-		int v = 0;
-
+	/*while( std::regex_search( out, match, std::regex("%[0-9A-F]{2}") ) ){	
 		sscanf( 
 			out.substr( match.position(0) +1 , 2 ).c_str(),
 			"%x" , &v );
-
-		char r[2] = {0};
+		r[0] = r[1] = 0;
 		r[0] = (char)v;
 
 		out.replace( match.position(0) , match.length(0) , r );
+	}*/
+	if (len < 3){
+		converted = new char[len];
+		memcpy(converted, from, len);
+		return;
 	}
 
-	return out;
+	converted = new char[len];
+	unsigned long long int __i = 0;
+	unsigned short val = 0;
+
+	char* original = converted;
+	for (__i = 0; __i < len-2; __i++){
+		converted[0] = from[__i];
+		if (converted[0] == '%'){
+			converted[1] = from[__i+1];
+			converted[2] = from[__i+2];
+			if ((converted[1] >= '0' && converted[1] <= '9') || (converted[1] >= 'A' && converted[1] <= 'F')){
+				if ((converted[2] >= '0' && converted[2] <= '9') || (converted[2] >= 'A' && converted[2] <= 'F')){
+					val = ((converted[1] - ((converted[1]>'9') ? (55) : '0')) * 16) + ((converted[2] - ((converted[2]>'9') ? (55) : '0')));
+					converted[0] = val;
+					__i += 2;
+				}
+			}
+		}
+		converted++;
+		(*lenConverted)++;
+	}
+	//the iteration terminated 2 steps before allowing to avoid additional len checks, but here we fill the remaining chars
+	converted[0] = from[__i++];
+	converted[1] = from[__i++];
+	converted = original;
 }
 
 std::string remi::utils::toPix( int v ){
@@ -180,6 +208,31 @@ std::list<std::string> remi::utils::split( std::string subject , std::string del
 
 	return list;
 }
+
+unsigned long long remi::utils::searchIndexOf(const char* buffer, char __char, unsigned long long len, unsigned long long start){
+	unsigned long long __i = start;
+	while (__i < len && buffer[__i++] != __char);
+	return __i;
+}
+
+/*std::list<char*> utils::splitCharPointer(const char* buf, char splitChar, unsigned long long bufLen, int maxSplit){
+	std::list<char*> ret;
+	unsigned long long __i = -1;
+	unsigned long long __last = 0;
+	while ((__i = searchIndexOf(buf, splitChar, bufLen, __last))!=__last && maxSplit>0){
+		char* chunk = new char[__i - __last];
+		memcpy(chunk, buf, __i - __last);
+		ret.push_back(chunk);
+		__last = __i;
+		maxSplit--;
+	}
+	if (maxSplit == 0){
+		char* chunk = new char[bufLen - __i - 1];
+		memcpy(chunk, buf, bufLen - __i - 1);
+		ret.push_back(chunk);
+	}
+	return ret;
+}*/
 
 std::string remi::utils::join(std::list<std::string> stringList , std::string glue ){
     std::ostringstream ss;
@@ -747,13 +800,13 @@ TextInput::TextInput( bool single_line ){
 void TextInput::onEvent( std::string name , Event* event ){
 
 	if( name == Widget::Event_OnChange && event->params.has("new_value") ){
-		setText( event->params["new_value"] );
+		setText(event->params.get("new_value")->str());
 		if (onChangeListener!=NULL)onChangeListener->onChange(this);
 	}else if (name == TextInput::Event_OnEnter && event->params.has("new_value")){
-		setText(event->params["new_value"]);
-		if(onEnterListener!=NULL)onEnterListener->onEnter(this, event->params["new_value"]);
+		setText(event->params.get("new_value")->str());
+		if(onEnterListener!=NULL)onEnterListener->onEnter(this, event->params.get("new_value")->str());
 	}else if (name == TextInput::Event_OnKeyDown && event->params.has("new_value")){
-		setText(event->params["new_value"]); 
+		setText(event->params.get("new_value")->str());
 		//setting up this value with setText causes the refresh of clients and so the focus gets lost on the input field
 		this->setUpdated();
 		if (onKeyDownListener != NULL)onKeyDownListener->onKeyDown(this);
@@ -1044,7 +1097,7 @@ bool FileUploader::multipleSelectionAllowed(){
 
 void FileUploader::onEvent(std::string name, Event* event){
 	if ( name == FileUploader::Event_OnData ){
-		if (onDataListener != NULL)onDataListener->onData(this, event->params["file_name"], event->params["file_data"]);
+		if (onDataListener != NULL)onDataListener->onData(this, event->params.get("file_name")->str(), event->params.get("file_data")->data, event->params.get("file_data")->len );
 	}else if ( name == FileUploader::Event_OnSuccess ){
 		if (onSuccessListener != NULL)onSuccessListener->onSuccess(this);
 	}else if ( name == FileUploader::Event_OnFail ){

@@ -93,6 +93,8 @@ var sendCallbackParam = function (widgetID,functionName,params /*a dictionary of
     var paramStr = '';
     if(params!=null) paramStr=paramPacketize(params);
     var message = encodeURIComponent(unescape('callback' + '/' + widgetID+'/'+functionName + '/' + paramStr));
+    console.debug(message.length);
+    //console.debug(message);
     pendingSendMessages.push(message);
     if( pendingSendMessages.length < pending_messages_queue_length ){
         ws.send(message);
@@ -208,12 +210,12 @@ function uploadFile(widgetID, eventSuccess, eventFail, eventData, file){
     var reader = new FileReader();
 	reader.onloadend = function(evt) {
         if (evt.target.readyState == FileReader.DONE) { 
-            console.debug(evt.target.result);
             var params={};
             params['file_name']=file.name;
-            params['file_data']=evt.target.result;
+            params['file_data']=String.fromCharCode.apply(null, new Uint8Array(evt.target.result));
             sendCallbackParam(widgetID, eventData, params);
 		}
 	};
-    reader.readAsBinaryString(file.slice(0,file.size-1));
+    
+    reader.readAsArrayBuffer(file.slice(0,file.size)); //readAsDataURL //readAsText //readAsBinaryString //readAsArrayBuffer
 }

@@ -91,12 +91,16 @@ namespace remi {
 
 		std::list<std::string> split( std::string subject , std::string delimiter );
 
-		//std::string base64( std::string );
+		unsigned long long searchIndexOf(const char* buffer, char __char, unsigned long long len, unsigned long long start);
+
+		//std::list<char*> splitCharPointer(const char* buf, char splitChar, unsigned long long bufLen, int maxSplit);
+
 		std::string SHA1(std::string&);
 
-		std::string url_decode( std::string from );
+		void url_decode(const char* from, unsigned long long len, char*& converted, unsigned long long* lenConverted);
 
 		void open_browser( std::string url );
+
 
 		template< class org >
 		org list_at( std::list<org> list , int index ){
@@ -407,7 +411,24 @@ namespace remi {
     };
 
 
+
 	class Event {
+	public:
+		class PARAM{ 
+			public: 
+				char* data; unsigned long long len; 
+			public:
+				PARAM(char* _data, unsigned long long _len){
+					data = _data; len = _len;
+				}
+				void ˜PARAM(){
+					delete data;
+				}
+				std::string str(){
+					std::string _s; _s.assign(data, len);
+					return _s;
+				}
+		};
 	public:
 
 		Event();
@@ -417,7 +438,7 @@ namespace remi {
 
 		std::string		name;
 
-		Dictionary<std::string>			params;
+		Dictionary<PARAM*> params;
 
 	};
 
@@ -749,7 +770,7 @@ namespace remi {
 		FileUploaderOnSuccessListener* onSuccessListener;
 		class FileUploaderOnFailListener{ public: virtual void onFail(FileUploader*) = 0; };
 		FileUploaderOnFailListener* onFailListener;
-		class FileUploaderOnDataListener{ public: virtual void onData( FileUploader*, std::string fileName, std::string data ) = 0; };
+		class FileUploaderOnDataListener{ public: virtual void onData( FileUploader*, std::string fileName, const char* data, unsigned long long len ) = 0; };
 		FileUploaderOnDataListener* onDataListener;
 		
 	public:
@@ -761,7 +782,7 @@ namespace remi {
 		void setMultipleSelectionAllowed( bool value );
 		bool multipleSelectionAllowed();
 
-		void onEvent(std::string name, Event* event);
+		virtual void onEvent(std::string name, Event* event);
 
 	private:
 		std::string _path;

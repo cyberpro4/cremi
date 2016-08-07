@@ -15,6 +15,7 @@ remi_thread_result WebsocketClientInterface_threadEntry( remi_thread_param param
 
 WebsocketClientInterface::WebsocketClientInterface( remi_socket clientSock , struct sockaddr_in clientAddr ){
     _sock = clientSock;
+
     _stopFlag = false;
 	_handshakeDone = false;
 
@@ -59,59 +60,112 @@ void* WebsocketClientInterface::_run(){
 }
 
 bool WebsocketClientInterface::readNextMessage(){
-
-	char length_buf[8] = {0};
-
-	if( recv( _sock , length_buf, 2 , 0 ) != 2 )
-		return false;
-
-	unsigned long long int payload_len = 0;
-	unsigned int _l = length_buf[1] & 127;
-	payload_len = _l;
-
-	bool mask_enable = (length_buf[1] & (1 << 7)) != 0;
-
-	// manage payload len 126 / 127
-	if( payload_len == 126 ){
-		if( recv( _sock , length_buf, 2 , 0 ) != 2 )
+	bool fin = false;
+	unsigned char opcode = 0; //opcode==0 indicates continuationFrame
+	std::list<char*> chunks;
+	std::list<unsigned long long> sizes;
+	unsigned long long entireMsgLen = 0;
+	while (opcode==0){
+		char length_buf[8] = { 0 };
+		std::cout << "recv: " << "new msg" << endl;
+		if (recv(_sock, length_buf, 2, 0) != 2){
+			std::cout << "recv failed: " << "first two bytes not recv" << endl;
 			return false;
+		}
+		fin = length_buf[0] & 1;
+		opcode = (length_buf[0]>>4) & 0xf ;
 
-		unsigned short _l = 0;
-		memcpy( &_l , length_buf , 2 );
+		unsigned long long payload_len = 0;
+		unsigned int _l = length_buf[1] & 127;
 		payload_len = _l;
 
-	} else if( payload_len == 127 ){
-		if( recv( _sock , length_buf, 8 , 0 ) != 8 )
+		bool mask_enable = (length_buf[1] & (1 << 7)) != 0;
+		std::cout << "recv: " << "payload_len" << payload_len << endl;
+		// manage payload len 126 / 127
+		if (payload_len == 126){
+			if (recv(_sock, length_buf, 2, 0) != 2){
+				std::cout << "recv failed: " << "length_buf, 2" << endl;
+				return false;
+			}
+
+			payload_len = 0;
+			int _i = 0;
+			payload_len += length_buf[_i++]; payload_len = (payload_len << 8);
+			payload_len += length_buf[_i++];
+			std::cout << "payload 127: " << payload_len << "      length_buf: " << length_buf[_i++] << " " << length_buf[_i++] << endl;
+
+		}
+		else if (payload_len == 127){
+			if (recv(_sock, length_buf, 8, 0) != 8){
+				std::cout << "recv failed: " << "length_buf, 8" << endl;
+				return false;
+			}
+
+			payload_len = 0;
+			int _i = 0;
+			payload_len += (unsigned char)length_buf[_i++]; payload_len = (payload_len << 8);
+			payload_len += (unsigned char)length_buf[_i++]; payload_len = (payload_len << 8);
+			payload_len += (unsigned char)length_buf[_i++]; payload_len = (payload_len << 8);
+			payload_len += (unsigned char)length_buf[_i++]; payload_len = (payload_len << 8);
+			payload_len += (unsigned char)length_buf[_i++]; payload_len = (payload_len << 8);
+			payload_len += (unsigned char)length_buf[_i++]; payload_len = (payload_len << 8);
+			payload_len += (unsigned char)length_buf[_i++]; payload_len = (payload_len << 8);
+			payload_len += (unsigned char)length_buf[_i++];
+			_i = 0;
+			std::cout << "payload 127: " << payload_len << "      length_buf: " <<
+				length_buf[_i++] << " "
+				<< length_buf[_i++] << " "
+				<< length_buf[_i++] << " "
+				<< length_buf[_i++] << " "
+				<< length_buf[_i++] << " "
+				<< length_buf[_i++] << " "
+				<< length_buf[_i++] << " "
+				<< length_buf[_i++] << endl;
+		}
+
+		char mask[4];
+		std::cout << "recv: " << "mask enb:" << mask_enable << endl;
+		if (mask_enable){
+			if (recv(_sock, mask, 4, 0) != 4){
+				std::cout << "recv failed: " << "mask recv not received" << endl;
+				return false;
+			}
+		}
+
+		char *buf = new char[payload_len + 1];
+		std::memset(buf, 0, payload_len + 1);
+
+		size_t _rv = -1;
+		if ((_rv = recv(_sock, buf, payload_len, 0)) != (size_t)payload_len){
+			std::cout << "recv failed: " << "recv size mismatch" << endl;
+			delete[] buf;
 			return false;
+		}
 
-		unsigned long long int _l = 0;
-		memcpy( &_l , length_buf , 8 );
-		payload_len = _l;
+		for (size_t l = 0; l < _rv; l++){
+			buf[l] = buf[l] ^ mask[l % 4];
+		}
+
+		chunks.push_back(buf);
+		sizes.push_back(_rv);
+		entireMsgLen += _rv;
+		//delete buf;
 	}
-
-	char mask[4];
-
-	if( mask_enable ){
-		if( recv( _sock , mask , 4 , 0 ) != 4 )
-			return false;
+	char* entireMsg = new char[entireMsgLen];
+	unsigned long long _offset = 0;
+	for (char* _pointer : chunks){
+		memcpy(&entireMsg[_offset], _pointer, utils::list_at(sizes, 0));
+		_offset += utils::list_at(sizes, 0);
+		sizes.pop_front();
+		delete[] _pointer;
 	}
-
-	char *buf = new char [ payload_len +1 ];
-	memset( buf , 0 , payload_len+1 );
-
-	size_t _rv = -1;
-	if( (_rv = recv( _sock , buf , payload_len , 0 )) != (size_t)payload_len ){
-		delete buf;
-		return false;
-	}
-
-	for(size_t l = 0; l < _rv; l++ ){
-		buf[l] = buf[l] ^ mask[ l % 4 ];
-	}
-
-	on_message( remi::utils::url_decode( buf ) );
-
-	delete buf;
+	char* convertedMessage;
+	unsigned long long convertedMessageLen = 0;
+	remi::utils::url_decode(entireMsg, entireMsgLen, convertedMessage, &convertedMessageLen);
+	on_message( convertedMessage, convertedMessageLen );
+	
+	delete[] entireMsg;
+	delete[] convertedMessage;
 
 	return true;
 }
@@ -154,35 +208,43 @@ void WebsocketClientInterface::handshake(){
 	_handshakeDone = true;
 }
 
-Dictionary<std::string>	WebsocketClientInterface::parseParams( std::string paramString ){
+
+Dictionary<Event::PARAM*>	WebsocketClientInterface::parseParams(const char* paramString, unsigned long len){
 	/*std::smatch match;
 	std::string out = paramString;*/
-	Dictionary<std::string> ret;
+	Dictionary<Event::PARAM*> ret;
 
-	bool firstMatch = true;
+	unsigned long long __start = 0;
+	unsigned long long __pipe = 0;
+	unsigned long long __eq = 0;
+	unsigned long long dataLen = 0;
 
-	//std::regex_search( out, match, std::regex("[^\\|]+\\|?" ) );
+	__pipe = utils::searchIndexOf(paramString, '|', len, 0)-1;
+	__eq = utils::searchIndexOf(paramString, '=', len, __pipe)-1;
+	while (__start < __pipe && __pipe < __eq){
+		std::string sdataLen(&paramString[__start], __pipe - __start);
+		dataLen = atoll(sdataLen.c_str());
+		if (dataLen > 0){
+			unsigned long long fieldNameLen = __eq - __pipe - 1;
+			unsigned long long fieldDataLen = dataLen - __eq + __pipe;
+			std::string fieldName; fieldName.assign(&paramString[__pipe + 1], fieldNameLen);
 
-	for( std::string m : utils::split(paramString,"|") ){
+			char* fieldData = new char[dataLen - __eq + __pipe];
+			memcpy(fieldData, &paramString[__eq + 1], fieldDataLen);
+			
+			Event::PARAM* pValue = new Event::PARAM(fieldData, fieldDataLen);
+			ret[fieldName] = pValue;
 
-		if( firstMatch ){
-			firstMatch = false;
-			continue;
 		}
-
-		std::list<std::string> parts = utils::split(m , "=");
-
-		if( parts.size() != 2 )
-			continue;
-
-		ret[utils::list_at(parts, 0)] = utils::list_at(parts,1);
-
+		__start = __pipe + 2 + dataLen;
+		__pipe = utils::searchIndexOf(paramString, '|', len, __start)-1;  //paramString.find_first_of("|", __start);
+		__eq = utils::searchIndexOf(paramString, '=', len, __pipe)-1;  //paramString.find_first_of("=", __pipe);
 	}
-
+	
 	return ret;
 }
 
-void WebsocketClientInterface::on_message( std::string message ){
+void WebsocketClientInterface::on_message( const char* message, unsigned long long len ){
 
 	//std::cout << "ws: " << message;
 
@@ -190,18 +252,20 @@ void WebsocketClientInterface::on_message( std::string message ){
 		return;
 
 	send_message("ack");
+	
+	int _slashOffset1 = utils::searchIndexOf(message, '/', len, 0);
+	int _slashOffset2 = utils::searchIndexOf(message, '/', len, _slashOffset1);
+	int _slashOffset3 = utils::searchIndexOf(message, '/', len, _slashOffset2);
 
-	std::list<std::string> chunks = utils::split( message, "/" );
+	if (_slashOffset3>_slashOffset2 && _slashOffset2>_slashOffset1){ // msgtype,widget,function,params
 
-	if( chunks.size() > 3 ){ // msgtype,widget,function,params
+		if ( memcmp(message, "callback", _slashOffset1-1)==0 ){
+			
+			std::string s_widget_id; s_widget_id.assign(&message[_slashOffset1], _slashOffset2 - _slashOffset1-1);
 
-		if( utils::list_at( chunks , 0 ) == "callback" ){
-			std::string s_widget_id = utils::list_at( chunks , 1 );
-
-			std::string function_name = utils::list_at( chunks , 2 );
+			std::string function_name; function_name.assign(&message[_slashOffset2], _slashOffset3 - _slashOffset2-1);
 
 			std::cout << "ws: call id = " <<  s_widget_id << "." << function_name << std::endl;
-				;
 
 			int widget_id;
 			if( utils::sscan( s_widget_id , "%d" , &widget_id  ) != 1 )
@@ -214,12 +278,15 @@ void WebsocketClientInterface::on_message( std::string message ){
 			Event* event = new Event( function_name );
 			event->source = widget;
 			
-			if( chunks.size() >= 4 )
-				//event->params = utils::list_at( chunks , 4 );
-				event->params = parseParams( utils::list_at( chunks , 3 ) );
+			if (_slashOffset3 < len) //so there is a last chunk
+				event->params = parseParams( &message[_slashOffset3], len-_slashOffset3 );
 
 			//widget->propagate( event );
 			widget->onEvent( event->name , event );
+
+			for (std::string key: event->params.keys()){
+				delete (event->params.get(key));
+			}
 
 			delete event;
 		}
@@ -273,6 +340,8 @@ void WebsocketClientInterface::send_message( std::string message){
 	memcpy( lpmsg , message.c_str() , message_length );
 
 	send( _sock , (const char*)buf, buffer_length, 0 );
+
+	delete[] buf;
 	
 }
 

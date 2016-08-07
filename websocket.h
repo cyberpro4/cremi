@@ -22,7 +22,7 @@ namespace remi {
 
 			void handshake();
 
-			void on_message( std::string message);
+			void on_message(const char* message, unsigned long long len);
 
 			void send_message( std::string message);
 
@@ -30,7 +30,7 @@ namespace remi {
             
 		private:
 
-			Dictionary<std::string>		parseParams( std::string paramString );
+			Dictionary<Event::PARAM*>		parseParams(const char* paramString, unsigned long len);
 
 			remi_thread		_t;
 

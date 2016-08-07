@@ -174,14 +174,14 @@ public:
 		label->setText(o.str());
 	}
 
-	void onData(FileUploader* w, std::string fileName, std::string data){
+	void onData(FileUploader* w, std::string fileName, const char* data, unsigned long long len){
 		std::ostringstream filePathName;
 		filePathName << w->savePath() << "/" << fileName;
 		label->setText("File: " + filePathName.str());
-		ofstream myFile;
-		myFile.open(filePathName.str(), ios::out | ios::binary);
-		myFile << data;
-		myFile.close();
+		FILE* myFile = fopen(filePathName.str().c_str(), "wb");
+		fwrite(data, sizeof(char), len, myFile);
+		fclose(myFile);
+		//label->setText(data);
 	}
 };
 
