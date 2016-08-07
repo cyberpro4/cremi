@@ -159,6 +159,7 @@ bool WebsocketClientInterface::readNextMessage(){
 		sizes.pop_front();
 		delete[] _pointer;
 	}
+
 	char* convertedMessage;
 	unsigned long long convertedMessageLen = 0;
 	remi::utils::url_decode(entireMsg, entireMsgLen, convertedMessage, &convertedMessageLen);
