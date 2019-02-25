@@ -51,34 +51,6 @@ remi_thread   remi_createThread( remi_thread_callback callback , remi_thread_par
 
 }
 
-const std::string Widget::Event_OnClick = "OnClick";
-const std::string Widget::Event_OnDblClick = "OnDblClick";
-const std::string Widget::Event_OnMouseDown = "OnMouseDown";
-const std::string Widget::Event_OnMouseMove = "OnMouseMove";
-const std::string Widget::Event_OnMouseOver = "OnMouseOver";
-const std::string Widget::Event_OnMouseOut = "OnMouseOut";
-const std::string Widget::Event_OnMouseLeave = "OnMouseLeave";
-const std::string Widget::Event_OnMouseUp = "OnMouseUp";
-const std::string Widget::Event_OnTouchMove = "OnTouchMove";
-const std::string Widget::Event_OnTouchStart = "OnTouchStart";
-const std::string Widget::Event_OnTouchEnd = "OnTouchEnd";
-const std::string Widget::Event_OnTouchEnter = "OnTouchEnter";
-const std::string Widget::Event_OnTouchLeave = "OnTouchLeave";
-const std::string Widget::Event_OnTouchCancel = "OnTouchCancel";
-const std::string Widget::Event_OnKeyDown = "OnKeyDown";
-const std::string Widget::Event_OnKeyPress = "OnKeyPress";
-const std::string Widget::Event_OnKeyUp = "OnKeyUp";
-const std::string Widget::Event_OnChange = "OnChange";
-const std::string Widget::Event_OnFocus = "OnFocus";
-const std::string Widget::Event_OnBlur = "OnBlur";
-const std::string Widget::Event_OnContextMenu = "OnContextMenu";
-const std::string Widget::Event_OnUpdate = "OnUpdate";
-
-const std::string TextInput::Event_OnEnter = "OnEnter";
-
-const std::string FileUploader::Event_OnSuccess = "OnSuccess";
-const std::string FileUploader::Event_OnFail = "OnFail";
-const std::string FileUploader::Event_OnData = "OnData";
 
 std::string remi::utils::SHA1(std::string& val){
 	sha1::SHA1 s;
@@ -315,6 +287,7 @@ std::string remi::utils::sformat( std::string fmt_str , ... ){
 
 }
 
+
 utils::Timer::Timer( int millisecondsInterval, TimerListener* listener ){
     _stopFlag = false;
 
@@ -388,8 +361,6 @@ void remi::utils::Timer::stop(){
 }
 
 
-
-
 std::string remi::utils::join( Dictionary<std::string>& from , std::string nameValueGlue , std::string itemsGlue ){
     std::ostringstream out;
 
@@ -444,63 +415,106 @@ std::string StringRepresantable::repr(){
 }
 
 
+Tag::Tag():Tag(Dictionary<std::string>(), "div", typeid(*this).name){}
 
-Tag::Tag(){
-    _type = "div";
-	attributes.set( "id" , utils::sformat( "%d", (int)this ) );
+Tag::Tag(Dictionary<std::string> _attributes, std::string _type, std::string _class){
+	_parent = NULL;
+
+	ignoreUpdate = false;
+
+    type = _type;
+	setIdentifier(utils::sformat("%d", (int)this));
+
+	attributes.update(_attributes);
+	addClass((_class=="")?typeid(*this).name:_class);
 }
 
-Tag::Tag( std::string type ){
-    _type = type;
-	attributes.set( "id" , utils::sformat( "%d", (int)this ) );
+void Tag::addClass(std::string name) {
+	_classes.push_front(name);
 }
 
-void Tag::addClass( std::string name ){
-    _classes.push_front( name );
+void Tag::removeClass(std::string name) {
+	_classes.remove(name);
 }
 
-void Tag::removeClass( std::string name ){
-    _classes.remove( name );
+std::string Tag::getIdentifier() {
+	if (attributes.has("id"))
+		return attributes["id"];
+	return "";
 }
 
-std::string Tag::getIdentifier(){
-    if( attributes.has( "id" ) )
-        return attributes["id"];
-    return "";
+void Tag::setIdentifier(std::string newIdentifier) {
+	attributes.set("id", newIdentifier);
+	remi::server::runtimeInstances[this->getIdentifier()] = this;
+}
+
+std::string Tag::innerHTML(Dictionary<Represantable*> localChangedWidgets) {
+	std::ostringstream ret;
+	for (std::string k : localChangedWidgets.keys()) {
+		Represantable* s = localChangedWidgets[k];
+		Tag* t = dynamic_cast<Tag*>(s);
+		ret << t?t->repr(localChangedWidgets):s->repr();
+	}
+}
+
+std::string Tag::repr() {
+	return repr(Dictionary<Represantable*>());
+}
+
+std::string Tag::repr(Dictionary<Represantable*> changedWidgets) {
+	Dictionary<Represantable*> localChangedWidgets;
+	std::ostringstream  _innerHtml;
+
+	_innerHtml << repr(localChangedWidgets);
+
+	if (this->isChanged() || (localChangedWidgets.size() > 0)) {
+		_backupRepr.clear();
+		_backupRepr << "<" << type <<
+			" " << _reprAttributes.str() <<
+			" class=\"" << utils::join(_classes, " ") << "\""
+			">" << _innerHtml.str() << "</" << type << ">";
+	}
+
+	if (this->isChanged()) {
+		changedWidgets[this->getIdentifier()] = this->_backupRepr;
+		this->setUpdated();
+	}
+	else {
+		changedWidgets.update(localChangedWidgets);
+	}
+
+	return _backupRepr.str();
 }
 
 
-std::string Tag::repr(){
-
-    std::ostringstream  html;
-
-    if( style.size() > 0 )
-        this->attributes.set( "style" , utils::toCss( style ) );
-    else
-        this->attributes.remove( "style" );
-
-    std::ostringstream attributes;
-    bool first=true;
-    for( std::string key : this->attributes.keys() ){
-        if(!first)
-            attributes << " ";
-        attributes << key << "=\"" << this->attributes.get(key) << "\"";
-        first = false;
-    }
-
-    std::ostringstream innerHtml;
-
-    for( Represantable* represantable : _render_children_list ){
-        innerHtml << represantable->repr();
-    }
-
-    html << "<" << _type <<
-    " " << attributes.str() <<
-    " class=\"" << utils::join(_classes, " ") << "\""
-            ">" << innerHtml.str() << "</" << _type << ">";
-
-    return html.str();
+void Tag::_needUpdate() {
+	if (!ignoreUpdate) {
+		if (this->_parent) {
+			this->_parent->_needUpdate();
+		}
+	}
 }
+void Tag::_needUpdate(Tag* emitter) {
+	if (style.size() > 0)
+		this->attributes.set("style", utils::toCss(style));
+	else
+		this->attributes.remove("style");
+	for (std::string k : this->attributes.keys()) {
+		this->_reprAttributes << k << "=\"" << this->attributes[k].value << "\"";
+	}
+	_needUpdate();
+}
+
+
+
+
+
+
+
+/***
+TUTTO quello che segue e' da revisionare
+***/
+
 
 void Tag::addChild( Represantable* child , std::string key ){
 
@@ -545,11 +559,40 @@ void Tag::setUpdated(){
 }
 
 
+const std::string Widget::Event_OnClick = "OnClick";
+const std::string Widget::Event_OnDblClick = "OnDblClick";
+const std::string Widget::Event_OnMouseDown = "OnMouseDown";
+const std::string Widget::Event_OnMouseMove = "OnMouseMove";
+const std::string Widget::Event_OnMouseOver = "OnMouseOver";
+const std::string Widget::Event_OnMouseOut = "OnMouseOut";
+const std::string Widget::Event_OnMouseLeave = "OnMouseLeave";
+const std::string Widget::Event_OnMouseUp = "OnMouseUp";
+const std::string Widget::Event_OnTouchMove = "OnTouchMove";
+const std::string Widget::Event_OnTouchStart = "OnTouchStart";
+const std::string Widget::Event_OnTouchEnd = "OnTouchEnd";
+const std::string Widget::Event_OnTouchEnter = "OnTouchEnter";
+const std::string Widget::Event_OnTouchLeave = "OnTouchLeave";
+const std::string Widget::Event_OnTouchCancel = "OnTouchCancel";
+const std::string Widget::Event_OnKeyDown = "OnKeyDown";
+const std::string Widget::Event_OnKeyPress = "OnKeyPress";
+const std::string Widget::Event_OnKeyUp = "OnKeyUp";
+const std::string Widget::Event_OnChange = "OnChange";
+const std::string Widget::Event_OnFocus = "OnFocus";
+const std::string Widget::Event_OnBlur = "OnBlur";
+const std::string Widget::Event_OnContextMenu = "OnContextMenu";
+const std::string Widget::Event_OnUpdate = "OnUpdate";
+
+const std::string TextInput::Event_OnEnter = "OnEnter";
+
+const std::string FileUploader::Event_OnSuccess = "OnSuccess";
+const std::string FileUploader::Event_OnFail = "OnFail";
+const std::string FileUploader::Event_OnData = "OnData";
+
 Widget::Widget() : Tag() {
     defaults();
 }
 
-Widget::Widget( std::string type ) {
+Widget::Widget( std::string _type ) {
     defaults();
 }
 
@@ -731,7 +774,7 @@ VBox::VBox() : Widget(){
 
 Button::Button( std::string text ) : TextWidget(){
 
-	_type = "button";
+	type = "button";
 
 	setText(text);
 
@@ -755,7 +798,7 @@ bool Button::enabled(){
 
 TextInput::TextInput( bool single_line ){
 
-	_type = "textarea";
+	type = "textarea";
 
 	attributes[Widget::Event_OnClick] = "";
 	attributes[Widget::Event_OnChange] = utils::sformat(
@@ -833,7 +876,7 @@ std::string TextWidget::text(){
 }
 
 Label::Label( std::string text ){
-	_type = "p";
+	type = "p";
 	setText( text );
 }
 
@@ -949,7 +992,7 @@ void InputDialog::onEnter(TextInput* w, std::string text){
 }
 
 ListView::ListView(){
-	_type = "ul";
+	type = "ul";
 
 	onSelectionListener = NULL;
 
@@ -988,12 +1031,12 @@ void ListView::selectItem(ListItem* item){
 
 
 ListItem::ListItem(std::string text){
-	_type = "li";
+	type = "li";
 	setText( text );
 }
 
 Image::Image(std::string url){
-	_type = "img";
+	type = "img";
 
 	setURL(url);
 }
@@ -1007,7 +1050,7 @@ std::string Image::url(){
 }
 
 Input::Input(){
-	_type = "input";
+	type = "input";
 
 	attributes[Event_OnClick] = "";
 	attributes[Event_OnChange] = utils::sformat( \
@@ -1059,7 +1102,7 @@ FileUploader::FileUploader( std::string path, bool multipleSelectionAllowed ){
 	setSavePath(path);
 	setMultipleSelectionAllowed(multipleSelectionAllowed);
 
-	_type = "input";
+	type = "input";
 	this->attributes["type"] = "file";
 	this->attributes["accept"] = "*.*";
 

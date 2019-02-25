@@ -17,6 +17,7 @@
 
 //#include <thread>       //std::this_thread::sleep_for std::thread
 #include <chrono>
+#include <typeinfo>
 
 #define HAVE_STRUCT_TIMESPEC // ?? TODO: WTF
 
@@ -238,6 +239,13 @@ namespace remi {
 			}
 		}
 
+		void update(const Dictionary<T> & d) {
+			for (DictionaryValue<T>* dictionaryValue : d._library) {
+				this->set(dictionaryValue.name, dictionaryValue.value);
+			}
+
+		}
+
         const T get( std::string name ) const {
             DictionaryValue<T>* objectAttribute = this->getDictionaryValue( name );
 
@@ -371,7 +379,7 @@ namespace remi {
 
         Tag();
 
-        Tag( std::string type );
+        Tag(Dictionary<std::string> attributes, std::string _type, std::string _class="");
 
         void addClass( std::string name );
 
@@ -379,7 +387,13 @@ namespace remi {
 
         std::string getIdentifier();
 
-        std::string repr();
+		void setIdentifier( std::string newIdentifier );
+
+		std::string innerHTML( Dictionary<Represantable*> localChangedWidgets );
+
+		std::string repr();
+
+        std::string repr(Dictionary<Represantable*> changedWidgets);
 
         void addChild( Represantable* child, std::string key = "" );
 
@@ -393,6 +407,9 @@ namespace remi {
 			return attributes.isChanged() || style.isChanged() || children.isChanged();
 		}
 
+		void _needUpdate();
+		void _needUpdate(Tag* emitter);
+
     public:
 
         std::list<std::string>              _classes;
@@ -402,12 +419,17 @@ namespace remi {
 
         VersionedDictionary<Represantable *>       children;
 
-        std::string     _type;
+        std::string     type;
+
+		Tag* _parent;
+
+		bool ignoreUpdate;
 
     private:
 
         std::list<Represantable *>              _render_children_list;
-
+		std::ostringstream _backupRepr;
+		std::ostringstream _reprAttributes;
     };
 
 

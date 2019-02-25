@@ -17,6 +17,7 @@
 namespace remi {
 
 	namespace server {
+		Dictionary<Tag*> runtimeInstances;
 
 		class ServerResponse {
 
