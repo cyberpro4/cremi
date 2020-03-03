@@ -3,8 +3,8 @@
 //
 
 
-#include "remi.h"
 #include "remi_server.h"
+#include "remi.h"
 
 #include <stdarg.h>
 #include <memory>
@@ -415,7 +415,7 @@ std::string StringRepresantable::repr(){
 }
 
 
-Tag::Tag():Tag(Dictionary<std::string>(), "div", typeid(*this).name){}
+Tag::Tag():Tag(Dictionary<std::string>(), "div", typeid(*this).name()){}
 
 Tag::Tag(Dictionary<std::string> _attributes, std::string _type, std::string _class){
 	_parent = NULL;
@@ -424,9 +424,10 @@ Tag::Tag(Dictionary<std::string> _attributes, std::string _type, std::string _cl
 
     type = _type;
 	setIdentifier(utils::sformat("%d", (int)this));
-
+	
 	attributes.update(_attributes);
-	addClass((_class=="")?typeid(*this).name:_class);
+
+	addClass((_class.length()<1)?std::string(typeid(*this).name()):_class);
 }
 
 void Tag::addClass(std::string name) {
@@ -445,7 +446,7 @@ std::string Tag::getIdentifier() {
 
 void Tag::setIdentifier(std::string newIdentifier) {
 	attributes.set("id", newIdentifier);
-	remi::server::runtimeInstances[this->getIdentifier()] = this;
+	//remi::server::runtimeInstances[this->getIdentifier()] = this;
 }
 
 std::string Tag::innerHTML(Dictionary<Represantable*> localChangedWidgets) {
@@ -455,6 +456,7 @@ std::string Tag::innerHTML(Dictionary<Represantable*> localChangedWidgets) {
 		Tag* t = dynamic_cast<Tag*>(s);
 		ret << t?t->repr(localChangedWidgets):s->repr();
 	}
+	return ret.str();
 }
 
 std::string Tag::repr() {
@@ -476,7 +478,7 @@ std::string Tag::repr(Dictionary<Represantable*> changedWidgets) {
 	}
 
 	if (this->isChanged()) {
-		changedWidgets[this->getIdentifier()] = this->_backupRepr;
+		changedWidgets[this->getIdentifier()] = this;
 		this->setUpdated();
 	}
 	else {

@@ -76,6 +76,7 @@ remi_thread		remi_createThread( remi_thread_callback callback , remi_thread_para
 
 namespace remi {
 
+	
     namespace utils {
 
         std::string toPix( int v );
@@ -241,7 +242,7 @@ namespace remi {
 
 		void update(const Dictionary<T> & d) {
 			for (DictionaryValue<T>* dictionaryValue : d._library) {
-				this->set(dictionaryValue.name, dictionaryValue.value);
+				this->set(dictionaryValue->name, dictionaryValue->value);
 			}
 
 		}
@@ -431,8 +432,6 @@ namespace remi {
 		std::ostringstream _backupRepr;
 		std::ostringstream _reprAttributes;
     };
-
-
 
 	class Event {
 	public:
