@@ -6,6 +6,8 @@
 #include "base64.h"
 #include "TinySHA1.hpp"
 #include <iostream>
+#include <vector>
+
 using namespace std;
 
 namespace remi {
@@ -13,7 +15,7 @@ namespace remi {
 	namespace server {
 
 		class WebsocketClientInterface{
-        
+
 		public:
 			WebsocketClientInterface(remi_socket clientSock , struct sockaddr_in clientAddr );
 			void* _run();
@@ -27,10 +29,10 @@ namespace remi {
 			void send_message( std::string message);
 
 			bool readNextMessage();
-            
+
 		private:
 
-			Dictionary<Event::PARAM*>		parseParams(const char* paramString, unsigned long len);
+			Dictionary<Buffer*>*		parseParams(const char* paramString, unsigned long len);
 
 			remi_thread		_t;
 
@@ -41,12 +43,12 @@ namespace remi {
 			bool	_stopFlag;
 
 			int		_secondsSinceLastPing;
-            
+
 		};
-        
+
 		//Listens asyncronously for client connection and for each client instantiate a WebsocketClientInterface
 		class WebsocketServer {
-        
+
 		public:
 
 			WebsocketServer( int port );
@@ -56,7 +58,7 @@ namespace remi {
 			void	stop();
 
 			void	sendToAllClients(std::string message);
-            
+
 		private:
 			remi_thread _t;
 
@@ -71,7 +73,7 @@ namespace remi {
 
 			bool			_stopFlag;
 
-            
+
 		};
 
 	}

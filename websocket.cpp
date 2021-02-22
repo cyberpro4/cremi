@@ -33,7 +33,7 @@ void* WebsocketClientInterface::_run(){
     //  at first glance, the handshake have to be performed
     //  after that, new messages an managed in on_message
     while( !_stopFlag ){
-        
+
 		/*char buffer[64] = {0};
 
 		int recv_bytes = recv( _sock , buffer , 64 , 0 );
@@ -164,7 +164,7 @@ bool WebsocketClientInterface::readNextMessage(){
 	unsigned long long convertedMessageLen = 0;
 	remi::utils::url_decode(entireMsg, entireMsgLen, convertedMessage, &convertedMessageLen);
 	on_message( convertedMessage, convertedMessageLen );
-	
+
 	delete[] entireMsg;
 	delete[] convertedMessage;
 
@@ -197,7 +197,7 @@ void WebsocketClientInterface::handshake(){
 	std::string b64 = base64_encode((unsigned char*)sha1_1.c_str(), sha1_1.length());
 
 	std::ostringstream response_s;
-	response_s 
+	response_s
 		<< "HTTP/1.1 101 Switching Protocols\r\n"
 		<< "Upgrade: websocket\r\n"
 		<< "Connection: Upgrade\r\n"
@@ -210,10 +210,10 @@ void WebsocketClientInterface::handshake(){
 }
 
 
-Dictionary<Event::PARAM*>	WebsocketClientInterface::parseParams(const char* paramString, unsigned long len){
+Dictionary<Buffer*>*	WebsocketClientInterface::parseParams(const char* paramString, unsigned long len){
 	/*std::smatch match;
 	std::string out = paramString;*/
-	Dictionary<Event::PARAM*> ret;
+	Dictionary<Buffer*>* ret = new Dictionary<Buffer*>();
 
 	unsigned long long __start = 0;
 	unsigned long long __pipe = 0;
@@ -232,16 +232,17 @@ Dictionary<Event::PARAM*>	WebsocketClientInterface::parseParams(const char* para
 
 			char* fieldData = new char[dataLen - __eq + __pipe];
 			memcpy(fieldData, &paramString[__eq + 1], fieldDataLen);
-			
-			Event::PARAM* pValue = new Event::PARAM(fieldData, fieldDataLen);
-			ret[fieldName] = pValue;
+
+            Buffer* buf = new Buffer(fieldData, fieldDataLen);
+
+            ret->set(fieldName, buf);
 
 		}
 		__start = __pipe + 2 + dataLen;
 		__pipe = utils::searchIndexOf(paramString, '|', len, __start)-1;  //paramString.find_first_of("|", __start);
 		__eq = utils::searchIndexOf(paramString, '=', len, __pipe)-1;  //paramString.find_first_of("=", __pipe);
 	}
-	
+
 	return ret;
 }
 
@@ -253,7 +254,7 @@ void WebsocketClientInterface::on_message( const char* message, unsigned long lo
 		return;
 
 	send_message("ack");
-	
+
 	int _slashOffset1 = utils::searchIndexOf(message, '/', len, 0);
 	int _slashOffset2 = utils::searchIndexOf(message, '/', len, _slashOffset1);
 	int _slashOffset3 = utils::searchIndexOf(message, '/', len, _slashOffset2);
@@ -261,7 +262,7 @@ void WebsocketClientInterface::on_message( const char* message, unsigned long lo
 	if (_slashOffset3>_slashOffset2 && _slashOffset2>_slashOffset1){ // msgtype,widget,function,params
 
 		if ( memcmp(message, "callback", _slashOffset1-1)==0 ){
-			
+
 			std::string s_widget_id; s_widget_id.assign(&message[_slashOffset1], _slashOffset2 - _slashOffset1-1);
 
 			std::string function_name; function_name.assign(&message[_slashOffset2], _slashOffset3 - _slashOffset2-1);
@@ -272,24 +273,25 @@ void WebsocketClientInterface::on_message( const char* message, unsigned long lo
 			if( utils::sscan( s_widget_id , "%d" , &widget_id  ) != 1 )
 				return;
 
-			
+
 
 			Widget* widget = (Widget*)( (void*)widget_id );
 
-			Event* event = new Event( function_name );
-			event->source = widget;
-			
-			if (_slashOffset3 < len) //so there is a last chunk
-				event->params = parseParams( &message[_slashOffset3], len-_slashOffset3 );
+			/*Event* event = new Event( function_name );
+			event->source = widget;*/
 
-			//widget->propagate( event );
-			widget->onEvent( event->name , event );
-
-			for (std::string key: event->params.keys()){
-				delete (event->params.get(key));
+            Dictionary<Buffer*>* params = NULL;
+			if (_slashOffset3 < len){ //so there is a last chunk
+                params = parseParams( &message[_slashOffset3], len-_slashOffset3 );
 			}
+			reinterpret_cast<Event*>(widget->event_handlers[function_name].value)->operator()(params);
 
-			delete event;
+            if(params!=NULL){
+                for (std::string key: params->keys()){
+                    delete (params->get(key));
+                }
+            }
+			delete params;
 		}
 
 	}
@@ -343,7 +345,7 @@ void WebsocketClientInterface::send_message( std::string message){
 	send( _sock , (const char*)buf, buffer_length, 0 );
 
 	delete[] buf;
-	
+
 }
 
 
@@ -364,7 +366,7 @@ WebsocketServer::WebsocketServer( int port ){
         //return 0;
 		return;
     }
-    
+
     memset((void*) &_address, 0, sizeof(_address));
     _address.sin_family = AF_INET;
 	remi_socket_setaddr( _address.sin_addr, INADDR_ANY );
@@ -377,24 +379,24 @@ WebsocketServer::WebsocketServer( int port ){
     if( listen( _socketFd , SOMAXCONN ) < 0 ){
         return;
     }
-    
+
     _t = remi_createThread( (remi_thread_callback)&WebsocketServer_threadEntry, (void*)this );
 }
 
 void* WebsocketServer::_listenAsync(void* data){
 
 	while( true ){
- 
+
         SOCKADDR_IN         clientSock;
         remi_socket_len		clientLen = sizeof( clientSock );
- 
+
         remi_socket		client = accept( _socketFd , (SOCKADDR*)&clientSock , &clientLen );
 
         if( client != INVALID_SOCKET ){
 
 #ifdef WIN32
 			// Clients keys are "[IP_ADDRESS]:[PORT]"
-			std::string key = utils::sformat( "%d.%d.%d.%d:%d" , 
+			std::string key = utils::sformat( "%d.%d.%d.%d:%d" ,
 				(int)clientSock.sin_addr.S_un.S_un_b.s_b1,
 				(int)clientSock.sin_addr.S_un.S_un_b.s_b2,
 				(int)clientSock.sin_addr.S_un.S_un_b.s_b3,
@@ -402,7 +404,7 @@ void* WebsocketServer::_listenAsync(void* data){
 				(int)clientSock.sin_port
 			);
 #else
-			std::string key = utils::sformat( "%s:%d" , 
+			std::string key = utils::sformat( "%s:%d" ,
 				inet_ntoa( clientSock.sin_addr ),
 				clientSock.sin_port );
 #endif
@@ -410,7 +412,7 @@ void* WebsocketServer::_listenAsync(void* data){
             _clients.set(key , new WebsocketClientInterface( client , clientSock ) );
 
         }
- 
+
         Sleep( 100 );
 	}
 

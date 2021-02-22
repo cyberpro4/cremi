@@ -17,7 +17,7 @@
 namespace remi {
 
 	namespace server {
-		Dictionary<Tag*> runtimeInstances;
+		//Dictionary<Tag*> runtimeInstances;
 
 		class ServerResponse {
 
@@ -53,7 +53,7 @@ namespace remi {
 			int		prepareSize( int new_size );
 		};
 
-		
+
 
 		class App {
 
@@ -128,7 +128,7 @@ namespace remi {
 				return _app;
 			}
 
-		};	
+		};
 
 	}
 }

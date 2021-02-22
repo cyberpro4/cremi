@@ -14,35 +14,38 @@
 #include <locale>
 #include <iomanip>
 #include <stdio.h>
+#include <stdarg.h>
 
 //#include <thread>       //std::this_thread::sleep_for std::thread
 #include <chrono>
 #include <typeinfo>
 
+#define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
+
 #define HAVE_STRUCT_TIMESPEC // ?? TODO: WTF
 
 #ifdef WIN32
- 
+
     #include <Windows.h>
-  
+
     #define     remi_socket               SOCKET
     #define     remi_socket_len           int
 
-	
+
 	#define     remi_socket_setaddr( sck , adr )      sck.S_un.S_addr = adr
 	#define     remi_socket_addr( sck )               sck.S_un.S_addr
- 
+
     #define     remi_thread_result        DWORD
     #define     remi_thread_callback      LPTHREAD_START_ROUTINE
     #define     remi_thread_param         LPVOID
     #define     remi_thread               HANDLE
 
 	#define _CRT_SECURE_NO_WARNINGS 1
-  
+
 #endif
- 
+
 #if defined(__unix__) || defined(__MACH__)
-     
+
     #define     SOCKET_ERROR    -1
     #define     SOCKADDR        sockaddr
     #define     SOCKADDR_IN     sockaddr_in
@@ -51,13 +54,13 @@
     #define     remi_socket_len   socklen_t
     #define     remi_socket_setaddr( sck , adr )      sck.s_addr = adr
     #define     remi_socket_addr( sck )               sck.s_addr
- 
+
     #define     remi_thread               pthread_t
-    #define     remi_thread_result        void*   
+    #define     remi_thread_result        void*
     #define     remi_thread_param         void*
     typedef     void* (*remi_thread_callback)( remi_thread_param param );
- 
- 
+
+
     #include <unistd.h>
     #include <sys/types.h>
     #include <sys/socket.h>
@@ -65,10 +68,12 @@
     #include <netinet/in.h>
     #include <stdio.h>
     #include <string.h>
- 
+
     #define     Sleep(a)    usleep( a * 1000 )
- 
+
 #endif
+
+#define CLASS_NAME(c) #c
 
 long long int	remi_timestamp();
 
@@ -76,7 +81,7 @@ remi_thread		remi_createThread( remi_thread_callback callback , remi_thread_para
 
 namespace remi {
 
-	
+
     namespace utils {
 
         std::string toPix( int v );
@@ -125,7 +130,7 @@ namespace remi {
         //Timer utility. Calls a function (in a parallel std::thread) at a predefined 'millisecondsInterval' until stopFlag turns True.
         class Timer {
         public:
-            
+
             Timer( int millisecondsInterval , TimerListener* listener = NULL );
 			Timer();
 
@@ -196,7 +201,8 @@ namespace remi {
 
     public:
 
-        Dictionary(){}
+        Dictionary(){
+        }
 
 		Dictionary( Dictionary<T> & d ){
 			for( DictionaryValue<T>* value : d._library ){
@@ -217,8 +223,10 @@ namespace remi {
 
         std::list<std::string> keys(){
             std::list<std::string> k;
-            for( DictionaryValue<T>* currentAttribute : _library ){
-                k.push_front( currentAttribute->name );
+            if(_library.size()>0){
+                for( DictionaryValue<T>* currentAttribute : _library ){
+                    k.push_front( currentAttribute->name );
+                }
             }
 
             return k;
@@ -240,7 +248,7 @@ namespace remi {
 			}
 		}
 
-		void update(const Dictionary<T> & d) {
+		void update( const Dictionary<T>& d ) {
 			for (DictionaryValue<T>* dictionaryValue : d._library) {
 				this->set(dictionaryValue->name, dictionaryValue->value);
 			}
@@ -315,12 +323,128 @@ namespace remi {
     };
 
 
-    template<class T> class VersionedDictionary : public Dictionary<T> {
+    class Buffer{
+        public:
+            char* data; unsigned long long len;
+        public:
+            Buffer(char* _data, unsigned long long _len){
+                data = _data; len = _len;
+            }
+            ~Buffer(){
+                delete data;
+            }
+            std::string str(){
+                std::string _s; _s.assign(data, len);
+                return _s;
+            }
+    };
 
+    class Event;
+
+
+    class EventSource{
+        public:
+            Dictionary<Event*> event_handlers;
+    };
+
+    class EventListener{
+        public:
+            typedef void (EventListener::*listener_type)(EventSource*, Dictionary<Buffer*>*, void* );
+    };
+
+
+    class Tag;
+    class Event{
+        public:
+            const char* _eventName; //this is used for comparison, when a js event occurs and have to be dispatched to widgets
+
+            EventSource* _eventSource; //the event owner, that calls the listener
+
+        public:
+            typedef void (*listener_type)(EventSource*, Dictionary<Buffer*>*, void* );
+            listener_type _listener;
+            EventListener::listener_type _listener_member;
+            EventListener* _listener_instance;
+
+            void* _userData;
+
+        public:
+            Event(EventSource* eventSource, const char* eventName):_eventSource(eventSource),_eventName(eventName){
+                _listener = NULL;
+                _listener_member = NULL;
+                _listener_instance = NULL;
+            };
+
+            //event registration in explicit form myevent._do(listener, userData);
+            void _do(EventListener* instance, EventListener::listener_type listener, void* userData=0){
+                this->_listener_instance = instance;
+                this->_listener_member = listener;
+                this->_userData = userData;
+            }
+
+            void _do(listener_type listener, void* userData=0){
+                this->_listener = listener;
+                this->_userData = userData;
+            }
+
+            //event registration in stream form myevent >> listener >> userData;;
+            Event& operator>> (listener_type listener){
+                this->_listener = listener;
+                return *this;
+            }
+            Event& operator>> (EventListener* instance){
+                this->_listener_instance = instance;
+                return *this;
+            }
+            Event& operator>> (EventListener::listener_type listener){
+                this->_listener_member = listener;
+                return *this;
+            }
+            Event& operator>> (void* userData){
+                this->_userData = userData;
+                return *this;
+            }
+
+            void operator()(EventSource* eventSource, Dictionary<Buffer*>* params){
+                if(this->_listener!=NULL){
+                    this->_listener(eventSource, params, this->_userData);
+                    return;
+                }
+                if(this->_listener_member!=NULL){
+                    //(*this->_listener_instance).*(this->_listener_member)(eventSource, params, this->_userData);
+                    //invoke(this->_listener_member, this->_listener_instance, eventSource, params, this->_userData);
+                    CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(eventSource, params, this->_userData);
+                }
+            }
+
+            virtual void operator()(Dictionary<Buffer*>*)=0;
+    };
+
+
+    class EventJavascript:public Event{
+        public:
+            std::string _javascriptCode;
+            bool        _preventDefault;
+            bool        _stopPropagation;
+
+        public:
+            EventJavascript(EventSource* eventSource, const char* eventName,
+                                     std::string javascriptCode,
+                                     bool preventDefault, bool stopPropagation):Event::Event(eventSource,eventName){
+                _javascriptCode     = javascriptCode;
+                _preventDefault     = preventDefault;
+                _stopPropagation    = stopPropagation;
+                //static_cast<Tag*>(eventSource)->attributes[eventName] = _javascriptCode;
+            };
+    };
+
+
+    template<class T> class VersionedDictionary : public Dictionary<T>, public EventSource {
     public:
 
         VersionedDictionary(){
             this->_version = 0;
+            this->event_onchange = new onChange(this);
         }
 
         void set( std::string name , T value, int version_increment = 1 ){
@@ -331,12 +455,14 @@ namespace remi {
                 _version += version_increment;*/
             _version += version_increment;
 
-            return Dictionary<T>::set(name, value);
+            Dictionary<T>::set(name, value);
+            this->event_onchange->operator()(NULL);
         }
 
         void clear( int version_increment = 1 ){
             _version += version_increment;
             Dictionary<T>::clear();
+            this->event_onchange->operator()(NULL);
         }
 
         long getVersion(){
@@ -351,16 +477,30 @@ namespace remi {
 			return _version != _lastVersion;
 		}
 
+        class onChange:public Event{
+            friend class Widget;
+            public:
+                //int status = 0;
+                //evt(void* emitter):Event::Event(emitter, abi::__cxa_demangle(typeid(this).name(),0,0,&status)){
+                onChange(EventSource* eventSource):Event::Event(eventSource, CLASS_NAME(onChange)){
+                    eventSource->event_handlers.set(this->_eventName, this);
+                }
+                void operator()(Dictionary<Buffer*>* parameters=NULL){
+                    Event::operator()(_eventSource, parameters);
+                }
+        }* event_onchange;
     private:
 
         long _version;
 		long _lastVersion;
     };
 
+
     class Represantable {
     public:
         virtual std::string repr() = 0;
     };
+
 
     class StringRepresantable : public Represantable {
     public:
@@ -374,13 +514,14 @@ namespace remi {
         std::string v;
     };
 
-    class Tag : public Represantable {
+
+    class Tag : public Represantable, public EventSource, public EventListener  {
 
     public:
 
         Tag();
 
-        Tag(Dictionary<std::string> attributes, std::string _type, std::string _class="");
+        Tag(VersionedDictionary<std::string> attributes, std::string _type, std::string _class="");
 
         void addClass( std::string name );
 
@@ -390,11 +531,11 @@ namespace remi {
 
 		void setIdentifier( std::string newIdentifier );
 
-		std::string innerHTML( Dictionary<Represantable*> localChangedWidgets );
+		std::string innerHTML( Dictionary<Represantable*>* localChangedWidgets );
 
 		std::string repr();
 
-        std::string repr(Dictionary<Represantable*> changedWidgets);
+        std::string repr(Dictionary<Represantable*>* changedWidgets);
 
         void addChild( Represantable* child, std::string key = "" );
 
@@ -408,8 +549,10 @@ namespace remi {
 			return attributes.isChanged() || style.isChanged() || children.isChanged();
 		}
 
-		void _needUpdate();
-		void _needUpdate(Tag* emitter);
+		void _notifyParentForUpdate();
+
+		//EventListener::listener_type _needUpdate;
+		void _needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata);
 
     public:
 
@@ -433,115 +576,30 @@ namespace remi {
 		std::ostringstream _reprAttributes;
     };
 
-	class Event {
-	public:
-		class PARAM{ 
-			public: 
-				char* data; unsigned long long len; 
-			public:
-				PARAM(char* _data, unsigned long long _len){
-					data = _data; len = _len;
-				}
-				void ˜PARAM(){
-					delete data;
-				}
-				std::string str(){
-					std::string _s; _s.assign(data, len);
-					return _s;
-				}
-		};
-	public:
-
-		Event();
-		Event( std::string name );
-
-		Tag*			source;
-
-		std::string		name;
-
-		Dictionary<PARAM*> params;
-
-	};
-
-    class EventListener {
-
-    public:
-
-        EventListener();
-
-        virtual void onEvent( std::string eventName , Event* eventData ) = 0;
-
-    };
-
-    class EventDispatcher : public EventListener {
-
-    public:
-
-        EventDispatcher();
-
-        void registerListener( std::string eventName , EventListener* listener, void* funcName = NULL );
-
-		virtual void onEvent( std::string eventName , Event* eventData );
-
-    private:
-
-        Dictionary<EventListener*>  _listeners;
-    };
 
 
 	namespace server {
 		class App;
 	}
-	
 
 
-    class Widget : public Tag , public EventDispatcher {
+    class Widget : public Tag {
 	public:
-		class WidgetOnClickListener{ public: virtual void onClick(Widget*) = 0; };
-		class WidgetOnDblClickListener{ public: virtual void onDblClick(Widget*) = 0; };
-		class WidgetOnMouseDownListener{ public: virtual void onMouseDown(Widget*, int x, int y) = 0; };
-		class WidgetOnMouseMoveListener{ public: virtual void onMouseMove(Widget*, int x, int y) = 0; };
-		class WidgetOnMouseOverListener{ public: virtual void onMouseOver(Widget*) = 0; };
-		class WidgetOnMouseOutListener{ public: virtual void onMouseOut(Widget*) = 0; };
-		class WidgetOnMouseLeaveListener{ public: virtual void onMouseLeave(Widget*) = 0; };
-		class WidgetOnMouseUpListener{ public: virtual void onMouseUp(Widget*, int x, int y) = 0; };
-		class WidgetOnTouchMoveListener{ public: virtual void onTouchMove(Widget*, int x, int y) = 0; };
-		class WidgetOnTouchStartListener{ public: virtual void onTouchStart(Widget*, int x, int y) = 0; };
-		class WidgetOnTouchEndListener{ public: virtual void onTouchEnd(Widget*, int x, int y) = 0; };
-		class WidgetOnTouchEnterListener{ public: virtual void onTouchEnter(Widget*, int x, int y) = 0; };
-		class WidgetOnTouchLeaveListener{ public: virtual void onTouchLeave(Widget*) = 0; };
-		class WidgetOnTouchCancelListener{ public: virtual void onTouchCancel(Widget*) = 0; };
-		class WidgetOnKeyDownListener{ public: virtual void onKeyDown(Widget*) = 0; };
-		class WidgetOnKeyPressListener{ public: virtual void onKeyPress(Widget*) = 0; };
-		class WidgetOnKeyUpListener{ public: virtual void onKeyUp(Widget*) = 0; };
-		class WidgetOnChangeListener{ public: virtual void onChange(Widget*) = 0; };
-		class WidgetOnFocusListener{ public: virtual void onFocus(Widget*) = 0; };
-		class WidgetOnBlurListener{ public: virtual void onBlur(Widget*) = 0; };
-		class WidgetOnContextMenuListener{ public: virtual void onContextMenu(Widget*) = 0; };
-		class WidgetOnUpdateListener{ public: virtual void onUpdate(Widget*) = 0; };
+        class onclick:public Event{
+            friend class Widget;
+            public:
+                //int status = 0;
+                //evt(void* emitter):Event::Event(emitter, abi::__cxa_demangle(typeid(this).name(),0,0,&status)){
+                onclick(Widget* emitter):Event::Event(emitter, CLASS_NAME(onclick)){
+                    ((Widget*)emitter)->event_handlers.set(this->_eventName, this);
+                    emitter->attributes["onclick"] = utils::sformat( "sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+                }
+                void operator()(Dictionary<Buffer*>* parameters=NULL){
+                    Event::operator()(_eventSource, parameters);
+                }
+        }* event_onclick;
 
-		WidgetOnClickListener* onClickListener;
-		WidgetOnDblClickListener* onDblClickListener;
-		WidgetOnMouseDownListener* onMouseDownListener;
-		WidgetOnMouseMoveListener* onMouseMoveListener;
-		WidgetOnMouseOverListener* onMouseOverListener;
-		WidgetOnMouseOutListener* onMouseOutListener;
-		WidgetOnMouseLeaveListener* onMouseLeaveListener;
-		WidgetOnMouseUpListener* onMouseUpListener;
-		WidgetOnTouchMoveListener* onTouchMoveListener;
-		WidgetOnTouchStartListener* onTouchStartListener;
-		WidgetOnTouchEndListener* onTouchEndListener;
-		WidgetOnTouchEnterListener* onTouchEnterListener;
-		WidgetOnTouchLeaveListener* onTouchLeaveListener;
-		WidgetOnTouchCancelListener* onTouchCancelListener;
-		WidgetOnKeyDownListener* onKeyDownListener;
-		WidgetOnKeyPressListener* onKeyPressListener;
-		WidgetOnKeyUpListener* onKeyUpListener;
-		WidgetOnChangeListener* onChangeListener;
-		WidgetOnFocusListener* onFocusListener;
-		WidgetOnBlurListener* onBlurListener;
-		WidgetOnContextMenuListener* onContextMenuListener;
-		WidgetOnUpdateListener* onUpdateListener;
+
     public:
 
         enum Layout {
@@ -549,28 +607,6 @@ namespace remi {
             Vertical = 0
         };
 
-        static const std::string Event_OnClick;
-        static const std::string Event_OnDblClick;
-        static const std::string Event_OnMouseDown;
-        static const std::string Event_OnMouseMove;
-        static const std::string Event_OnMouseOver;
-        static const std::string Event_OnMouseOut;
-        static const std::string Event_OnMouseLeave;
-        static const std::string Event_OnMouseUp;
-        static const std::string Event_OnTouchMove;
-        static const std::string Event_OnTouchStart;
-        static const std::string Event_OnTouchEnd;
-        static const std::string Event_OnTouchEnter;
-        static const std::string Event_OnTouchLeave;
-        static const std::string Event_OnTouchCancel;
-        static const std::string Event_OnKeyDown;
-        static const std::string Event_OnKeyPress;
-        static const std::string Event_OnKeyUp;
-        static const std::string Event_OnChange;
-        static const std::string Event_OnFocus;
-        static const std::string Event_OnBlur;
-        static const std::string Event_OnContextMenu;
-        static const std::string Event_OnUpdate;
 
         Widget();
 
@@ -586,8 +622,6 @@ namespace remi {
 
         void addChild( Represantable* child, std::string key = "" );
 
-		void onEvent(std::string name, Event* event);
-
 		void hide();
 
 		void show( server::App* app );
@@ -598,9 +632,9 @@ namespace remi {
 
         void defaults();
 
-        Widget::Layout  _layout_orientation;
+        Widget::Layout              _layout_orientation;
 
-		server::App*			_parentApp;
+		server::App*			    _parentApp;
 
     };
 
@@ -637,33 +671,9 @@ namespace remi {
 
 		void setEnabled( bool en );
 		bool enabled();
-		
-	};
-
-	class TextInput : public TextWidget {
-	public:
-		class TextInputOnEnterListener{ public: virtual void onEnter(TextInput*, std::string text) = 0; };
-
-		TextInputOnEnterListener* onEnterListener;
-
-	public:
-
-		static const std::string Event_OnEnter;
-
-		TextInput( bool single_line = true );
-
-		void setPlaceholder( std::string text );
-		std::string placeholder();
-
-		void setOnChangeListener( EventListener* listener );
-
-		void setOnKeyDownListener( EventListener* listener );
-
-		void setOnEnterListener( EventListener* listener );
-
-		virtual void onEvent( std::string name , Event* event );
 
 	};
+
 
 	class Label : public TextWidget {
 
@@ -674,7 +684,7 @@ namespace remi {
 	};
 
 
-	class GenericDialog : public Widget, public Widget::WidgetOnClickListener {
+	class GenericDialog : public Widget {
 	public:
 		class GenericDialogOnConfirmListener{ public: virtual void onConfirm(GenericDialog*) = 0; };
 		class GenericDialogOnCancelListener{ public: virtual void onCancel(GenericDialog*) = 0; };
@@ -702,55 +712,6 @@ namespace remi {
 		std::map<std::string, Widget*> _inputs;
 	};
 
-	class InputDialog : public GenericDialog, public TextInput::TextInputOnEnterListener {
-
-	public:
-
-		InputDialog( std::string title = "" , std::string message = "" );
-
-		std::string text();
-
-		void setText(std::string);
-
-		void onEnter(TextInput* w, std::string text);
-
-	private:
-
-		TextInput	_inputText;
-	};
-
-
-	class ListItem : public TextWidget {
-	public:
-
-		ListItem(std::string text = "");
-
-
-	};
-
-	class ListView : public Widget, public Widget::WidgetOnClickListener {
-	public:
-		class ListViewOnSelectionListener{ public: virtual void onSelection(ListView*, ListItem*) = 0; };
-
-		ListViewOnSelectionListener* onSelectionListener;
-	public:
-
-		ListView();
-
-		void addChild(Represantable* child, std::string key = "");
-
-		virtual void onEvent(std::string name, Event* event);
-
-		void selectByKey(std::string key);
-
-		void selectItem(ListItem* item);
-
-		void onClick(Widget*);
-
-	public: //members
-		ListItem*	selectedItem;
-
-	};
 
 	class Image : public Widget{
 	public:
@@ -762,8 +723,8 @@ namespace remi {
 		std::string url();
 
 	};
-	
-	
+
+
 	class Input : public Widget {
 
 	public:
@@ -793,7 +754,7 @@ namespace remi {
 		FileUploaderOnFailListener* onFailListener;
 		class FileUploaderOnDataListener{ public: virtual void onData( FileUploader*, std::string fileName, const char* data, unsigned long long len ) = 0; };
 		FileUploaderOnDataListener* onDataListener;
-		
+
 	public:
 		FileUploader( std::string path = "./", bool multipleSelectionAllowed = true );
 
@@ -803,7 +764,7 @@ namespace remi {
 		void setMultipleSelectionAllowed( bool value );
 		bool multipleSelectionAllowed();
 
-		virtual void onEvent(std::string name, Event* event);
+		//virtual void onEvent(std::string name, Event* event);
 
 	private:
 		std::string _path;

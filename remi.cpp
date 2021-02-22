@@ -19,10 +19,10 @@ long long int	remi_timestamp(){
 #ifdef _WIN32
 
 	FILETIME ft = {0};
-  
+
     GetSystemTimeAsFileTime(&ft);
 
-    LARGE_INTEGER li = {0};    
+    LARGE_INTEGER li = {0};
 
     li.LowPart = ft.dwLowDateTime;
     li.HighPart = ft.dwHighDateTime;
@@ -85,7 +85,7 @@ std::string remi::utils::SHA1(std::string& val){
 	sha1_data[16] = (digest[4] >> 24) & 0xff;
 
 	sha1_data[20] = 0;
-	
+
 	return std::string(sha1_data);
 }
 
@@ -113,8 +113,8 @@ void remi::utils::url_decode(const char* from, unsigned long long len, char*& co
 	char r[2] = { 0 };
 	int v = 0;
 
-	/*while( std::regex_search( out, match, std::regex("%[0-9A-F]{2}") ) ){	
-		sscanf( 
+	/*while( std::regex_search( out, match, std::regex("%[0-9A-F]{2}") ) ){
+		sscanf(
 			out.substr( match.position(0) +1 , 2 ).c_str(),
 			"%x" , &v );
 		r[0] = r[1] = 0;
@@ -221,7 +221,7 @@ std::string remi::utils::join(std::list<std::string> stringList , std::string gl
 }
 
 std::string remi::utils::string_encode(std::string text){
-	std::locale loc(std::locale(), new std::codecvt_utf8<char>);
+	std::locale loc(std::locale(), new std::codecvt_utf8<wchar_t>);
 	std::ostringstream o;
 	o.imbue(loc);
 	o << text;
@@ -342,7 +342,7 @@ void remi::utils::Timer::tick(){
 		Sleep( 2 );
 	}
 
-	
+
 }
 
 void remi::utils::Timer::start(){
@@ -381,31 +381,6 @@ std::string remi::utils::toCss( Dictionary<std::string>& values ){
 }
 
 
-Event::Event(){
-	source = NULL;
-}
-
-Event::Event( std::string name ){
-	source = NULL;
-	this->name = name;
-}
-
-EventListener::EventListener(){}
-
-EventDispatcher::EventDispatcher(){}
-
-void EventDispatcher::onEvent( std::string eventName , Event* eventData ){
-
-	if( _listeners.has( eventData->name ) == false )
-        return;
-
-    _listeners.get( eventData->name )->onEvent( eventData->name , eventData );
-}
-
-void EventDispatcher::registerListener( std::string eventName , EventListener* listener, void* funcName ){
-    _listeners.set( eventName , listener );
-}
-
 StringRepresantable::StringRepresantable(std::string v ){
     this->v = v;
 }
@@ -415,16 +390,46 @@ std::string StringRepresantable::repr(){
 }
 
 
-Tag::Tag():Tag(Dictionary<std::string>(), "div", typeid(*this).name()){}
+Tag::Tag()/*:Tag(VersionedDictionary<std::string>(), std::string("div"), std::string(typeid(*this).name()))*/{
+    this->attributes.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
+	this->style.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
+	this->children.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
 
-Tag::Tag(Dictionary<std::string> _attributes, std::string _type, std::string _class){
+	cout << "attributes size: " << this->attributes.size() << endl;
+	cout << "style size: " << this->style.size() << endl;
+	cout << "children size: " << this->children.size() << endl;
+
+    _parent = NULL;
+
+	ignoreUpdate = false;
+
+    type = "div";
+	setIdentifier(utils::sformat("%d", (int)this));
+
+	addClass(std::string(typeid(*this).name()));
+	cout << "end tag constructor" << endl;
+}
+
+Tag::Tag(VersionedDictionary<std::string> _attributes, std::string _type, std::string _class){
+    /*(*this->attributes.event_onchange) >> (Event::listener_type)&this->_needUpdate;
+	(*this->style.event_onchange) >> (Event::listener_type)&this->_needUpdate;
+	(*this->children.event_onchange) >> (Event::listener_type)&this->_needUpdate;*/
+    this->attributes.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
+	this->style.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
+	this->children.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
+
+
+    cout << "attributes size: " << this->attributes.size() << endl;
+	cout << "style size: " << this->style.size() << endl;
+	cout << "children size: " << this->children.size() << endl;
+
 	_parent = NULL;
 
 	ignoreUpdate = false;
 
     type = _type;
 	setIdentifier(utils::sformat("%d", (int)this));
-	
+
 	attributes.update(_attributes);
 
 	addClass((_class.length()<1)?std::string(typeid(*this).name()):_class);
@@ -449,27 +454,32 @@ void Tag::setIdentifier(std::string newIdentifier) {
 	//remi::server::runtimeInstances[this->getIdentifier()] = this;
 }
 
-std::string Tag::innerHTML(Dictionary<Represantable*> localChangedWidgets) {
+std::string Tag::innerHTML(Dictionary<Represantable*>* localChangedWidgets) {
 	std::ostringstream ret;
-	for (std::string k : localChangedWidgets.keys()) {
-		Represantable* s = localChangedWidgets[k];
+	for (std::string k : this->children.keys()) {
+		Represantable* s = children.get(k);
 		Tag* t = dynamic_cast<Tag*>(s);
-		ret << t?t->repr(localChangedWidgets):s->repr();
+		if(t!=NULL){
+            ret << t->repr(localChangedWidgets);
+		}else{
+		    ret << s->repr();
+		}
 	}
 	return ret.str();
 }
 
 std::string Tag::repr() {
-	return repr(Dictionary<Represantable*>());
+    Dictionary<Represantable*>* dict = new Dictionary<Represantable*>();
+	return repr(dict);
 }
 
-std::string Tag::repr(Dictionary<Represantable*> changedWidgets) {
-	Dictionary<Represantable*> localChangedWidgets;
+std::string Tag::repr(Dictionary<Represantable*>* changedWidgets) {
+	Dictionary<Represantable*>* localChangedWidgets = new Dictionary<Represantable*>();
 	std::ostringstream  _innerHtml;
 
-	_innerHtml << repr(localChangedWidgets);
+	_innerHtml << innerHTML(localChangedWidgets);
 
-	if (this->isChanged() || (localChangedWidgets.size() > 0)) {
+	if (this->isChanged() || (localChangedWidgets->size() > 0)) {
 		_backupRepr.clear();
 		_backupRepr << "<" << type <<
 			" " << _reprAttributes.str() <<
@@ -478,33 +488,39 @@ std::string Tag::repr(Dictionary<Represantable*> changedWidgets) {
 	}
 
 	if (this->isChanged()) {
-		changedWidgets[this->getIdentifier()] = this;
+		changedWidgets->set(this->getIdentifier(), this);
 		this->setUpdated();
 	}
 	else {
-		changedWidgets.update(localChangedWidgets);
+		changedWidgets->update(*localChangedWidgets);
 	}
+
+    delete localChangedWidgets;
 
 	return _backupRepr.str();
 }
 
 
-void Tag::_needUpdate() {
+void Tag::_notifyParentForUpdate() {
 	if (!ignoreUpdate) {
 		if (this->_parent) {
-			this->_parent->_needUpdate();
+			this->_parent->_notifyParentForUpdate();
 		}
 	}
 }
-void Tag::_needUpdate(Tag* emitter) {
+void Tag::_needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {
+    cout << "_needUpdate" << endl;
+    //return;
+    Dictionary<std::string> tmp;
+    tmp.update(this->attributes);
+
 	if (style.size() > 0)
-		this->attributes.set("style", utils::toCss(style));
-	else
-		this->attributes.remove("style");
-	for (std::string k : this->attributes.keys()) {
-		this->_reprAttributes << k << "=\"" << this->attributes[k].value << "\"";
+		tmp.set("style", utils::toCss(style));
+
+	for (std::string k : tmp.keys()) {
+		this->_reprAttributes << k << "=\"" << tmp[k].value << "\"";
 	}
-	_needUpdate();
+	_notifyParentForUpdate();
 }
 
 
@@ -532,7 +548,7 @@ void Tag::addChild( Represantable* child , std::string key ){
 		Tag* _tag = dynamic_cast<Tag*>(child);
 		_tag->attributes.set( "parent_widget" , this->getIdentifier() );
 	}
-    
+
 
     if( children.has( _key ) ){
         _render_children_list.remove( children.get(_key) );
@@ -560,36 +576,6 @@ void Tag::setUpdated(){
 	}
 }
 
-
-const std::string Widget::Event_OnClick = "OnClick";
-const std::string Widget::Event_OnDblClick = "OnDblClick";
-const std::string Widget::Event_OnMouseDown = "OnMouseDown";
-const std::string Widget::Event_OnMouseMove = "OnMouseMove";
-const std::string Widget::Event_OnMouseOver = "OnMouseOver";
-const std::string Widget::Event_OnMouseOut = "OnMouseOut";
-const std::string Widget::Event_OnMouseLeave = "OnMouseLeave";
-const std::string Widget::Event_OnMouseUp = "OnMouseUp";
-const std::string Widget::Event_OnTouchMove = "OnTouchMove";
-const std::string Widget::Event_OnTouchStart = "OnTouchStart";
-const std::string Widget::Event_OnTouchEnd = "OnTouchEnd";
-const std::string Widget::Event_OnTouchEnter = "OnTouchEnter";
-const std::string Widget::Event_OnTouchLeave = "OnTouchLeave";
-const std::string Widget::Event_OnTouchCancel = "OnTouchCancel";
-const std::string Widget::Event_OnKeyDown = "OnKeyDown";
-const std::string Widget::Event_OnKeyPress = "OnKeyPress";
-const std::string Widget::Event_OnKeyUp = "OnKeyUp";
-const std::string Widget::Event_OnChange = "OnChange";
-const std::string Widget::Event_OnFocus = "OnFocus";
-const std::string Widget::Event_OnBlur = "OnBlur";
-const std::string Widget::Event_OnContextMenu = "OnContextMenu";
-const std::string Widget::Event_OnUpdate = "OnUpdate";
-
-const std::string TextInput::Event_OnEnter = "OnEnter";
-
-const std::string FileUploader::Event_OnSuccess = "OnSuccess";
-const std::string FileUploader::Event_OnFail = "OnFail";
-const std::string FileUploader::Event_OnData = "OnData";
-
 Widget::Widget() : Tag() {
     defaults();
 }
@@ -616,9 +602,9 @@ void Widget::setLayoutOrientation(Widget::Layout orientation){
 }
 
 void Widget::redraw(){
-    //TODO server . update_event set()													   
-}																						   
-								
+    //TODO server . update_event set()
+}
+
 void Widget::setParentApp( remi::server::App* app ){
 
 	_parentApp = app;
@@ -647,103 +633,45 @@ void Widget::show( server::App* app ){
 	}
 }
 
-void Widget::addChild( Represantable* child, std::string key ){					   
-																						   
-    if( _layout_orientation == Widget::Layout::Horizontal && dynamic_cast<Tag*>(child) != NULL ){							   
-        /*																				   
-         * From python this make no sense at all:										   
-         * Maybe for VersionedDictionary?												   
-         *																				   
-         * if 'float' in self.children[key].style.keys():								   
-         *       if not (self.children[key].style['float'] == 'none'):					   
-         *           self.children[key].style['float'] = 'left'							   
-         *   else:																		   
-         *       self.children[key].style['float'] = 'left'								   
-		 *																				   
-         */																				   
-																						   
-        dynamic_cast<Tag*>(child)->style.set( "float" , "left" );											   
+void Widget::addChild( Represantable* child, std::string key ){
+
+    if( _layout_orientation == Widget::Layout::Horizontal && dynamic_cast<Tag*>(child) != NULL ){
+        /*
+         * From python this make no sense at all:
+         * Maybe for VersionedDictionary?
+         *
+         * if 'float' in self.children[key].style.keys():
+         *       if not (self.children[key].style['float'] == 'none'):
+         *           self.children[key].style['float'] = 'left'
+         *   else:
+         *       self.children[key].style['float'] = 'left'
+		 *
+         */
+
+        dynamic_cast<Tag*>(child)->style.set( "float" , "left" );
 	}
 
 	if( dynamic_cast<Widget*>(child) != 0 ){
 		dynamic_cast<Widget*>(child)->setParentApp( _parentApp );
 	}
-																						   
-    Tag::addChild( child , key );														   
+
+    Tag::addChild( child , key );
 }
 
-void Widget::onEvent(std::string name, Event* event){
-
-	if (name == Widget::Event_OnClick){
-		if(onClickListener!=NULL)onClickListener->onClick(this);
-	}
-	else if (name == Widget::Event_OnDblClick){
-		if(onDblClickListener != NULL)onDblClickListener->onDblClick(this);
-	}
-	else if (name == Widget::Event_OnChange){
-		if (onChangeListener != NULL)onChangeListener->onChange(this);
-	}
-	/*
-	WidgetOnMouseDownListener* onMouseDownListener;
-	WidgetOnMouseMoveListener* onMouseMoveListener;
-	WidgetOnMouseOverListener* onMouseOverListener;
-	WidgetOnMouseOutListener* onMouseOutListener;
-	WidgetOnMouseLeaveListener* onMouseLeaveListener;
-	WidgetOnMouseUpListener* onMouseUpListener;
-	WidgetOnTouchMoveListener* onTouchMoveListener;
-	WidgetOnTouchStartListener* onTouchStartListener;
-	WidgetOnTouchEndListener* onTouchEndListener;
-	WidgetOnTouchEnterListener* onTouchEnterListener;
-	WidgetOnTouchLeaveListener* onTouchLeaveListener;
-	WidgetOnTouchCancelListener* onTouchCancelListener;
-	WidgetOnKeyDownListener* onKeyDownListener;
-	WidgetOnKeyPressListener* onKeyPressListener;
-	WidgetOnKeyUpListener* onKeyUpListener;
-	WidgetOnChangeListener* onChangeListener;
-	WidgetOnFocusListener* onFocusListener;
-	WidgetOnBlurListener* onBlurListener;
-	WidgetOnContextMenuListener* onContextMenuListener;
-	WidgetOnUpdateListener* onUpdateListener;
-	*/
-}
 
 void Widget::defaults(){
+    this->event_onclick = new Widget::onclick(this);
     _layout_orientation = Layout::Vertical;
     style.set( "margin" , "0px auto" );
 
-	attributes[Widget::Event_OnClick] = utils::sformat(
+	/*attributes[Widget::Event_OnClick] = utils::sformat(
 		"sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",
 		getIdentifier().c_str(), Widget::Event_OnClick.c_str());
 
 	attributes[Widget::Event_OnDblClick] = utils::sformat(
 		"sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",
 		getIdentifier().c_str(), Widget::Event_OnDblClick.c_str());
-
-
-	onClickListener = NULL;
-	onDblClickListener = NULL;
-	onChangeListener = NULL;
-	onMouseDownListener = NULL;
-	onMouseMoveListener = NULL;
-	onMouseOverListener = NULL;
-	onMouseOutListener = NULL;
-	onMouseLeaveListener = NULL;
-	onMouseUpListener = NULL;
-	onTouchMoveListener = NULL;
-	onTouchStartListener = NULL;
-	onTouchEndListener = NULL;
-	onTouchEnterListener = NULL;
-	onTouchLeaveListener = NULL;
-	onTouchCancelListener = NULL;
-	onKeyDownListener = NULL;
-	onKeyPressListener = NULL;
-	onKeyUpListener = NULL;
-	onChangeListener = NULL;
-	onFocusListener = NULL;
-	onBlurListener = NULL;
-	onContextMenuListener = NULL;
-	onUpdateListener = NULL;
-
+    */
 	_parentApp = 0;
 }
 
@@ -780,10 +708,10 @@ Button::Button( std::string text ) : TextWidget(){
 
 	setText(text);
 
-	attributes[Widget::Event_OnClick] = utils::sformat(
+	/*attributes[Widget::Event_OnClick] = utils::sformat(
 		"sendCallback('%s','%s');",
 		getIdentifier().c_str(), Widget::Event_OnClick.c_str()
-	);
+	);*/
 }
 
 void Button::setEnabled( bool en ){
@@ -798,75 +726,6 @@ bool Button::enabled(){
 	return attributes.has("disabled");
 }
 
-TextInput::TextInput( bool single_line ){
-
-	type = "textarea";
-
-	attributes[Widget::Event_OnClick] = "";
-	attributes[Widget::Event_OnChange] = utils::sformat(
-		"var params={};params['new_value']=document.getElementById('%s').value; \
-		sendCallbackParam('%s','%s',params);", 
-		getIdentifier().c_str(), getIdentifier().c_str(), Widget::Event_OnChange.c_str()
-		);
-
-	//The onEnter event will be managed only in case of single_line
-	if (single_line){
-		attributes[TextInput::Event_OnKeyDown] = utils::sformat("\
-		if (event.keyCode == 13) { \
-			var params={};\
-			params['new_value']=document.getElementById('%s').value; \
-			document.getElementById('%s').value = ''; \
-			document.getElementById('%s').onchange = ''; \
-			sendCallbackParam('%s','%s',params); \
-			return false; \
-		}",
-		getIdentifier().c_str(), getIdentifier().c_str(),
-		getIdentifier().c_str(), getIdentifier().c_str(),
-		TextInput::Event_OnEnter.c_str()
-		);
-	}else{
-		attributes[Widget::Event_OnKeyDown] = utils::sformat(
-			"var params={};params['new_value']=document.getElementById('%s').value;" \
-			"sendCallbackParam('%s','%s',params);",
-			getIdentifier().c_str(), getIdentifier().c_str(), Widget::Event_OnKeyDown.c_str()
-			);
-	}
-
-	setText("");
-
-	if( single_line ){
-		attributes["resize"] = "none";
-		attributes["rows"] = "1";
-	}
-
-	// TODO: hint?
-}
-
-void TextInput::onEvent( std::string name , Event* event ){
-
-	if( name == Widget::Event_OnChange && event->params.has("new_value") ){
-		setText(event->params.get("new_value")->str());
-		if (onChangeListener!=NULL)onChangeListener->onChange(this);
-	}else if (name == TextInput::Event_OnEnter && event->params.has("new_value")){
-		setText(event->params.get("new_value")->str());
-		if(onEnterListener!=NULL)onEnterListener->onEnter(this, event->params.get("new_value")->str());
-	}else if (name == TextInput::Event_OnKeyDown && event->params.has("new_value")){
-		setText(event->params.get("new_value")->str());
-		//setting up this value with setText causes the refresh of clients and so the focus gets lost on the input field
-		this->setUpdated();
-		if (onKeyDownListener != NULL)onKeyDownListener->onKeyDown(this);
-	}
-
-	Widget::onEvent( name , event );
-}
-
-void TextInput::setPlaceholder( std::string text ){
-	attributes["placeholder"] = text;
-}
-
-std::string TextInput::placeholder(){
-	return  attributes["placeholder"];
-}
 
 void TextWidget::setText(std::string text){
 	((Tag*)this)->addChild(text, std::string("text"));
@@ -911,12 +770,12 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 	_confirmButton = new Button("Ok");
 	_confirmButton->setSize(100, 30);
 	_confirmButton->style["margin"] = "3px";
-	_confirmButton->onClickListener = this;
+	//_confirmButton->onClickListener = this;
 
 	_cancelButton = new Button("Cancel");
 	_cancelButton->setSize(100, 30);
 	_cancelButton->style["margin"] = "3px";
-	_cancelButton->onClickListener = this;
+	//_cancelButton->onClickListener = this;
 
 	_hLay = new Widget();
 	_hLay->setHeight( 35 );
@@ -970,72 +829,6 @@ Widget* GenericDialog::getField(std::string key){
 }
 
 
-InputDialog::InputDialog(std::string title, std::string message) : GenericDialog(title, message), _inputText(true){
-	
-	_inputText.onEnterListener = this;
-
-	addField("textinput", &_inputText);
-
-	_inputText.setText("");
-}
-
-std::string InputDialog::text(){
-	return _inputText.text();
-}
-
-void InputDialog::setText(std::string text){
-	_inputText.setText(text);
-}
-
-//lisener function for TextInputOnEnterListener interface
-void InputDialog::onEnter(TextInput* w, std::string text){
-	onConfirmListener->onConfirm(this);
-	hide();
-}
-
-ListView::ListView(){
-	type = "ul";
-
-	onSelectionListener = NULL;
-
-	this->selectedItem = NULL;
-}
-
-void ListView::addChild(Represantable* child, std::string key){
-	((ListItem*)child)->onClickListener = this;
-	Tag::addChild(child, key);
-}
-
-void ListView::onEvent(std::string name, Event* event){
-}
-
-void ListView::onClick(Widget* widget){
-	selectItem(dynamic_cast<ListItem*>(widget));
-
-	if (onSelectionListener != NULL)onSelectionListener->onSelection(this, this->selectedItem);
-}
-
-void ListView::selectByKey(std::string key){
-	
-	if (!children.has(key))return;
-	
-	selectItem(dynamic_cast<ListItem*>(children.get(key)));
-	
-}
-
-void ListView::selectItem(ListItem* item){
-	if (this->selectedItem != NULL)this->selectedItem->attributes.remove("selected");
-
-	this->selectedItem = item;
-	this->selectedItem->attributes["selected"] = "true";
-}
-
-
-
-ListItem::ListItem(std::string text){
-	type = "li";
-	setText( text );
-}
 
 Image::Image(std::string url){
 	type = "img";
@@ -1053,11 +846,12 @@ std::string Image::url(){
 
 Input::Input(){
 	type = "input";
-
+    /*
 	attributes[Event_OnClick] = "";
 	attributes[Event_OnChange] = utils::sformat( \
             "var params={};params['value']=document.getElementById('%(id)s').value;" \
             "sendCallbackParam('%s','%s',params);" , getIdentifier().c_str() , Event_OnChange.c_str() );
+    */
 }
 
 void Input::setValue( std::string value ){
@@ -1096,7 +890,7 @@ bool Input::isReadOnly(){
 
 
 FileUploader::FileUploader( std::string path, bool multipleSelectionAllowed ){
-	
+
 	onSuccessListener = NULL;
 	onFailListener = NULL;
 	onDataListener = NULL;
@@ -1107,7 +901,7 @@ FileUploader::FileUploader( std::string path, bool multipleSelectionAllowed ){
 	type = "input";
 	this->attributes["type"] = "file";
 	this->attributes["accept"] = "*.*";
-
+/*
 	attributes[Widget::Event_OnChange] = utils::sformat(
 		"var files = this.files;" \
 		"for(var i=0; i<files.length; i++){" \
@@ -1117,6 +911,7 @@ FileUploader::FileUploader( std::string path, bool multipleSelectionAllowed ){
 
 	this->attributes[Widget::Event_OnClick] = "event.stopPropagation();";
 	this->attributes[Widget::Event_OnDblClick] = "event.stopPropagation();";
+*/
 }
 
 void FileUploader::setSavePath(std::string path){
@@ -1139,7 +934,7 @@ void FileUploader::setMultipleSelectionAllowed(bool value){
 bool FileUploader::multipleSelectionAllowed(){
 	return this->_multipleSelectionAllowed;
 }
-
+/*
 void FileUploader::onEvent(std::string name, Event* event){
 	if ( name == FileUploader::Event_OnData ){
 		if (onDataListener != NULL)onDataListener->onData(this, event->params.get("file_name")->str(), event->params.get("file_data")->data, event->params.get("file_data")->len );
@@ -1151,3 +946,4 @@ void FileUploader::onEvent(std::string name, Event* event){
 
 	Widget::onEvent(name, event);
 }
+*/
