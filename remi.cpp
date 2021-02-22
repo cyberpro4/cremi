@@ -480,7 +480,7 @@ std::string Tag::repr(Dictionary<Represantable*>* changedWidgets) {
 	_innerHtml << innerHTML(localChangedWidgets);
 
 	if (this->isChanged() || (localChangedWidgets->size() > 0)) {
-		_backupRepr.clear();
+		_backupRepr.str(std::string());
 		_backupRepr << "<" << type <<
 			" " << _reprAttributes.str() <<
 			" class=\"" << utils::join(_classes, " ") << "\""
@@ -517,9 +517,13 @@ void Tag::_needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata)
 	if (style.size() > 0)
 		tmp.set("style", utils::toCss(style));
 
+
+    this->_reprAttributes.str(std::string());
+    cout << this->_reprAttributes.str() << endl<<endl;
 	for (std::string k : tmp.keys()) {
 		this->_reprAttributes << k << "=\"" << tmp[k].value << "\"";
 	}
+	cout << this->_reprAttributes.str() << endl<<endl;
 	_notifyParentForUpdate();
 }
 

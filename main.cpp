@@ -79,6 +79,7 @@ public:
 
 	void onClick(Tag* emitter, Dictionary<Buffer*>* params, void* userdata){
 		std::cout << "Event onClick btn1" << endl;
+		this->btn1->style.set("background-color", "red");
 	}
 
 
