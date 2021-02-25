@@ -4,7 +4,6 @@
 
 #ifndef CPORT_REMI_H
 #define CPORT_REMI_H
-
 #include <iostream>
 #include <list>
 #include <sstream>
@@ -632,9 +631,11 @@ namespace remi {
                 Dictionary<Represantable*>* local_changed_widgets = new Dictionary<Represantable*>();
 
                 std::ostringstream  result;
-                this->setUpdated();
+
                 result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets) << "\n</" << type << ">";
+                this->setUpdated();
                 //delete changed_widgets;
+                std::cout << "HTML content:" << result.str()<<std::endl;
                 delete local_changed_widgets;
                 return result.str();
             }
@@ -960,8 +961,9 @@ namespace remi {
                 Dictionary<Represantable*>* local_changed_widgets = new Dictionary<Represantable*>();
 
                 std::ostringstream  result;
-                this->setUpdated();
+
                 result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets) << "\n</" << type << ">";
+                this->setUpdated();
                 //delete changed_widgets;
                 delete local_changed_widgets;
                 return result.str();
@@ -985,12 +987,12 @@ namespace remi {
                 loading_anim->setIdentifier("loading-animation");
 
                 Widget* loading_container = new Widget();
-                loading_container->append(loading_anim);
+                loading_container->append(loading_anim, "loading_animation");
                 loading_container->style.set("display", "none");
                 loading_container->style.remove("margin");
                 loading_container->setIdentifier("loading");
 
-                this->append(loading_container);
+                this->append(loading_container, "loading_container");
             }
             /*
             @decorate_set_on_listener("(self, emitter)")

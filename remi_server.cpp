@@ -279,7 +279,7 @@ void App::setRootWidget(Widget* widget){
     Dictionary<Represantable*> changedWidgets;
     std::ostringstream msg;
     msg << "0" << _rootWidget->getIdentifier().c_str() << ',' << remi::utils::string_encode(remi::utils::escape_json(body->innerHTML(&changedWidgets)));
-    cout << "message 0 to websocket: " << msg.str() << endl;
+    //cout << "message 0 to websocket: " << msg.str() << endl;
     this->_webSocketServer->sendToAllClients(msg.str());
 }
 

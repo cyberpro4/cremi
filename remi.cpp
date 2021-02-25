@@ -457,6 +457,7 @@ void Tag::setIdentifier(std::string newIdentifier) {
 std::string Tag::innerHTML(Dictionary<Represantable*>* localChangedWidgets) {
 	std::ostringstream ret;
 	for (std::string k : this->children.keys()) {
+        cout << "representing: " << k << endl;
 		Represantable* s = children.get(k);
 		ret << s->repr(localChangedWidgets);
 	}
@@ -470,7 +471,7 @@ std::string Tag::repr(Dictionary<Represantable*>* changedWidgets) {
 	std::ostringstream  _innerHtml;
 
 	_innerHtml << innerHTML(localChangedWidgets);
-
+    cout << "type: " << type << endl;
 	if (this->isChanged() || (localChangedWidgets->size() > 0)) {
 		_backupRepr.str(std::string());
 		_backupRepr << "<" << type <<
