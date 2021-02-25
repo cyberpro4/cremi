@@ -408,7 +408,6 @@ void* WebsocketServer::_listenAsync(void* data){
 				inet_ntoa( clientSock.sin_addr ),
 				clientSock.sin_port );
 #endif
-
             _clients.set(key , new WebsocketClientInterface( client , clientSock ) );
 
         }

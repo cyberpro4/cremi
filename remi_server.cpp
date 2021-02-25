@@ -24,7 +24,7 @@ ServerResponse::ServerResponse( int code ){
 }
 
 ServerResponse::ServerResponse( std::string body ){
-	
+
 	_body_buffer = NULL;
 	_body_buffer_size = 0;
 
@@ -51,13 +51,13 @@ void setHeader( std::string name , std::string value );
 void ServerResponse::appendToBody( std::string content ){
 
 	int old_size = prepareSize( _body_buffer_size + content.length() + 1 );
-	
+
 	memcpy( &_body_buffer[old_size] , content.c_str() , content.length() + 1 );
 }
 
 void ServerResponse::appendToBody( const char* buffer , int buffer_size ){
 	int old_size = prepareSize( _body_buffer_size + buffer_size );
-	
+
 	memcpy( &_body_buffer[old_size] , buffer , buffer_size );
 }
 
@@ -98,17 +98,17 @@ const char *url, const char *method,
 const char *version, const char *upload_data,
 size_t *upload_data_size, void **con_cls)
 {
-	
+
 	struct MHD_Response *response;
 	int ret;
 
 	if (cls != NULL){
-		ServerResponse* serverResponse = ((AnonymousServer*)cls)->serve( url );
-	
+		ServerResponse* serverResponse = ((AnonymousServer*)cls)->serve( url, connection );
+
 
 		response =
-			MHD_create_response_from_buffer( 
-				serverResponse->getBodyBufferSize() , 
+			MHD_create_response_from_buffer(
+				serverResponse->getBodyBufferSize() ,
 				(void *)serverResponse->getBodyBuffer(),
 				MHD_RESPMEM_MUST_COPY
 			);
@@ -181,82 +181,112 @@ ServerResponse* App::serve(std::string url){
 			size_t r = fread( buf , 1 , 2048 , resFile );
 			response->appendToBody( buf , r );
 		}
-	
+
 		fclose( resFile );
 
 		return response;
 
 	} else if ( attr_call ){
 
-	} else if (_rootWidget != NULL && url == "/" ){
-		output 
-			<< "<!DOCTYPE html>"
-			<< "<html><head>" 
-
-			<< "<meta content = 'text/html;charset=utf-8' http - equiv = 'Content-Type'>"
-			<< "<meta content = 'utf-8' http - equiv = 'encoding'>"
-			<< "<meta name = \"viewport\" content = \"width=device-width, initial-scale=1.0\">"
-
-			<< "<link href=\"res/style.css\" rel=\"stylesheet\" / >"
-
-			<< "<script>var net_interface_ip = 'localhost';</script>"
-			<< "<script>var wsport = 92;</script>"
-			<< "<script>var pending_messages_queue_length = 10;</script>"
-			<< "<script>var websocket_timeout_timer_ms = 200;</script>"
-			<< "<script src=\"res/remi.js\"></script>"
-
-			<< "</head><body>"
-			<< _rootWidget->repr()
-			<< "</body></html>";
+	} else if (url == "/" ){
+	    Dictionary<Represantable*> changedWidgets;
+		output << html->repr(&changedWidgets);
+		cout << "PAGE: " << output.str() << endl;
 	}
 
 	return new ServerResponse( utils::string_encode( output.str() ) );
 }
 
-void App::show(remi::Widget* _w){
-	this->_rootWidget = _w; //here will be necessary to force the new rootWidget update
-	std::string html = remi::utils::string_encode(remi::utils::escape_json(_w->repr()));
-	std::ostringstream output;
-	output << "show_window," << _w->getIdentifier().c_str() << "," << html;
-	this->_webSocketServer->sendToAllClients(output.str());
-}
-
-void App::showRoot(){
-	show( _rootWidget );
-}
-
-bool App::update(remi::Tag* child_tag, bool avoid_update_because_new_subchild){
+bool App::update(bool avoid_update_because_new_subchild){
 	if (this == NULL)return false;
 	if (this->_rootWidget == NULL)return false;
+	if (this->_rootWidget->isChanged()){
 
-	//this is used for the first call from the timer. We start checking for updates starting from the root widget
-	if (child_tag == NULL)child_tag = this->_rootWidget;
-
-	if (child_tag->isChanged()){
-		
-		std::string html = remi::utils::string_encode(remi::utils::escape_json(child_tag->repr()));
+        Dictionary<Represantable*>* local_changed_widgets = new Dictionary<Represantable*>();
+		std::string _html = remi::utils::string_encode(remi::utils::escape_json(html->repr(local_changed_widgets)));
 		std::ostringstream output;
-		output << "update_widget," << child_tag->getIdentifier().c_str() << "," << html;
+
+		output << "update_widget," << this->_rootWidget->getIdentifier().c_str() << "," << _html;
 		this->_webSocketServer->sendToAllClients(output.str());
-		
+
 		//update children dictionaries __version__ in order to avoid nested updates
-		child_tag->setUpdated();
+		this->_rootWidget->setUpdated();
 		return true;
+
 	}
 
-	bool changed_or = false;
-	
+	/*bool changed_or = false;
+
 	//checking if subwidgets changed
 	for (std::string key : child_tag->children.keys()){
 		Represantable* represantable = child_tag->children.get(key);
 		if (dynamic_cast<Tag*>(represantable) != 0){
 			changed_or |= this->update((remi::Widget*)represantable, avoid_update_because_new_subchild);
 		}
-	}
+	}*/
 
 	//propagating the children changed flag
-	return changed_or;
+	return false;
 }
+
+App::App(){
+	_rootWidget = NULL;
+}
+
+remi::Widget* App::main(){
+	return 0;
+}
+
+void App::init(std::string host_address){
+
+	_staticResourcesPath = "./res/";
+
+    html = new remi::HTML();
+
+    //head.setTitle(self.server.title);
+
+    // use the default css, but append a version based on its hash, to stop browser caching
+    head = new remi::HEAD(std::string("Remi App"));
+    head->addChild("<link href='/res:style.css' rel='stylesheet' />\n", "internal_css");
+    struct sockaddr *so;
+
+    //head->setInternalJs(utils::sformat("%d", (int)this), host_address, 20, 3000);
+    head->setInternalJs(utils::sformat("%d", (int)this), "127.0.0.1:92", 20, 3000);
+
+    body = new remi::BODY();
+    body->addClass("remi-main");
+    /*body.onload.connect(self.onload)
+    body.ononline.connect(self.ononline)
+    body.onpagehide.connect(self.onpagehide)
+    body.onpageshow.connect(self.onpageshow)
+    body.onresize.connect(self.onresize)*/
+
+    html->addChild(head, "head");
+    html->addChild(body, "body");
+
+    _webSocketServer = new WebsocketServer( 92 );
+
+    setRootWidget(this->main());
+}
+
+void App::setRootWidget(Widget* widget){
+    body->append(widget, "root");
+    _rootWidget = widget;
+    //_rootWidget.disable_refresh()
+    //_rootWidget->attributes["data-parent-widget"] = str(id(self));
+    //_rootWidget->setParent(&body);
+    //_rootWidget.enable_refresh()
+    Dictionary<Represantable*> changedWidgets;
+    std::ostringstream msg;
+    msg << "0" << _rootWidget->getIdentifier().c_str() << ',' << remi::utils::string_encode(remi::utils::escape_json(body->innerHTML(&changedWidgets)));
+    cout << "message 0 to websocket: " << msg.str() << endl;
+    this->_webSocketServer->sendToAllClients(msg.str());
+}
+
+void App::_notifyParentForUpdate(){
+    cout << "APP need update" << endl<<endl<<endl;
+}
+
 
 void AnonymousServer::serve_forever(){
 }
@@ -264,32 +294,13 @@ void AnonymousServer::serve_forever(){
 void AnonymousServer::stop(){
 }
 
-App::App(){
-	_rootWidget = NULL;
-}
-
-
-remi::Widget* App::main(){
-	return 0;
-}
-
-void App::init(){
-
-	_staticResourcesPath = "./res/";
-
-	_rootWidget = this->main();
-
-	if( _rootWidget != NULL )
-		_rootWidget->setParentApp( this );
-
-	_webSocketServer = new WebsocketServer( 92 );
-}
-
-ServerResponse* AnonymousServer::serve(std::string url){
-	
+ServerResponse* AnonymousServer::serve(std::string url, struct MHD_Connection *connection){
+    cout << ">>>>>> url:" << url << endl << endl;
+    const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Host");
+    cout << ">>>>>> host:" << value << endl << endl;
 	if (_guiInstance == NULL){
 		_guiInstance = (App*)buildInstance();
-		_guiInstance->init();
+		_guiInstance->init(std::string(value));
 	}
 
 	return _guiInstance->serve(url);

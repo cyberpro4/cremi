@@ -63,15 +63,15 @@ namespace remi {
 
 			virtual Widget* main();
 
-			void init();
+			void init(std::string host_address);
 
 			ServerResponse*		serve( std::string url );
 
-			void show( Widget* _w );
+			void setRootWidget(Widget* widget);
 
-			void showRoot();
+			bool update(bool avoid_update_because_new_subchild = false);
 
-			bool update(remi::Tag* child_widget = NULL, bool avoid_update_because_new_subchild = false);
+            void _notifyParentForUpdate();
 
 		private:
 
@@ -85,6 +85,11 @@ namespace remi {
 			std::string		_scriptHeader;
 
 			std::string		_cssHeader;
+
+        public:
+			remi::HTML*      html;
+			remi::HEAD*      head;
+			remi::BODY*      body;
 
 		};
 
@@ -104,7 +109,7 @@ namespace remi {
 
 			void onTimer();
 
-			ServerResponse*		serve( std::string url );
+			ServerResponse*		serve( std::string url, struct MHD_Connection *connection );
 
 			virtual App* buildInstance() = 0;
 

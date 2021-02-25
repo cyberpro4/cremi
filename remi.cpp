@@ -385,7 +385,7 @@ StringRepresantable::StringRepresantable(std::string v ){
     this->v = v;
 }
 
-std::string StringRepresantable::repr(){
+std::string StringRepresantable::repr(Dictionary<Represantable*>* changedWidgets){
     return v;
 }
 
@@ -458,20 +458,12 @@ std::string Tag::innerHTML(Dictionary<Represantable*>* localChangedWidgets) {
 	std::ostringstream ret;
 	for (std::string k : this->children.keys()) {
 		Represantable* s = children.get(k);
-		Tag* t = dynamic_cast<Tag*>(s);
-		if(t!=NULL){
-            ret << t->repr(localChangedWidgets);
-		}else{
-		    ret << s->repr();
-		}
+		ret << s->repr(localChangedWidgets);
 	}
+	//cout << ret.str() << endl;
 	return ret.str();
 }
 
-std::string Tag::repr() {
-    Dictionary<Represantable*>* dict = new Dictionary<Represantable*>();
-	return repr(dict);
-}
 
 std::string Tag::repr(Dictionary<Represantable*>* changedWidgets) {
 	Dictionary<Represantable*>* localChangedWidgets = new Dictionary<Represantable*>();
@@ -605,37 +597,6 @@ void Widget::setLayoutOrientation(Widget::Layout orientation){
     _layout_orientation = orientation;
 }
 
-void Widget::redraw(){
-    //TODO server . update_event set()
-}
-
-void Widget::setParentApp( remi::server::App* app ){
-
-	_parentApp = app;
-
-	for( std::string key : children.keys() ){
-
-		Widget* widget = dynamic_cast<Widget*>(children.get(key));
-
-		if( widget == 0 )
-			continue;
-
-		widget->setParentApp( app );
-	}
-
-}
-
-void Widget::hide(){
-	if( _parentApp != NULL )
-		_parentApp->showRoot();
-}
-
-void Widget::show( server::App* app ){
-	if( app != NULL ){
-		_parentApp = app;
-		_parentApp->show( this );
-	}
-}
 
 void Widget::addChild( Represantable* child, std::string key ){
 
@@ -656,12 +617,19 @@ void Widget::addChild( Represantable* child, std::string key ){
 	}
 
 	if( dynamic_cast<Widget*>(child) != 0 ){
-		dynamic_cast<Widget*>(child)->setParentApp( _parentApp );
+		dynamic_cast<Widget*>(child)->setParent( this );
 	}
 
     Tag::addChild( child , key );
 }
 
+std::string Widget::append(Widget* w, std::string key){
+    if(key.length()<1){
+        key = w->attributes["id"];
+    }
+    this->addChild(w, key);
+    return key;
+}
 
 void Widget::defaults(){
     this->event_onclick = new Widget::onclick(this);
@@ -676,7 +644,6 @@ void Widget::defaults(){
 		"sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",
 		getIdentifier().c_str(), Widget::Event_OnDblClick.c_str());
     */
-	_parentApp = 0;
 }
 
 
