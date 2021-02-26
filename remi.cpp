@@ -337,11 +337,12 @@ void remi::utils::Timer::tick(){
 			}
 
 			//stop();
+			_start = clock_::now();
 		}
 
 		Sleep( 2 );
 	}
-
+    cout << "remi::utils::Timer::tick - TIMER STOPPED" << endl;
 
 }
 
@@ -395,10 +396,6 @@ Tag::Tag()/*:Tag(VersionedDictionary<std::string>(), std::string("div"), std::st
 	this->style.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
 	this->children.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
 
-	cout << "attributes size: " << this->attributes.size() << endl;
-	cout << "style size: " << this->style.size() << endl;
-	cout << "children size: " << this->children.size() << endl;
-
     _parent = NULL;
 
 	ignoreUpdate = false;
@@ -417,11 +414,6 @@ Tag::Tag(VersionedDictionary<std::string> _attributes, std::string _type, std::s
     this->attributes.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
 	this->style.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
 	this->children.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
-
-
-    cout << "attributes size: " << this->attributes.size() << endl;
-	cout << "style size: " << this->style.size() << endl;
-	cout << "children size: " << this->children.size() << endl;
 
 	_parent = NULL;
 
@@ -493,10 +485,6 @@ std::string Tag::repr(Dictionary<Represantable*>* changedWidgets) {
 }
 
 void Tag::_notifyParentForUpdate() {
-    cout << "Tag::_notifyParentForUpdate - type: " << type << endl;
-    cout << "ignoreUpdate: " << ignoreUpdate << endl;
-    cout << "parent: " << utils::sformat("%d", this->_parent) << endl;
-
 	if (!ignoreUpdate) {
 		if (this->_parent) {
 			this->_parent->_notifyParentForUpdate();
@@ -505,8 +493,6 @@ void Tag::_notifyParentForUpdate() {
 }
 
 void Tag::_needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {
-    cout << " Tag::_needUpdate" << endl;
-    //return;
     Dictionary<std::string> tmp;
     tmp.update(this->attributes);
 

@@ -57,6 +57,8 @@ namespace remi {
 
 			void	stop();
 
+            std::string packUpdateMessage(std::string tagToUpdateIdentifier, std::string htmlContent);
+
 			void	sendToAllClients(std::string message);
 
 		private:

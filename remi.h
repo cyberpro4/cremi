@@ -515,6 +515,10 @@ namespace remi {
 
         std::string repr(Dictionary<Represantable*>* changedWidgets);
 
+        std::string getLatestRepr(){
+            return _backupRepr.str();
+        }
+
         void setParent( Tag* tag ){
             this->_parent = tag;
             this->attributes.set( "parent_widget" , this->getIdentifier() );
@@ -652,8 +656,6 @@ namespace remi {
 
                 result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets) << "\n</" << type << ">";
                 this->setUpdated();
-                //delete changed_widgets;
-                std::cout << "HTML content:" << result.str()<<std::endl;
                 delete local_changed_widgets;
                 return result.str();
             }

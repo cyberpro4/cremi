@@ -74,10 +74,11 @@ namespace remi {
             void _notifyParentForUpdate(EventSource*, Dictionary<Buffer*>*, void* );
 
 		private:
-
-			Widget* _rootWidget;
+			Widget*             _rootWidget;
 
 			WebsocketServer*	_webSocketServer;
+
+			bool                _needUpdateFlag;
 
 		protected:
 

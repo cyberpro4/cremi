@@ -136,6 +136,7 @@ void AnonymousServer::address(){
 
 void AnonymousServer::onTimer(){
 	_guiInstance->update();
+	//cout << "AnonymousServer::onTimer()" << endl;
 }
 
 void AnonymousServer::start(void* user_data){
@@ -192,30 +193,33 @@ ServerResponse* App::serve(std::string url){
 	} else if (url == "/" ){
 	    Dictionary<Represantable*> changedWidgets;
 		output << html->repr(&changedWidgets);
-		cout << "PAGE: " << output.str() << endl;
+		//cout << "PAGE: " << output.str() << endl;
 	}
 
 	return new ServerResponse( utils::string_encode( output.str() ) );
 }
 
 bool App::update(){
-	if (this == NULL)return false;
-	if (this->_rootWidget == NULL)return false;
-	if (this->_rootWidget->isChanged()){
-
+	if (this == NULL){
+        return false;
+	}
+	if (this->_rootWidget == NULL){
+        return false;
+	}
+	if (this->_needUpdateFlag){
         Dictionary<Represantable*>* local_changed_widgets = new Dictionary<Represantable*>();
-		std::string _html = remi::utils::string_encode(remi::utils::escape_json(html->repr(local_changed_widgets)));
-		std::ostringstream output;
+		std::string _html = remi::utils::string_encode(remi::utils::escape_json(this->_rootWidget->repr(local_changed_widgets)));
 
-		output << "1," << this->_rootWidget->getIdentifier().c_str() << "," << _html;
-		this->_webSocketServer->sendToAllClients(output.str());
+		for(std::string identifier:local_changed_widgets->keys()){
+            _html = ((Tag*)local_changed_widgets->get(identifier))->getLatestRepr();
+            cout << "App::update - update message: " << this->_webSocketServer->packUpdateMessage(identifier, _html).c_str() << endl;
+            this->_webSocketServer->sendToAllClients(this->_webSocketServer->packUpdateMessage(identifier, _html).c_str());
+		}
 
-		//update children dictionaries __version__ in order to avoid nested updates
-		this->_rootWidget->setUpdated();
+		_needUpdateFlag = false;
 		return true;
 
 	}
-
 	/*bool changed_or = false;
 
 	//checking if subwidgets changed
@@ -285,7 +289,7 @@ void App::setRootWidget(Widget* widget){
 }
 
 void App::_notifyParentForUpdate(EventSource* source, Dictionary<Buffer*>* params, void* user_data){
-    cout << "APP need update" << endl<<endl<<endl;
+    this->_needUpdateFlag = true;
 }
 
 

@@ -420,6 +420,12 @@ void* WebsocketServer::_listenAsync(void* data){
 	return NULL;
 }
 
+std::string WebsocketServer::packUpdateMessage(std::string tagToUpdateIdentifier, std::string htmlContent){
+    std::ostringstream output;
+    output << _MSG_UPDATE << tagToUpdateIdentifier.c_str() << "," << htmlContent.c_str();
+    return output.str();
+}
+
 void WebsocketServer::sendToAllClients(std::string message){
 	//for (std::list<std::string>::iterator key_iterator = _clients.keys().begin(); key_iterator != _clients.keys().end(); key_iterator++){
 	for (std::string key : _clients.keys()){
