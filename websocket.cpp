@@ -90,8 +90,8 @@ bool WebsocketClientInterface::readNextMessage(){
 
 			payload_len = 0;
 			int _i = 0;
-			payload_len += length_buf[_i++]; payload_len = (payload_len << 8);
-			payload_len += length_buf[_i++];
+			payload_len += (unsigned char)length_buf[_i++]; payload_len = (payload_len << 8);
+			payload_len += (unsigned char)length_buf[_i++];
 			std::cout << "payload 127: " << payload_len << "      length_buf: " << length_buf[_i++] << " " << length_buf[_i++] << endl;
 
 		}
@@ -131,7 +131,7 @@ bool WebsocketClientInterface::readNextMessage(){
 				return false;
 			}
 		}
-
+        cout << "payload: " << payload_len << endl;
 		char *buf = new char[payload_len + 1];
 		std::memset(buf, 0, payload_len + 1);
 
@@ -246,14 +246,13 @@ Dictionary<Buffer*>*	WebsocketClientInterface::parseParams(const char* paramStri
 	return ret;
 }
 
+#define _MSG_ACK    "3"
+#define _MSG_JS     "2"
+#define _MSG_UPDATE "1"
 void WebsocketClientInterface::on_message( const char* message, unsigned long long len ){
 
 	//std::cout << "ws: " << message;
-
-	if( message == "pong" )
-		return;
-
-	send_message("ack");
+	send_message(_MSG_ACK);
 
 	int _slashOffset1 = utils::searchIndexOf(message, '/', len, 0);
 	int _slashOffset2 = utils::searchIndexOf(message, '/', len, _slashOffset1);
@@ -284,8 +283,11 @@ void WebsocketClientInterface::on_message( const char* message, unsigned long lo
 			if (_slashOffset3 < len){ //so there is a last chunk
                 params = parseParams( &message[_slashOffset3], len-_slashOffset3 );
 			}
-			reinterpret_cast<Event*>(widget->event_handlers[function_name].value)->operator()(params);
-
+			if( widget->event_handlers.has(function_name) ){
+                reinterpret_cast<Event*>(widget->event_handlers[function_name].value)->operator()(params);
+			}else{
+                cout << "WebsocketClientInterface::on_message - ERROR listener function not implemented" << endl;
+			}
             if(params!=NULL){
                 for (std::string key: params->keys()){
                     delete (params->get(key));

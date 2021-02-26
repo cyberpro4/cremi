@@ -206,7 +206,7 @@ bool App::update(bool avoid_update_because_new_subchild){
 		std::string _html = remi::utils::string_encode(remi::utils::escape_json(html->repr(local_changed_widgets)));
 		std::ostringstream output;
 
-		output << "update_widget," << this->_rootWidget->getIdentifier().c_str() << "," << _html;
+		output << "1," << this->_rootWidget->getIdentifier().c_str() << "," << _html;
 		this->_webSocketServer->sendToAllClients(output.str());
 
 		//update children dictionaries __version__ in order to avoid nested updates
@@ -251,7 +251,7 @@ void App::init(std::string host_address){
     struct sockaddr *so;
 
     //head->setInternalJs(utils::sformat("%d", (int)this), host_address, 20, 3000);
-    head->setInternalJs(utils::sformat("%d", (int)this), "127.0.0.1:92", 20, 3000);
+    head->setInternalJs("127.0.0.1:92", 20, 3000);
 
     body = new remi::BODY();
     body->addClass("remi-main");

@@ -570,7 +570,7 @@ namespace remi {
                 //evt(void* emitter):Event::Event(emitter, abi::__cxa_demangle(typeid(this).name(),0,0,&status)){
                 onclick(Widget* emitter):Event::Event(emitter, CLASS_NAME(onclick)){
                     ((Widget*)emitter)->event_handlers.set(this->_eventName, this);
-                    emitter->attributes["onclick"] = utils::sformat( "sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+                    emitter->attributes["onclick"] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
                 }
                 void operator()(Dictionary<Buffer*>* parameters=NULL){
                     Event::operator()(_eventSource, parameters);
@@ -675,7 +675,7 @@ namespace remi {
                 this->addChild("favicon", utils::sformat("<link rel='%s' href='%s' type='%s' />", rel.c_str(), base64_data.c_str(), mimetype.c_str()));
             }
 
-            void setInternalJs(std::string app_identifier, std::string net_interface_ip, unsigned short pending_messages_queue_length, unsigned short websocket_timeout_timer_ms){
+            void setInternalJs(std::string net_interface_ip, unsigned short pending_messages_queue_length, unsigned short websocket_timeout_timer_ms){
                 /* NOTE here are used raw string literals
                     R"( ... )"
                 */
@@ -942,7 +942,7 @@ namespace remi {
 
                         window.remi = new Remi();
 
-                        </script>)", net_interface_ip.c_str(), pending_messages_queue_length, websocket_timeout_timer_ms, app_identifier.c_str(), "onerror"), "internal_js");
+                        </script>)", net_interface_ip.c_str(), pending_messages_queue_length, websocket_timeout_timer_ms, this->getIdentifier().c_str(), "onerror"), "internal_js");
             }
 
             void setTitle(std::string title){
