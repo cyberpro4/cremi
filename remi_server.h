@@ -55,7 +55,7 @@ namespace remi {
 
 
 
-		class App {
+		class App:public EventListener {
 
 		public:
 
@@ -69,9 +69,9 @@ namespace remi {
 
 			void setRootWidget(Widget* widget);
 
-			bool update(bool avoid_update_because_new_subchild = false);
+			bool update();
 
-            void _notifyParentForUpdate();
+            void _notifyParentForUpdate(EventSource*, Dictionary<Buffer*>*, void* );
 
 		private:
 

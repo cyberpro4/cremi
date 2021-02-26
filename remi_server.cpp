@@ -153,6 +153,7 @@ void AnonymousServer::start(void* user_data){
 
 }
 
+
 ServerResponse* App::serve(std::string url){
 
 	std::ostringstream output;
@@ -197,7 +198,7 @@ ServerResponse* App::serve(std::string url){
 	return new ServerResponse( utils::string_encode( output.str() ) );
 }
 
-bool App::update(bool avoid_update_because_new_subchild){
+bool App::update(){
 	if (this == NULL)return false;
 	if (this->_rootWidget == NULL)return false;
 	if (this->_rootWidget->isChanged()){
@@ -263,6 +264,7 @@ void App::init(std::string host_address){
 
     html->addChild(head, "head");
     html->addChild(body, "body");
+    html->event_onrequiredupdate->_do(this, (EventListener::listener_type)&this->_notifyParentForUpdate, NULL);
 
     _webSocketServer = new WebsocketServer( 92 );
 
@@ -279,11 +281,10 @@ void App::setRootWidget(Widget* widget){
     Dictionary<Represantable*> changedWidgets;
     std::ostringstream msg;
     msg << "0" << _rootWidget->getIdentifier().c_str() << ',' << remi::utils::string_encode(remi::utils::escape_json(body->innerHTML(&changedWidgets)));
-    //cout << "message 0 to websocket: " << msg.str() << endl;
     this->_webSocketServer->sendToAllClients(msg.str());
 }
 
-void App::_notifyParentForUpdate(){
+void App::_notifyParentForUpdate(EventSource* source, Dictionary<Buffer*>* params, void* user_data){
     cout << "APP need update" << endl<<endl<<endl;
 }
 

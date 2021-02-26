@@ -37,7 +37,7 @@ int run_test(){
 }
 
 
-class TestApp : public remi::server::App, public EventListener{
+class TestApp : public remi::server::App{
 private:
 	remi::Widget*			mainContainer;
 

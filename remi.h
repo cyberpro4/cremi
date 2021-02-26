@@ -515,6 +515,11 @@ namespace remi {
 
         std::string repr(Dictionary<Represantable*>* changedWidgets);
 
+        void setParent( Tag* tag ){
+            this->_parent = tag;
+            this->attributes.set( "parent_widget" , this->getIdentifier() );
+		}
+
         void addChild( Represantable* child, std::string key = "" );
 
 		void addChild( std::string child, std::string key = "" );
@@ -527,7 +532,7 @@ namespace remi {
 			return attributes.isChanged() || style.isChanged() || children.isChanged();
 		}
 
-		void _notifyParentForUpdate();
+		virtual void _notifyParentForUpdate();
 
 		//EventListener::listener_type _needUpdate;
 		void _needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata);
@@ -562,61 +567,74 @@ namespace remi {
 
 
     class Widget : public Tag {
-	public:
-        class onclick:public Event{
-            friend class Widget;
-            public:
-                //int status = 0;
-                //evt(void* emitter):Event::Event(emitter, abi::__cxa_demangle(typeid(this).name(),0,0,&status)){
-                onclick(Widget* emitter):Event::Event(emitter, CLASS_NAME(onclick)){
-                    ((Widget*)emitter)->event_handlers.set(this->_eventName, this);
-                    emitter->attributes["onclick"] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
-                }
-                void operator()(Dictionary<Buffer*>* parameters=NULL){
-                    Event::operator()(_eventSource, parameters);
-                }
-        }* event_onclick;
+        public:
+            class onclick:public Event{
+                friend class Widget;
+                public:
+                    //int status = 0;
+                    onclick(Tag* emitter):Event::Event(emitter, CLASS_NAME(onclick)){
+                    //evt(void* emitter):Event::Event(emitter, abi::__cxa_demangle(typeid(this).name(),0,0,&status)){
+                        ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+                        emitter->attributes["onclick"] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+                    }
+                    void operator()(Dictionary<Buffer*>* parameters=NULL){
+                        Event::operator()(_eventSource, parameters);
+                    }
+            }* event_onclick;
 
 
-    public:
+        public:
 
-        enum Layout {
-            Horizontal = 1,
-            Vertical = 0
-        };
+            enum Layout {
+                Horizontal = 1,
+                Vertical = 0
+            };
 
 
-        Widget();
+            Widget();
 
-        Widget( std::string type );
+            Widget( std::string type );
 
-		void setWidth( int width );
-		void setHeight( int height );
-        void setSize( int width, int height );
+            void setWidth( int width );
+            void setHeight( int height );
+            void setSize( int width, int height );
 
-        void setLayoutOrientation( Widget::Layout orientation );
+            void setLayoutOrientation( Widget::Layout orientation );
 
-        void addChild( Represantable* child, std::string key = "" );
+            void addChild( Represantable* child, std::string key = "" );
 
-		void setParent( Tag* tag ){
-            this->_parent = tag;
-		}
+            std::string append(Widget* w, std::string key=std::string(""));
 
-		std::string append(Widget* w, std::string key=std::string(""));
+        private:
 
-    private:
+            void defaults();
 
-        void defaults();
-
-        Widget::Layout              _layout_orientation;
+            Widget::Layout              _layout_orientation;
 
     };
 
 
     class HTML:public Tag{
+        public: //Events
+            class onrequiredupdate:public Event{
+            public:
+                onrequiredupdate(Tag* emitter):Event::Event(emitter, CLASS_NAME(onrequiredupdate)){
+                    ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+                    emitter->attributes["onrequiredupdate"] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+                }
+                void operator()(Dictionary<Buffer*>* parameters=NULL){
+                    Event::operator()(_eventSource, parameters);
+                }
+            }* event_onrequiredupdate;
+
         public:
             HTML(){
+                event_onrequiredupdate = new onrequiredupdate(this);
                 type = "html";
+            }
+
+            void _notifyParentForUpdate(){
+                (*this->event_onrequiredupdate)();
             }
 
             std::string repr(Dictionary<Represantable*>* changed_widgets){

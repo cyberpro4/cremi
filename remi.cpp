@@ -465,13 +465,12 @@ std::string Tag::innerHTML(Dictionary<Represantable*>* localChangedWidgets) {
 	return ret.str();
 }
 
-
 std::string Tag::repr(Dictionary<Represantable*>* changedWidgets) {
 	Dictionary<Represantable*>* localChangedWidgets = new Dictionary<Represantable*>();
 	std::ostringstream  _innerHtml;
 
 	_innerHtml << innerHTML(localChangedWidgets);
-    cout << "type: " << type << endl;
+
 	if (this->isChanged() || (localChangedWidgets->size() > 0)) {
 		_backupRepr.str(std::string());
 		_backupRepr << "<" << type <<
@@ -493,16 +492,20 @@ std::string Tag::repr(Dictionary<Represantable*>* changedWidgets) {
 	return _backupRepr.str();
 }
 
-
 void Tag::_notifyParentForUpdate() {
+    cout << "Tag::_notifyParentForUpdate - type: " << type << endl;
+    cout << "ignoreUpdate: " << ignoreUpdate << endl;
+    cout << "parent: " << utils::sformat("%d", this->_parent) << endl;
+
 	if (!ignoreUpdate) {
 		if (this->_parent) {
 			this->_parent->_notifyParentForUpdate();
 		}
 	}
 }
+
 void Tag::_needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {
-    cout << "_needUpdate" << endl;
+    cout << " Tag::_needUpdate" << endl;
     //return;
     Dictionary<std::string> tmp;
     tmp.update(this->attributes);
@@ -520,17 +523,6 @@ void Tag::_needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata)
 	_notifyParentForUpdate();
 }
 
-
-
-
-
-
-
-/***
-TUTTO quello che segue e' da revisionare
-***/
-
-
 void Tag::addChild( Represantable* child , std::string key ){
 
     if( child == NULL )
@@ -543,7 +535,7 @@ void Tag::addChild( Represantable* child , std::string key ){
 
 	if( dynamic_cast<Tag*>(child) != 0 ){
 		Tag* _tag = dynamic_cast<Tag*>(child);
-		_tag->attributes.set( "parent_widget" , this->getIdentifier() );
+		_tag->setParent( this );
 	}
 
 
@@ -572,6 +564,7 @@ void Tag::setUpdated(){
 		}
 	}
 }
+
 
 Widget::Widget() : Tag() {
     defaults();
@@ -615,10 +608,6 @@ void Widget::addChild( Represantable* child, std::string key ){
          */
 
         dynamic_cast<Tag*>(child)->style.set( "float" , "left" );
-	}
-
-	if( dynamic_cast<Widget*>(child) != 0 ){
-		dynamic_cast<Widget*>(child)->setParent( this );
 	}
 
     Tag::addChild( child , key );
