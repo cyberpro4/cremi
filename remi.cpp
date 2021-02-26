@@ -391,7 +391,7 @@ std::string StringRepresantable::repr(Dictionary<Represantable*>* changedWidgets
 }
 
 
-Tag::Tag()/*:Tag(VersionedDictionary<std::string>(), std::string("div"), std::string(typeid(*this).name()))*/{
+Tag::Tag(std::string className){
     this->attributes.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
 	this->style.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
 	this->children.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
@@ -403,7 +403,7 @@ Tag::Tag()/*:Tag(VersionedDictionary<std::string>(), std::string("div"), std::st
     type = "div";
 	setIdentifier(utils::sformat("%d", (int)this));
 
-	addClass(std::string(typeid(*this).name()));
+    addClass( className );
 	cout << "end tag constructor" << endl;
 }
 
@@ -424,7 +424,12 @@ Tag::Tag(VersionedDictionary<std::string> _attributes, std::string _type, std::s
 
 	attributes.update(_attributes);
 
-	addClass((_class.length()<1)?std::string(typeid(*this).name()):_class);
+	int status = 0;
+	std::string classname = std::string( abi::__cxa_demangle(typeid(*this).name(),0,0,&status) );
+	int pos = classname.rfind(":");
+	classname.erase(0, pos);
+    addClass( classname );
+
 }
 
 void Tag::addClass(std::string name) {
@@ -552,7 +557,7 @@ void Tag::setUpdated(){
 }
 
 
-Widget::Widget() : Tag() {
+Widget::Widget() : Tag::Tag(CLASS_NAME(Widget)) {
     defaults();
 }
 

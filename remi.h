@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <stdio.h>
 #include <stdarg.h>
+#include <cxxabi.h>
 
 //#include <thread>       //std::this_thread::sleep_for std::thread
 #include <chrono>
@@ -499,7 +500,7 @@ namespace remi {
 
     public:
 
-        Tag();
+        Tag(std::string _class="");
 
         Tag(VersionedDictionary<std::string> attributes, std::string _type, std::string _class="");
 
