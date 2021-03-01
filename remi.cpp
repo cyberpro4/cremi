@@ -391,7 +391,7 @@ std::string StringRepresantable::repr(Dictionary<Represantable*>* changedWidgets
 }
 
 
-Tag::Tag(std::string className){
+Tag::Tag(){
     this->attributes.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
 	this->style.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
 	this->children.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
@@ -403,33 +403,25 @@ Tag::Tag(std::string className){
     type = "div";
 	setIdentifier(utils::sformat("%d", (int)this));
 
-    addClass( className );
-	cout << "end tag constructor" << endl;
+    int status = 0;
+	std::string _class = std::string( abi::__cxa_demangle(typeid(*this).name(),0,0,&status) );
+	int pos = _class.rfind(":");
+	_class.erase(0, pos+1);
+    addClass( _class );
 }
 
-Tag::Tag(VersionedDictionary<std::string> _attributes, std::string _type, std::string _class){
-    /*(*this->attributes.event_onchange) >> (Event::listener_type)&this->_needUpdate;
-	(*this->style.event_onchange) >> (Event::listener_type)&this->_needUpdate;
-	(*this->children.event_onchange) >> (Event::listener_type)&this->_needUpdate;*/
-    this->attributes.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
-	this->style.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
-	this->children.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
-
-	_parent = NULL;
-
-	ignoreUpdate = false;
+Tag::Tag(VersionedDictionary<std::string> _attributes, std::string _type, std::string _class):Tag(){
 
     type = _type;
-	setIdentifier(utils::sformat("%d", (int)this));
 
 	attributes.update(_attributes);
 
-	int status = 0;
-	std::string classname = std::string( abi::__cxa_demangle(typeid(*this).name(),0,0,&status) );
-	int pos = classname.rfind(":");
-	classname.erase(0, pos);
-    addClass( classname );
+    setClass( _class );
+}
 
+void Tag::setClass(std::string name) {
+    _classes.clear();
+	_classes.push_front(name);
 }
 
 void Tag::addClass(std::string name) {
@@ -557,12 +549,16 @@ void Tag::setUpdated(){
 }
 
 
-Widget::Widget() : Tag::Tag(CLASS_NAME(Widget)) {
-    defaults();
+Widget::Widget() : Tag::Tag() {
+    this->event_onclick = new Widget::onclick(this);
+    _layout_orientation = Layout::Vertical;
+    style.set( "margin" , "0px auto" );
+
+    setClass(CLASS_NAME(Widget));
 }
 
-Widget::Widget( std::string _type ) {
-    defaults();
+Widget::Widget( std::string _type ):Widget() {
+
 }
 
 void Widget::setWidth( int width ){
@@ -612,21 +608,6 @@ std::string Widget::append(Widget* w, std::string key){
     return key;
 }
 
-void Widget::defaults(){
-    this->event_onclick = new Widget::onclick(this);
-    _layout_orientation = Layout::Vertical;
-    style.set( "margin" , "0px auto" );
-
-	/*attributes[Widget::Event_OnClick] = utils::sformat(
-		"sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",
-		getIdentifier().c_str(), Widget::Event_OnClick.c_str());
-
-	attributes[Widget::Event_OnDblClick] = utils::sformat(
-		"sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",
-		getIdentifier().c_str(), Widget::Event_OnDblClick.c_str());
-    */
-}
-
 
 
 
@@ -640,6 +621,7 @@ HBox::HBox() : Widget(){
 
 	style["flex-direction"] = "row";
 
+	setClass(CLASS_NAME(HBox));
 }
 
 VBox::VBox() : Widget(){
@@ -652,6 +634,8 @@ VBox::VBox() : Widget(){
 
 	style["flex-direction"] = "column";
 
+	setClass(CLASS_NAME(VBox));
+
 }
 
 Button::Button( std::string text ) : TextWidget(){
@@ -660,10 +644,7 @@ Button::Button( std::string text ) : TextWidget(){
 
 	setText(text);
 
-	/*attributes[Widget::Event_OnClick] = utils::sformat(
-		"sendCallback('%s','%s');",
-		getIdentifier().c_str(), Widget::Event_OnClick.c_str()
-	);*/
+	setClass(CLASS_NAME(Button));
 }
 
 void Button::setEnabled( bool en ){
@@ -691,9 +672,11 @@ std::string TextWidget::text(){
 Label::Label( std::string text ){
 	type = "p";
 	setText( text );
+	setClass(CLASS_NAME(Label));
 }
 
 GenericDialog::GenericDialog( std::string title , std::string message ){
+    setClass(CLASS_NAME(GenericDialog));
 	setLayoutOrientation( Widget::Layout::Vertical );
 	style["display"] = "block";
 	style["overflow"] = "auto";
@@ -784,7 +767,7 @@ Widget* GenericDialog::getField(std::string key){
 
 Image::Image(std::string url){
 	type = "img";
-
+    setClass(CLASS_NAME(Image));
 	setURL(url);
 }
 
@@ -842,8 +825,7 @@ bool Input::isReadOnly(){
 
 
 FileUploader::FileUploader( std::string path, bool multipleSelectionAllowed ){
-
-	onSuccessListener = NULL;
+    onSuccessListener = NULL;
 	onFailListener = NULL;
 	onDataListener = NULL;
 
@@ -851,6 +833,7 @@ FileUploader::FileUploader( std::string path, bool multipleSelectionAllowed ){
 	setMultipleSelectionAllowed(multipleSelectionAllowed);
 
 	type = "input";
+	setClass(CLASS_NAME(FileUploader));
 	this->attributes["type"] = "file";
 	this->attributes["accept"] = "*.*";
 /*

@@ -72,7 +72,8 @@ public:
 		btn1->style.set("width", "100px");
 		mainContainer->addChild(btn1);
 
-
+		this->head->event_onerror->_do(this, (EventListener::listener_type)&this->onPageError);
+        this->body->event_onpageshow->_do(this, (EventListener::listener_type)&this->onPageShow);
 		return mainContainer;
 	}
 
@@ -82,6 +83,24 @@ public:
 		this->btn1->style.set("background-color", "red");
 	}
 
+    void onPageShow(Tag* emitter, Dictionary<Buffer*>* params, void* userdata){
+        std::cout << "Event onPageShow - ";
+        for(std::string key : params->keys()){
+            std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+        }
+        int width = 0;
+        int height = 0;
+        sscanf(params->get("width")->str().c_str(), "%d", &width);
+        sscanf(params->get("height")->str().c_str(), "%d", &height);
+        cout << width << " - " << height << endl;
+    }
+
+    void onPageError(Tag* emitter, Dictionary<Buffer*>* params, void* userdata){
+        std::cout << "Event onPageError - ";
+        for(std::string key : params->keys()){
+            std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+        }
+    }
 
 	/*void onData(FileUploader* w, std::string fileName, const char* data, unsigned long long len){
 		std::ostringstream filePathName;

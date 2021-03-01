@@ -500,9 +500,11 @@ namespace remi {
 
     public:
 
-        Tag(std::string _class="");
+        Tag();
 
         Tag(VersionedDictionary<std::string> attributes, std::string _type, std::string _class="");
+
+        void setClass( std::string name );
 
         void addClass( std::string name );
 
@@ -612,8 +614,6 @@ namespace remi {
 
         private:
 
-            void defaults();
-
             Widget::Layout              _layout_orientation;
 
     };
@@ -665,6 +665,18 @@ namespace remi {
 
     class HEAD:public Tag{
         public:
+            class onerror:public Event{
+                public:
+                    onerror(Tag* emitter):Event::Event(emitter, CLASS_NAME(onerror)){
+                        ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+                        /* It is not required to set the attribute[onerror] because it is already present int the page javascript*/
+                    }
+                    void operator()(Dictionary<Buffer*>* parameters=NULL){
+                        Event::operator()(_eventSource, parameters);
+                    }
+            }* event_onerror;
+
+        public:
             HEAD(std::string title){
                 type = "head";
                 this->addChild("<meta content='text/html;charset=utf-8' http-equiv='Content-Type'> \
@@ -672,6 +684,7 @@ namespace remi {
                         <meta name='viewport' content='width=device-width, initial-scale=1.0'>", "meta");
 
                 this->setTitle(title);
+                this->event_onerror = new onerror(this);
             }
 
             void setIconFile(std::string filename, std::string rel="icon", std::string mimetype="image/png"){
@@ -994,12 +1007,70 @@ namespace remi {
 
     class BODY:public Widget{
         public:
-            const char* EVENT_ONLOAD = "onload";
-            const char* EVENT_ONERROR = "onerror";
-            const char* EVENT_ONONLINE = "ononline";
-            const char* EVENT_ONPAGEHIDE = "onpagehide";
-            const char* EVENT_ONPAGESHOW = "onpageshow";
-            const char* EVENT_ONRESIZE = "onresize";
+            class onload:public Event{
+                public:
+                    onload(Tag* emitter):Event::Event(emitter, CLASS_NAME(onload)){
+                        ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+                        emitter->attributes[this->_eventName] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+                    }
+                    void operator()(Dictionary<Buffer*>* parameters=NULL){
+                        Event::operator()(_eventSource, parameters);
+                    }
+            }* event_onload;
+
+            class ononline:public Event{
+                public:
+                    ononline(Tag* emitter):Event::Event(emitter, CLASS_NAME(ononline)){
+                        ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+                        emitter->attributes[this->_eventName] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+                    }
+                    void operator()(Dictionary<Buffer*>* parameters=NULL){
+                        Event::operator()(_eventSource, parameters);
+                    }
+            }* event_ononline;
+
+            class onpagehide:public Event{
+                public:
+                    onpagehide(Tag* emitter):Event::Event(emitter, CLASS_NAME(onpagehide)){
+                        ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+                        emitter->attributes[this->_eventName] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+                    }
+                    void operator()(Dictionary<Buffer*>* parameters=NULL){
+                        Event::operator()(_eventSource, parameters);
+                    }
+            }* event_onpagehide;
+
+            class onpageshow:public Event{
+                public:
+                    onpageshow(Tag* emitter):Event::Event(emitter, CLASS_NAME(onpageshow)){
+                        ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+                        emitter->attributes[this->_eventName] = utils::sformat( R"(
+                            var params={};
+                            params['width']=window.innerWidth;
+                            params['height']=window.innerHeight;
+                            remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), this->_eventName);
+                    }
+                    void operator()(Dictionary<Buffer*>* parameters=NULL){
+                        Event::operator()(_eventSource, parameters);
+                    }
+            }* event_onpageshow;
+
+            class onresize:public Event{
+                public:
+                    onresize(Tag* emitter):Event::Event(emitter, CLASS_NAME(onresize)){
+                        ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+                        emitter->attributes[this->_eventName] = utils::sformat( R"(
+                            var params={};
+                            params['width']=window.innerWidth;
+                            params['height']=window.innerHeight;
+                            remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), this->_eventName);
+                    }
+                    void operator()(Dictionary<Buffer*>* parameters=NULL){
+                        Event::operator()(_eventSource, parameters);
+                    }
+            }* event_onresize;
+
+        public:
 
             BODY(){
                 type = "body";
@@ -1014,6 +1085,12 @@ namespace remi {
                 loading_container->setIdentifier("loading");
 
                 this->append(loading_container, "loading_container");
+
+                this->event_onload = new onload(this);
+                this->event_ononline = new ononline(this);
+                this->event_onpagehide = new onpagehide(this);
+                this->event_onpageshow = new onpageshow(this);
+                this->event_onresize = new onresize(this);
             }
             /*
             @decorate_set_on_listener("(self, emitter)")
