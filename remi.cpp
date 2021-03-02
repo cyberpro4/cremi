@@ -386,7 +386,7 @@ StringRepresantable::StringRepresantable(std::string v ){
     this->v = v;
 }
 
-std::string StringRepresantable::repr(Dictionary<Represantable*>* changedWidgets){
+std::string StringRepresantable::repr(Dictionary<Represantable*>* changedWidgets, bool forceUpdate){
     return v;
 }
 
@@ -443,24 +443,24 @@ void Tag::setIdentifier(std::string newIdentifier) {
 	//remi::server::runtimeInstances[this->getIdentifier()] = this;
 }
 
-std::string Tag::innerHTML(Dictionary<Represantable*>* localChangedWidgets) {
+std::string Tag::innerHTML(Dictionary<Represantable*>* localChangedWidgets, bool forceUpdate) {
 	std::ostringstream ret;
 	for (std::string k : this->children.keys()) {
         cout << "representing: " << k << endl;
 		Represantable* s = children.get(k);
-		ret << s->repr(localChangedWidgets);
+		ret << s->repr(localChangedWidgets, forceUpdate);
 	}
 	//cout << ret.str() << endl;
 	return ret.str();
 }
 
-std::string Tag::repr(Dictionary<Represantable*>* changedWidgets) {
+std::string Tag::repr(Dictionary<Represantable*>* changedWidgets, bool forceUpdate) {
 	Dictionary<Represantable*>* localChangedWidgets = new Dictionary<Represantable*>();
 	std::ostringstream  _innerHtml;
 
-	_innerHtml << innerHTML(localChangedWidgets);
-
-	if (this->isChanged() || (localChangedWidgets->size() > 0)) {
+	_innerHtml << innerHTML(localChangedWidgets, forceUpdate);
+    cout << "Tag::repr - representing: " << this->type << " localChangedWidgets->size() = " << localChangedWidgets->size() << endl;
+	if (this->isChanged() || (localChangedWidgets->size() > 0 || forceUpdate)) {
 		_backupRepr.str(std::string());
 		_backupRepr << "<" << type <<
 			" " << _reprAttributes.str() <<
@@ -471,8 +471,7 @@ std::string Tag::repr(Dictionary<Represantable*>* changedWidgets) {
 	if (this->isChanged()) {
 		changedWidgets->set(this->getIdentifier(), this);
 		this->setUpdated();
-	}
-	else {
+	}else {
 		changedWidgets->update(*localChangedWidgets);
 	}
 

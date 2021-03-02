@@ -220,7 +220,7 @@ ServerResponse* App::serve(std::string url){
 
 	} else if (url == "/" ){
 	    Dictionary<Represantable*> changedWidgets;
-		output << html->repr(&changedWidgets);
+		output << html->repr(&changedWidgets, true);
 		//cout << "PAGE: " << output.str() << endl;
 	}
 
@@ -236,7 +236,7 @@ bool App::update(){
 	}
 	if (this->_needUpdateFlag){
         Dictionary<Represantable*>* local_changed_widgets = new Dictionary<Represantable*>();
-		std::string _html = remi::utils::string_encode(remi::utils::escape_json(this->_rootWidget->repr(local_changed_widgets)));
+		std::string _html = remi::utils::string_encode(remi::utils::escape_json(this->_rootWidget->repr(local_changed_widgets, false)));
 
 		for(std::string identifier:local_changed_widgets->keys()){
             _html = ((Tag*)local_changed_widgets->get(identifier))->getLatestRepr();
@@ -309,7 +309,7 @@ void App::setRootWidget(Widget* widget){
     //_rootWidget.enable_refresh()
     Dictionary<Represantable*> changedWidgets;
     std::ostringstream msg;
-    msg << "0" << _rootWidget->getIdentifier().c_str() << ',' << remi::utils::string_encode(remi::utils::escape_json(body->innerHTML(&changedWidgets)));
+    msg << "0" << _rootWidget->getIdentifier().c_str() << ',' << remi::utils::string_encode(remi::utils::escape_json(body->innerHTML(&changedWidgets, true)));
     this->_webSocketServer->sendToAllClients(msg.str());
 }
 

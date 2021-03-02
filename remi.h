@@ -479,7 +479,7 @@ namespace remi {
 
     class Represantable {
     public:
-        virtual std::string repr(Dictionary<Represantable*>* changedWidgets) = 0;
+        virtual std::string repr(Dictionary<Represantable*>* changedWidgets, bool forceUpdate=false) = 0;
     };
 
 
@@ -488,7 +488,7 @@ namespace remi {
 
         StringRepresantable(std::string v );
 
-        std::string repr(Dictionary<Represantable*>* changedWidgets = NULL);
+        std::string repr(Dictionary<Represantable*>* changedWidgets = NULL, bool forceUpdate=false);
 
     private:
 
@@ -514,9 +514,9 @@ namespace remi {
 
 		void setIdentifier( std::string newIdentifier );
 
-		virtual std::string innerHTML( Dictionary<Represantable*>* localChangedWidgets );
+		virtual std::string innerHTML( Dictionary<Represantable*>* localChangedWidgets, bool forceUpdate );
 
-        std::string repr(Dictionary<Represantable*>* changedWidgets);
+        std::string repr(Dictionary<Represantable*>* changedWidgets, bool forceUpdate);
 
         std::string getLatestRepr(){
             return _backupRepr.str();
@@ -646,7 +646,7 @@ namespace remi {
                 (*this->event_onrequiredupdate)();
             }
 
-            std::string repr(Dictionary<Represantable*>* changed_widgets){
+            std::string repr(Dictionary<Represantable*>* changed_widgets, bool forceUpdate=false){
                 /*It is used to automatically represent the object to HTML format
                 packs all the attributes, children and so on.
 
@@ -659,7 +659,7 @@ namespace remi {
 
                 std::ostringstream  result;
 
-                result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets) << "\n</" << type << ">";
+                result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets, forceUpdate) << "\n</" << type << ">";
                 this->setUpdated();
                 delete local_changed_widgets;
                 return result.str();
@@ -987,7 +987,7 @@ namespace remi {
                 this->addChild(utils::sformat("<title>%s</title>", title.c_str()), "title");
             }
 
-            std::string repr(Dictionary<Represantable*>* changed_widgets){
+            std::string repr(Dictionary<Represantable*>* changed_widgets, bool forceUpdate){
                 /*It is used to automatically represent the object to HTML format
                 packs all the attributes, children and so on.
 
@@ -1000,7 +1000,7 @@ namespace remi {
 
                 std::ostringstream  result;
 
-                result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets) << "\n</" << type << ">";
+                result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets, forceUpdate) << "\n</" << type << ">";
                 this->setUpdated();
                 //delete changed_widgets;
                 delete local_changed_widgets;
