@@ -551,14 +551,22 @@ void Tag::setUpdated(){
 
 Widget::Widget() : Tag::Tag() {
     this->event_onclick = new Widget::onclick(this);
-    _layout_orientation = Layout::Vertical;
     style.set( "margin" , "0px auto" );
 
     setClass(CLASS_NAME(Widget));
 }
 
-Widget::Widget( std::string _type ):Widget() {
+Widget::Widget(std::string _class) : Tag::Tag() {
+    this->event_onclick = new Widget::onclick(this);
+    style.set( "margin" , "0px auto" );
 
+    setClass(_class);
+}
+
+Widget::Widget(VersionedDictionary<std::string> _attributes, VersionedDictionary<std::string> _style, std::string _type, std::string _class):Widget(_class) {
+    this->attributes.update(_attributes);
+    this->style.update(_style);
+    this->type = _type;
 }
 
 void Widget::setWidth( int width ){
@@ -574,33 +582,21 @@ void Widget::setSize( int width, int height ){
     style.set( "height" , utils::toPix( height ) );
 }
 
-void Widget::setLayoutOrientation(Widget::Layout orientation){
-    _layout_orientation = orientation;
-}
-
-
 void Widget::addChild( Represantable* child, std::string key ){
-
-    if( _layout_orientation == Widget::Layout::Horizontal && dynamic_cast<Tag*>(child) != NULL ){
-        /*
-         * From python this make no sense at all:
-         * Maybe for VersionedDictionary?
-         *
-         * if 'float' in self.children[key].style.keys():
-         *       if not (self.children[key].style['float'] == 'none'):
-         *           self.children[key].style['float'] = 'left'
-         *   else:
-         *       self.children[key].style['float'] = 'left'
-		 *
-         */
-
-        dynamic_cast<Tag*>(child)->style.set( "float" , "left" );
-	}
-
     Tag::addChild( child , key );
 }
 
-std::string Widget::append(Widget* w, std::string key){
+
+Container::Container(Dictionary<Widget*>* children, Container::Layout layout_orientation):Widget(CLASS_NAME(Container)){
+    this->setLayoutOrientation(layout_orientation);
+    if(!children==NULL){
+        for( std::string k : children->keys() ){
+            this->append(children->get(k), k);
+        }
+    }
+}
+
+std::string Container::append(Widget* w, std::string key){
     if(key.length()<1){
         key = w->attributes["id"];
     }
@@ -608,10 +604,18 @@ std::string Widget::append(Widget* w, std::string key){
     return key;
 }
 
+std::string Container::append(Dictionary<Widget*>* _children){
+    for( std::string k : _children->keys() ){
+        this->append(_children->get(k), k);
+    }
+}
+
+void Container::setLayoutOrientation(Container::Layout orientation){
+    _layout_orientation = orientation;
+}
 
 
-
-HBox::HBox() : Widget(){
+HBox::HBox() : Container(){
 
 	style["display"] = "flex";
 
@@ -624,7 +628,7 @@ HBox::HBox() : Widget(){
 	setClass(CLASS_NAME(HBox));
 }
 
-VBox::VBox() : Widget(){
+VBox::VBox() : Container(){
 
 	style["display"] = "flex";
 
@@ -677,7 +681,7 @@ Label::Label( std::string text ){
 
 GenericDialog::GenericDialog( std::string title , std::string message ){
     setClass(CLASS_NAME(GenericDialog));
-	setLayoutOrientation( Widget::Layout::Vertical );
+	setLayoutOrientation( Container::Layout::Vertical );
 	style["display"] = "block";
 	style["overflow"] = "auto";
 
@@ -696,11 +700,11 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 		addChild( l );
 	}
 
-	_container = new Widget();
+	_container = new Container();
 	_container->style["display"] = "block";
 	_container->style["overflow"] = "auto";
 	_container->style["margin"] = "5px";
-	_container->setLayoutOrientation(Widget::Layout::Vertical);
+	_container->setLayoutOrientation(Container::Layout::Vertical);
 
 	_confirmButton = new Button("Ok");
 	_confirmButton->setSize(100, 30);
@@ -712,7 +716,7 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 	_cancelButton->style["margin"] = "3px";
 	//_cancelButton->onClickListener = this;
 
-	_hLay = new Widget();
+	_hLay = new HBox();
 	_hLay->setHeight( 35 );
 	_hLay->style["display"] = "block";
 	_hLay->style["overflow"] = "visible";
@@ -750,11 +754,11 @@ void GenericDialog::addFieldWithLabel(std::string key, std::string label_descrip
 
 void GenericDialog::addField(std::string key, Widget* field){
 	this->_inputs[key] = field;
-	Widget* container = new Widget();
+	Container* container = new Container();
 	container->style.set("display", "block");
 	container->style.set("overflow", "auto");
 	container->style.set("padding", "3px");
-	container->setLayoutOrientation(Widget::Layout::Horizontal);
+	container->setLayoutOrientation(Container::Layout::Horizontal);
 	container->addChild(this->_inputs[key], key);
 	this->_container->addChild(container, key);
 }

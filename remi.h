@@ -591,33 +591,37 @@ namespace remi {
 
 
         public:
-
-            enum Layout {
-                Horizontal = 1,
-                Vertical = 0
-            };
-
-
             Widget();
-
-            Widget( std::string type );
+            Widget(std::string _class);
+            Widget(VersionedDictionary<std::string> _attributes, VersionedDictionary<std::string> _style, std::string _type, std::string _class);
 
             void setWidth( int width );
             void setHeight( int height );
             void setSize( int width, int height );
 
-            void setLayoutOrientation( Widget::Layout orientation );
-
             void addChild( Represantable* child, std::string key = "" );
-
-            std::string append(Widget* w, std::string key=std::string(""));
-
-        private:
-
-            Widget::Layout              _layout_orientation;
 
     };
 
+
+    class Container: public Widget{
+        public:
+            enum Layout {
+                Horizontal = 1,
+                Vertical = 0
+            };
+
+        private:
+            Container::Layout _layout_orientation;
+
+        public:
+            Container(Dictionary<Widget*>* children=NULL, Container::Layout layout_orientation = Layout::Vertical);
+
+            std::string append(Widget* w, std::string key=std::string(""));
+            std::string append(Dictionary<Widget*>* w);
+
+            void setLayoutOrientation( Container::Layout orientation );
+    };
 
     class HTML:public Tag{
         public: //Events
@@ -1005,7 +1009,7 @@ namespace remi {
     };
 
 
-    class BODY:public Widget{
+    class BODY:public Container{
         public:
             class onload:public Event{
                 public:
@@ -1072,13 +1076,13 @@ namespace remi {
 
         public:
 
-            BODY(){
+            BODY():Container::Container(){
                 type = "body";
                 Widget* loading_anim = new Widget();
                 loading_anim->style.remove("margin");
                 loading_anim->setIdentifier("loading-animation");
 
-                Widget* loading_container = new Widget();
+                Container* loading_container = new Container();
                 loading_container->append(loading_anim, "loading_animation");
                 loading_container->style.set("display", "none");
                 loading_container->style.remove("margin");
@@ -1092,45 +1096,11 @@ namespace remi {
                 this->event_onpageshow = new onpageshow(this);
                 this->event_onresize = new onresize(this);
             }
-            /*
-            @decorate_set_on_listener("(self, emitter)")
-            @decorate_event_js("""remi.sendCallback('%(emitter_identifier)s','%(event_name)s');""")
-            def onload(self):
-                """Called when page gets loaded."""
-                return ()
 
-            @decorate_set_on_listener("(self, emitter)")
-            @decorate_event_js("""remi.sendCallback('%(emitter_identifier)s','%(event_name)s');""")
-            def ononline(self):
-                return ()
-
-            @decorate_set_on_listener("(self, emitter)")
-            @decorate_event_js("""remi.sendCallback('%(emitter_identifier)s','%(event_name)s');""")
-            def onpagehide(self):
-                return ()
-
-            @decorate_set_on_listener("(self, emitter)")
-            @decorate_event_js("""
-                    var params={};
-                    params['width']=window.innerWidth;
-                    params['height']=window.innerHeight;
-                    remi.sendCallbackParam('%(emitter_identifier)s','%(event_name)s',params);""")
-            def onpageshow(self, width, height):
-                return (width, height)
-
-            @decorate_set_on_listener("(self, emitter)")
-            @decorate_event_js("""
-                    var params={};
-                    params['width']=window.innerWidth;
-                    params['height']=window.innerHeight;
-                    remi.sendCallbackParam('%(emitter_identifier)s','%(event_name)s',params);""")
-            def onresize(self, width, height):
-                return (width, height)
-            */
     };
 
 
-	class HBox : public Widget {
+	class HBox : public Container {
 
 	public:
 
@@ -1138,7 +1108,7 @@ namespace remi {
 
 	};
 
-	class VBox : public Widget {
+	class VBox : public Container {
 
 	public:
 
@@ -1176,7 +1146,7 @@ namespace remi {
 	};
 
 
-	class GenericDialog : public Widget {
+	class GenericDialog : public Container {
 	public:
 		class GenericDialogOnConfirmListener{ public: virtual void onConfirm(GenericDialog*) = 0; };
 		class GenericDialogOnCancelListener{ public: virtual void onCancel(GenericDialog*) = 0; };
@@ -1197,10 +1167,10 @@ namespace remi {
 
 	private:
 
-		Widget*		_container;
+		Container*		_container;
 		Button*		_confirmButton;
 		Button*		_cancelButton;
-		Widget*		_hLay;
+		HBox*		_hLay;
 		std::map<std::string, Widget*> _inputs;
 	};
 
