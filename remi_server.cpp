@@ -154,6 +154,34 @@ void AnonymousServer::start(void* user_data){
 
 }
 
+std::string App::getStaticFile(std::string filename){
+    cout << "App::getStaticFile - filename: " << filename << endl;
+    if(filename.find("..")>-1){
+        filename = filename.replace(filename.find(".."), 2, ""); //avoid backdirs
+    }
+    int __i = filename.find(':');
+    if(__i < 0){
+        return std::string("");
+    }
+    std::string key = filename.substr(0, __i);
+    std::string path = filename.substr(__i+1, filename.length()-1);
+    key = key.replace(key.find("/"), 1,"");
+
+    map<std::string, std::string> paths;
+    paths["res"] = std::string("./res/");
+    for(auto& p:this->_staticResourcesPaths){
+        paths[p.first] = p.second;
+    }
+
+    if( paths.count(key) < 1 ){
+        return std::string("");
+    }
+    std::string result = paths[key] + "/" + path;
+    while(result.find("//")>-1){
+        result = result.replace(result.find("//"), 2, "/");
+    }
+    return result;
+}
 
 ServerResponse* App::serve(std::string url){
 
@@ -162,17 +190,17 @@ ServerResponse* App::serve(std::string url){
 	//std::regex::
 
 	std::smatch attr_call_match;
-	bool attr_call = std::regex_match(url, attr_call_match, std::regex("^\\/*(\\w+)\\/(\\w+)\\?{0,1}(\\w*\\={1}\\w+\\&{0,1})*$"));
+	bool attr_call = std::regex_match(url, attr_call_match, std::regex("^/*(\\w+)\\/(\w+)\\?{0,1}(\\w*\\={1}(\\w|\\.)+\\&{0,1})*$")); //std::regex("^\\/*(\\w+)\\/(\\w+)\\?{0,1}(\\w*\\={1}\\w+\\&{0,1})*$"));
 
 	std::smatch static_file_match;
-	bool static_file = std::regex_match( url, static_file_match, std::regex("^/*res\\/(.*)$") );
+	bool static_file = std::regex_match( url, static_file_match, std::regex("^([\\/]*[\\w\\d]+:[-_. $@?#£'%=()\\/\\[\\]!+°§^,\\w\\d]+)")); //std::regex("^/*res\\/(.*)$") );
 
 	if( static_file && static_file_match.size() == 2 ){
 
 		ServerResponse* response = new ServerResponse();
 
-		std::string resFilePath = utils::sformat("%s/%s", _staticResourcesPath.c_str() , static_file_match[1].str().c_str() );
-
+		std::string resFilePath = this->getStaticFile(static_file_match[1].str()); //utils::sformat("%s/%s", _staticResourcesPath.c_str() , static_file_match[1].str().c_str() );
+        cout << "App::serve - resource file path: " << resFilePath << endl;
 		FILE* resFile = fopen( resFilePath.c_str() , "rb" );
 		if( !resFile )
 			return new ServerResponse(404); // FIXME
@@ -243,9 +271,6 @@ remi::Widget* App::main(){
 }
 
 void App::init(std::string host_address){
-
-	_staticResourcesPath = "./res/";
-
     html = new remi::HTML();
 
     //head.setTitle(self.server.title);

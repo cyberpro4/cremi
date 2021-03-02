@@ -73,6 +73,8 @@ namespace remi {
 
             void _notifyParentForUpdate(EventSource*, Dictionary<Buffer*>*, void* );
 
+            std::string getStaticFile(std::string filename);
+
 		private:
 			Widget*             _rootWidget;
 
@@ -82,10 +84,12 @@ namespace remi {
 
 		protected:
 
-			std::string		_staticResourcesPath;
+			//std::string		_staticResourcesPath;
 			std::string		_scriptHeader;
 
 			std::string		_cssHeader;
+
+			std::map<std::string, std::string> _staticResourcesPaths;
 
         public:
 			remi::HTML*      html;
