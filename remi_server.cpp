@@ -101,6 +101,7 @@ void /* *MHD_UpgradeHandler*/ __remi_server_connection_upgrade_handler (void *cl
             head->setInternalJs("127.0.0.1:92", 20, 3000);
         to set the port number identical to http server (91 actually)
     */
+    cout << "Upgarded " << endl;
 }
 
 static int
@@ -115,11 +116,14 @@ size_t *upload_data_size, void **con_cls){
 	if (cls != NULL){
         const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Connection");
         if(strcmp(value, "Upgrade")==0){
-            response = MHD_create_response_for_upgrade (&__remi_server_connection_upgrade_handler, NULL/*void *upgrade_handler_cls*/);
-            MHD_add_response_header(response, "Upgrade", "");
-            ret = MHD_queue_response(connection, 101, response);
+            const char* upgrade_kind = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Upgrade");
+            if(strcmp(upgrade_kind, "websocket")==0){
+                response = MHD_create_response_for_upgrade (&__remi_server_connection_upgrade_handler, NULL/*void *upgrade_handler_cls*/);
+                //MHD_add_response_header(response, "Upgrade", "");
+                ret = MHD_queue_response(connection, 101, response);
 
-            MHD_destroy_response(response);
+                MHD_destroy_response(response);
+            }
         }else{
 
             ServerResponse* serverResponse = ((AnonymousServer*)cls)->serve( url, connection );
@@ -300,7 +304,7 @@ void App::init(std::string host_address){
     struct sockaddr *so;
 
     //head->setInternalJs(utils::sformat("%d", (int)this), host_address, 20, 3000);
-    head->setInternalJs("127.0.0.1:92", 20, 3000);
+    head->setInternalJs("127.0.0.1:91", 20, 3000);
 
     body = new remi::BODY();
     body->addClass("remi-main");
