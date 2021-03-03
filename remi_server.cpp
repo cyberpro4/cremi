@@ -91,34 +91,53 @@ int ServerResponse::prepareSize( int new_size ){
 	return old_size;
 }
 
+void /* *MHD_UpgradeHandler*/ __remi_server_connection_upgrade_handler (void *cls, struct MHD_Connection *connection,
+                          void* param, const char *extra_in, size_t extra_in_size,
+                          MHD_socket sock, struct MHD_UpgradeResponseHandle *urh){
+    /* TODO
+        here it have to be created an instance of WebsocketClientInterface and pass the sock param to it
+
+        in App::init change this instruction:
+            head->setInternalJs("127.0.0.1:92", 20, 3000);
+        to set the port number identical to http server (91 actually)
+    */
+}
 
 static int
 __remi_server_answer(void *cls, struct MHD_Connection *connection,
 const char *url, const char *method,
 const char *version, const char *upload_data,
-size_t *upload_data_size, void **con_cls)
-{
+size_t *upload_data_size, void **con_cls){
 
 	struct MHD_Response *response;
 	int ret;
 
 	if (cls != NULL){
-		ServerResponse* serverResponse = ((AnonymousServer*)cls)->serve( url, connection );
+        const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Connection");
+        if(strcmp(value, "Upgrade")==0){
+            response = MHD_create_response_for_upgrade (&__remi_server_connection_upgrade_handler, NULL/*void *upgrade_handler_cls*/);
+            MHD_add_response_header(response, "Upgrade", "");
+            ret = MHD_queue_response(connection, 101, response);
+
+            MHD_destroy_response(response);
+        }else{
+
+            ServerResponse* serverResponse = ((AnonymousServer*)cls)->serve( url, connection );
 
 
-		response =
-			MHD_create_response_from_buffer(
-				serverResponse->getBodyBufferSize() ,
-				(void *)serverResponse->getBodyBuffer(),
-				MHD_RESPMEM_MUST_COPY
-			);
+            response =
+                MHD_create_response_from_buffer(
+                    serverResponse->getBodyBufferSize() ,
+                    (void *)serverResponse->getBodyBuffer(),
+                    MHD_RESPMEM_MUST_COPY
+                );
 
-		ret = MHD_queue_response(connection, serverResponse->getCode(), response);
+            ret = MHD_queue_response(connection, serverResponse->getCode(), response);
 
-		MHD_destroy_response(response);
+            MHD_destroy_response(response);
 
-		delete serverResponse;
-
+            delete serverResponse;
+        }
 	}
 
 	return ret;
@@ -147,7 +166,7 @@ void AnonymousServer::start(void* user_data){
 
 	std::cout << "cRemi Http server listening on port " << port << std::endl;
 
-	daemon = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY, port, NULL, NULL,
+	daemon = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY | MHD_ALLOW_SUSPEND_RESUME, port, NULL, NULL,
 		&__remi_server_answer, this, MHD_OPTION_END);
 
 	_serverInfo = (void*)daemon;
