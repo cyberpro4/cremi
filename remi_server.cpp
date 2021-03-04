@@ -92,7 +92,28 @@ int ServerResponse::prepareSize( int new_size ){
 }
 
 
-void /* *MHD_UpgradeHandler*/ __remi_server_connection_upgrade_handler (void *cls, struct MHD_Connection *connection,
+void App::addWebsocketClientInterface(WebsocketClientInterface* wci){
+    while(this->_mutex_blocked_webSocketClients)
+        Sleep( 1 );
+
+    _mutex_blocked_webSocketClients = true;
+    this->_webSocketClients.push_back(wci);
+    _mutex_blocked_webSocketClients = false;
+
+}
+
+void App::sendMessageToAllClients(std::string message){
+    while(this->_mutex_blocked_webSocketClients)
+        Sleep( 1 );
+
+    _mutex_blocked_webSocketClients = true;
+    for(WebsocketClientInterface* wci : _webSocketClients){
+        wci->send_message(message);
+    }
+    _mutex_blocked_webSocketClients = false;
+}
+
+void /* *MHD_UpgradeHandler*/ __remi_server_connection_upgrade_handler (void *remi_application, struct MHD_Connection *connection,
                           void* param, const char *extra_in, size_t extra_in_size,
                           MHD_socket sock, struct MHD_UpgradeResponseHandle *urh){
     /* TODO
@@ -103,7 +124,7 @@ void /* *MHD_UpgradeHandler*/ __remi_server_connection_upgrade_handler (void *cl
         to set the port number identical to http server (91 actually)
     */
     WebsocketClientInterface* wci = new WebsocketClientInterface(sock, false);
-    wci->run();
+    ((App*)remi_application)->addWebsocketClientInterface(wci);
 }
 
 static int
@@ -121,7 +142,7 @@ size_t *upload_data_size, void **con_cls){
             const char* upgrade_kind = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Upgrade");
             if(strcmp(upgrade_kind, "websocket")==0){
 
-                response = MHD_create_response_for_upgrade(&__remi_server_connection_upgrade_handler, (void*)1);
+                response = MHD_create_response_for_upgrade(&__remi_server_connection_upgrade_handler, (void*)this);
                 if(!response){
                     cout << "__remi_server_answer - failed to create upgrade response" << endl;
                 }
@@ -286,9 +307,7 @@ bool App::update(){
 		for(std::string identifier:local_changed_widgets->keys()){
             _html = ((Tag*)local_changed_widgets->get(identifier))->getLatestRepr();
             cout << "App::update - update message: " << WebsocketClientInterface::packUpdateMessage(identifier, _html).c_str() << endl;
-            for(WebsocketClientInterface* wci : _webSocketClients){
-                wci->send_message(WebsocketClientInterface::packUpdateMessage(identifier, _html));
-            }
+            this->sendMessageToAllClients(WebsocketClientInterface::packUpdateMessage(identifier, _html));
 		}
 
 		_needUpdateFlag = false;
@@ -356,9 +375,8 @@ void App::setRootWidget(Widget* widget){
     std::ostringstream msg;
     msg << "0" << _rootWidget->getIdentifier().c_str() << ',' << remi::utils::string_encode(remi::utils::escape_json(body->innerHTML(&changedWidgets, true)));
 
-    for(WebsocketClientInterface* wci : _webSocketClients){
-        wci->send_message(msg.str());
-    }
+    this->sendMessageToAllClients(msg.str());
+
 }
 
 void App::_notifyParentForUpdate(EventSource* source, Dictionary<Buffer*>* params, void* user_data){

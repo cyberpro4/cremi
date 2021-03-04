@@ -62,6 +62,12 @@ namespace remi {
 
 			App();
 
+			~App(){
+                for(WebsocketClientInterface* wci : _webSocketClients){
+                    delete wci;
+                }
+			}
+
 			virtual Widget* main();
 
 			void init(std::string host_address);
@@ -76,12 +82,18 @@ namespace remi {
 
             std::string getStaticFile(std::string filename);
 
+            /* these method must handle a mutex for the access to websocket list */
+            void addWebsocketClientInterface(WebsocketClientInterface* wci);
+            void sendMessageToAllClients(std::string message);
+
 		private:
 			Widget*             _rootWidget;
 
 			bool                _needUpdateFlag;
 
 			list<WebsocketClientInterface*>	_webSocketClients;
+
+			bool                _mutex_blocked_webSocketClients;
 
 		protected:
 
