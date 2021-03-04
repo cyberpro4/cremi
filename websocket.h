@@ -17,7 +17,7 @@ namespace remi {
 		class WebsocketClientInterface{
 
 		public:
-			WebsocketClientInterface(remi_socket clientSock , struct sockaddr_in clientAddr );
+			WebsocketClientInterface(remi_socket clientSock, bool doHandshake);
 			void* _run();
 
 			void stop();
@@ -29,6 +29,8 @@ namespace remi {
 			void send_message( std::string message);
 
 			bool readNextMessage();
+
+			static std::string packUpdateMessage(std::string tagToUpdateIdentifier, std::string htmlContent);
 
 		private:
 
@@ -43,38 +45,6 @@ namespace remi {
 			bool	_stopFlag;
 
 			int		_secondsSinceLastPing;
-
-		};
-
-		//Listens asyncronously for client connection and for each client instantiate a WebsocketClientInterface
-		class WebsocketServer {
-
-		public:
-
-			WebsocketServer( int port );
-
-			void*	_listenAsync(void* data);
-
-			void	stop();
-
-            std::string packUpdateMessage(std::string tagToUpdateIdentifier, std::string htmlContent);
-
-			void	sendToAllClients(std::string message);
-
-		private:
-			remi_thread _t;
-
-			//key, instance    key should be generated with address and port number
-			Dictionary<WebsocketClientInterface*> _clients;
-
-			struct sockaddr_in			_address;
-
-			int				_port;
-
-			remi_socket		_socketFd;
-
-			bool			_stopFlag;
-
 
 		};
 

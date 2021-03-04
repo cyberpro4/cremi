@@ -13,11 +13,11 @@ remi_thread_result WebsocketClientInterface_threadEntry( remi_thread_param param
 	return 0;
 }
 
-WebsocketClientInterface::WebsocketClientInterface( remi_socket clientSock , struct sockaddr_in clientAddr ){
+WebsocketClientInterface::WebsocketClientInterface( remi_socket clientSock, bool doHandshake=true ){
     _sock = clientSock;
 
     _stopFlag = false;
-	_handshakeDone = false;
+	_handshakeDone = !doHandshake;
 
 	_t = remi_createThread( (remi_thread_callback)&WebsocketClientInterface_threadEntry , this );
 
@@ -195,7 +195,7 @@ void WebsocketClientInterface::handshake(){
 	std::string sha1_1(remi::utils::SHA1(key));
 
 	std::string b64 = base64_encode((unsigned char*)sha1_1.c_str(), sha1_1.length());
-
+    cout << "b64:" << b64.c_str() << endl;
 	std::ostringstream response_s;
 	response_s
 		<< "HTTP/1.1 101 Switching Protocols\r\n"
@@ -350,92 +350,8 @@ void WebsocketClientInterface::send_message( std::string message){
 
 }
 
-
-
-remi_thread_result WebsocketServer_threadEntry( remi_thread_param WebsocketServerInstance ){
-	((WebsocketServer*)WebsocketServerInstance)->_listenAsync(NULL);
-	return 0;
-}
-
-WebsocketServer::WebsocketServer( int port ){
-    _port = port;
-    _stopFlag = false;
-
-    _socketFd = socket(AF_INET, SOCK_STREAM, 0);
-
-    if(_socketFd < 0){
-        //cerr << "WebsocketServer::WebsocketServer - cannot open socket" << endl;
-        //return 0;
-		return;
-    }
-
-    memset((void*) &_address, 0, sizeof(_address));
-    _address.sin_family = AF_INET;
-	remi_socket_setaddr( _address.sin_addr, INADDR_ANY );
-	_address.sin_port = htons(_port);
-
-	if( bind( _socketFd , (SOCKADDR*)&_address, sizeof( SOCKADDR_IN ) ) < 0 ){
-		return;
-	}
-
-    if( listen( _socketFd , SOMAXCONN ) < 0 ){
-        return;
-    }
-
-    _t = remi_createThread( (remi_thread_callback)&WebsocketServer_threadEntry, (void*)this );
-}
-
-void* WebsocketServer::_listenAsync(void* data){
-
-	while( true ){
-
-        SOCKADDR_IN         clientSock;
-        remi_socket_len		clientLen = sizeof( clientSock );
-
-        remi_socket		client = accept( _socketFd , (SOCKADDR*)&clientSock , &clientLen );
-
-        if( client != INVALID_SOCKET ){
-
-#ifdef WIN32
-			// Clients keys are "[IP_ADDRESS]:[PORT]"
-			std::string key = utils::sformat( "%d.%d.%d.%d:%d" ,
-				(int)clientSock.sin_addr.S_un.S_un_b.s_b1,
-				(int)clientSock.sin_addr.S_un.S_un_b.s_b2,
-				(int)clientSock.sin_addr.S_un.S_un_b.s_b3,
-				(int)clientSock.sin_addr.S_un.S_un_b.s_b4,
-				(int)clientSock.sin_port
-			);
-#else
-			std::string key = utils::sformat( "%s:%d" ,
-				inet_ntoa( clientSock.sin_addr ),
-				clientSock.sin_port );
-#endif
-            _clients.set(key , new WebsocketClientInterface( client , clientSock ) );
-
-        }
-
-        Sleep( 100 );
-	}
-
-	return NULL;
-}
-
-std::string WebsocketServer::packUpdateMessage(std::string tagToUpdateIdentifier, std::string htmlContent){
+std::string WebsocketClientInterface::packUpdateMessage(std::string tagToUpdateIdentifier, std::string htmlContent){
     std::ostringstream output;
     output << _MSG_UPDATE << tagToUpdateIdentifier.c_str() << "," << htmlContent.c_str();
     return output.str();
-}
-
-void WebsocketServer::sendToAllClients(std::string message){
-	//for (std::list<std::string>::iterator key_iterator = _clients.keys().begin(); key_iterator != _clients.keys().end(); key_iterator++){
-	for (std::string key : _clients.keys()){
-		WebsocketClientInterface* ws = _clients.get(key);
-
-		//a client may die, destroy here the instance of send fails
-		//try{
-		//cout << message << endl;
-			ws->send_message(message.c_str());
-		/*}
-		catch (Exception e){}*/
-	}
 }

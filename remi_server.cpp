@@ -91,6 +91,7 @@ int ServerResponse::prepareSize( int new_size ){
 	return old_size;
 }
 
+
 void /* *MHD_UpgradeHandler*/ __remi_server_connection_upgrade_handler (void *cls, struct MHD_Connection *connection,
                           void* param, const char *extra_in, size_t extra_in_size,
                           MHD_socket sock, struct MHD_UpgradeResponseHandle *urh){
@@ -101,7 +102,8 @@ void /* *MHD_UpgradeHandler*/ __remi_server_connection_upgrade_handler (void *cl
             head->setInternalJs("127.0.0.1:92", 20, 3000);
         to set the port number identical to http server (91 actually)
     */
-    cout << "Upgarded " << endl;
+    WebsocketClientInterface* wci = new WebsocketClientInterface(sock, false);
+    wci->run();
 }
 
 static int
@@ -118,9 +120,29 @@ size_t *upload_data_size, void **con_cls){
         if(strcmp(value, "Upgrade")==0){
             const char* upgrade_kind = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Upgrade");
             if(strcmp(upgrade_kind, "websocket")==0){
-                response = MHD_create_response_for_upgrade (&__remi_server_connection_upgrade_handler, NULL/*void *upgrade_handler_cls*/);
-                //MHD_add_response_header(response, "Upgrade", "");
-                ret = MHD_queue_response(connection, 101, response);
+
+                response = MHD_create_response_for_upgrade(&__remi_server_connection_upgrade_handler, (void*)1);
+                if(!response){
+                    cout << "__remi_server_answer - failed to create upgrade response" << endl;
+                }
+
+                const char* websocket_key = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Sec-WebSocket-Key");
+                std::list<std::string> pieces = remi::utils::split( std::string(websocket_key), "\r\n" );
+                std::string key = remi::utils::list_at( pieces, 0 );
+                key.append( "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" );
+
+                unsigned char key_sha1[64] = {0};
+
+                std::string sha1_1(remi::utils::SHA1(key));
+
+                std::string b64 = base64_encode((unsigned char*)sha1_1.c_str(), sha1_1.length());
+                cout << "b64:" << b64.c_str() << endl;
+
+                //headers from https://gitlab.univ-nantes.fr/milliat-a/Logger/blob/8a4cfcb90bee798fef2ef8576b618bc00f47514f/HTTP/Sources/HTTPHandler.cpp
+                ret = MHD_add_response_header(response, MHD_HTTP_HEADER_UPGRADE, "websocket");
+                ret = MHD_add_response_header(response, MHD_HTTP_HEADER_CONNECTION, MHD_HTTP_HEADER_UPGRADE);
+                ret = MHD_add_response_header(response, "Sec-WebSocket-Accept", b64.c_str());
+                ret = MHD_queue_response(connection, MHD_HTTP_SWITCHING_PROTOCOLS, response);
 
                 MHD_destroy_response(response);
             }
@@ -170,7 +192,7 @@ void AnonymousServer::start(void* user_data){
 
 	std::cout << "cRemi Http server listening on port " << port << std::endl;
 
-	daemon = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY | MHD_ALLOW_SUSPEND_RESUME, port, NULL, NULL,
+	daemon = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY | MHD_ALLOW_SUSPEND_RESUME | MHD_ALLOW_UPGRADE , port, NULL, NULL,
 		&__remi_server_answer, this, MHD_OPTION_END);
 
 	_serverInfo = (void*)daemon;
@@ -263,8 +285,10 @@ bool App::update(){
 
 		for(std::string identifier:local_changed_widgets->keys()){
             _html = ((Tag*)local_changed_widgets->get(identifier))->getLatestRepr();
-            cout << "App::update - update message: " << this->_webSocketServer->packUpdateMessage(identifier, _html).c_str() << endl;
-            this->_webSocketServer->sendToAllClients(this->_webSocketServer->packUpdateMessage(identifier, _html).c_str());
+            cout << "App::update - update message: " << WebsocketClientInterface::packUpdateMessage(identifier, _html).c_str() << endl;
+            for(WebsocketClientInterface* wci : _webSocketClients){
+                wci->send_message(WebsocketClientInterface::packUpdateMessage(identifier, _html));
+            }
 		}
 
 		_needUpdateFlag = false;
@@ -318,8 +342,6 @@ void App::init(std::string host_address){
     html->addChild(body, "body");
     html->event_onrequiredupdate->_do(this, (EventListener::listener_type)&this->_notifyParentForUpdate, NULL);
 
-    _webSocketServer = new WebsocketServer( 92 );
-
     setRootWidget(this->main());
 }
 
@@ -333,7 +355,10 @@ void App::setRootWidget(Widget* widget){
     Dictionary<Represantable*> changedWidgets;
     std::ostringstream msg;
     msg << "0" << _rootWidget->getIdentifier().c_str() << ',' << remi::utils::string_encode(remi::utils::escape_json(body->innerHTML(&changedWidgets, true)));
-    this->_webSocketServer->sendToAllClients(msg.str());
+
+    for(WebsocketClientInterface* wci : _webSocketClients){
+        wci->send_message(msg.str());
+    }
 }
 
 void App::_notifyParentForUpdate(EventSource* source, Dictionary<Buffer*>* params, void* user_data){

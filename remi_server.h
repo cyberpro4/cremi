@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #endif
 
+#include "TinySHA1.hpp"
 #include <map>
 #include <string>
 
@@ -78,9 +79,9 @@ namespace remi {
 		private:
 			Widget*             _rootWidget;
 
-			WebsocketServer*	_webSocketServer;
-
 			bool                _needUpdateFlag;
+
+			list<WebsocketClientInterface*>	_webSocketClients;
 
 		protected:
 
