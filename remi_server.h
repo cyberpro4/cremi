@@ -135,9 +135,10 @@ namespace remi {
 
 			void* _serverInfo;
 
-			App* _guiInstance;
-
 			utils::Timer	_updateTimer;
+
+        public:
+            Dictionary<App*> _guiInstances;
 
 		};
 

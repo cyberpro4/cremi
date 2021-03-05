@@ -142,28 +142,31 @@ size_t *upload_data_size, void **con_cls){
             const char* upgrade_kind = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Upgrade");
             if(strcmp(upgrade_kind, "websocket")==0){
 
-                response = MHD_create_response_for_upgrade(&__remi_server_connection_upgrade_handler, (void*)this);
-                if(!response){
-                    cout << "__remi_server_answer - failed to create upgrade response" << endl;
+                const char* session = MHD_lookup_connection_value(connection, MHD_COOKIE_KIND, "remi_session");
+                if( ((AnonymousServer*)cls)->_guiInstances.has(session) ){
+                    response = MHD_create_response_for_upgrade(&__remi_server_connection_upgrade_handler, (void*)((AnonymousServer*)cls)->_guiInstances.get(session));
+                    if(!response){
+                        cout << "__remi_server_answer - failed to create upgrade response" << endl;
+                    }
+
+                    const char* websocket_key = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Sec-WebSocket-Key");
+                    std::list<std::string> pieces = remi::utils::split( std::string(websocket_key), "\r\n" );
+                    std::string key = remi::utils::list_at( pieces, 0 );
+                    key.append( "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" );
+
+                    unsigned char key_sha1[64] = {0};
+
+                    std::string sha1_1(remi::utils::SHA1(key));
+
+                    std::string b64 = base64_encode((unsigned char*)sha1_1.c_str(), sha1_1.length());
+                    cout << "b64:" << b64.c_str() << endl;
+
+                    //headers from https://gitlab.univ-nantes.fr/milliat-a/Logger/blob/8a4cfcb90bee798fef2ef8576b618bc00f47514f/HTTP/Sources/HTTPHandler.cpp
+                    ret = MHD_add_response_header(response, MHD_HTTP_HEADER_UPGRADE, "websocket");
+                    ret = MHD_add_response_header(response, MHD_HTTP_HEADER_CONNECTION, MHD_HTTP_HEADER_UPGRADE);
+                    ret = MHD_add_response_header(response, "Sec-WebSocket-Accept", b64.c_str());
+                    ret = MHD_queue_response(connection, MHD_HTTP_SWITCHING_PROTOCOLS, response);
                 }
-
-                const char* websocket_key = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Sec-WebSocket-Key");
-                std::list<std::string> pieces = remi::utils::split( std::string(websocket_key), "\r\n" );
-                std::string key = remi::utils::list_at( pieces, 0 );
-                key.append( "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" );
-
-                unsigned char key_sha1[64] = {0};
-
-                std::string sha1_1(remi::utils::SHA1(key));
-
-                std::string b64 = base64_encode((unsigned char*)sha1_1.c_str(), sha1_1.length());
-                cout << "b64:" << b64.c_str() << endl;
-
-                //headers from https://gitlab.univ-nantes.fr/milliat-a/Logger/blob/8a4cfcb90bee798fef2ef8576b618bc00f47514f/HTTP/Sources/HTTPHandler.cpp
-                ret = MHD_add_response_header(response, MHD_HTTP_HEADER_UPGRADE, "websocket");
-                ret = MHD_add_response_header(response, MHD_HTTP_HEADER_CONNECTION, MHD_HTTP_HEADER_UPGRADE);
-                ret = MHD_add_response_header(response, "Sec-WebSocket-Accept", b64.c_str());
-                ret = MHD_queue_response(connection, MHD_HTTP_SWITCHING_PROTOCOLS, response);
 
                 MHD_destroy_response(response);
             }
@@ -191,7 +194,6 @@ size_t *upload_data_size, void **con_cls){
 }
 
 AnonymousServer::AnonymousServer(){
-	_guiInstance = NULL;
 	_updateTimer.setInterval( 100 );
 	_updateTimer.setListener( this );
 	_updateTimer.start();
@@ -201,7 +203,11 @@ void AnonymousServer::address(){
 }
 
 void AnonymousServer::onTimer(){
-	_guiInstance->update();
+    //ATTENTION, actually the update it is single threaded, each application should have its own timer thread
+    for(std::string& key : this->_guiInstances.keys()){
+        App* _guiInstance = this->_guiInstances.get(key);
+        _guiInstance->update();
+    }
 	//cout << "AnonymousServer::onTimer()" << endl;
 }
 
@@ -392,15 +398,52 @@ void AnonymousServer::stop(){
 
 ServerResponse* AnonymousServer::serve(std::string url, struct MHD_Connection *connection){
     cout << ">>>>>> url:" << url << endl << endl;
-    const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Host");
-    cout << ">>>>>> host:" << value << endl << endl;
-	if (_guiInstance == NULL){
-		_guiInstance = (App*)buildInstance();
-		_guiInstance->init(std::string(value));
-	}
+    const char* host= MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Host");
+    cout << ">>>>>> host:" << host<< endl << endl;
+
+    char* session = new char[80];
+    const char* session_cookie_value = MHD_lookup_connection_value(connection, MHD_COOKIE_KIND, "remi_session");
+
+    if( this->_guiInstances.has(session_cookie_value) == false ){
+        //session is not valid
+        time_t rawtime;
+        struct tm * timeinfo;
+        time (&rawtime);
+        timeinfo = localtime(&rawtime);
+
+        strftime(session,sizeof(session),"%d-%m-%Y_%H:%M:%S",timeinfo);
+
+        snprintf (session, sizeof(session),
+                  "%s=%s",
+                  "remi_session",
+                  session);
+
+        if(MHD_NO ==
+                MHD_set_connection_value (connection,
+                                          MHD_HEADER_KIND,
+                                          MHD_HTTP_HEADER_SET_COOKIE,
+                                          session)){
+            cout << "AnonymousServer::serve - ERROR unable to set session value." << endl;
+            delete[] session;
+            return NULL;
+        }
+
+        MHD_set_connection_value (connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_SET_COOKIE, "SameSite=Lax");
+
+        App* _guiInstance = (App*)buildInstance();
+		_guiInstance->init(std::string(host));
+		this->_guiInstances.set(session, _guiInstance);
+    }else{
+        strcpy(session, session_cookie_value);
+    }
+
+    App* _guiInstance = this->_guiInstances.get(session);
+
+    delete[] session;
 
 	return _guiInstance->serve(url);
 }
+
 
 
 
