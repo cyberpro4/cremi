@@ -127,7 +127,7 @@ namespace remi {
 
 			void onTimer();
 
-			ServerResponse*		serve( std::string url, struct MHD_Connection *connection );
+			ServerResponse*		serve( std::string url, struct MHD_Connection *connection, const char* session );
 
 			virtual App* buildInstance() = 0;
 
