@@ -15,7 +15,9 @@ remi_thread_result WebsocketClientInterface_threadEntry( remi_thread_param param
 
 WebsocketClientInterface::WebsocketClientInterface( remi_socket clientSock, bool doHandshake=true ){
     _sock = clientSock;
-
+    DWORD timeout = 3000;
+    setsockopt(_sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+    setsockopt(_sock, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
     _stopFlag = false;
 	_handshakeDone = !doHandshake;
 
