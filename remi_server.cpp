@@ -116,25 +116,21 @@ void App::sendMessageToAllClients(std::string message){
 void /* *MHD_UpgradeHandler*/ __remi_server_connection_upgrade_handler (void *remi_application, struct MHD_Connection *connection,
                           void* param, const char *extra_in, size_t extra_in_size,
                           MHD_socket sock, struct MHD_UpgradeResponseHandle *urh){
-    /* TODO
-        here it have to be created an instance of WebsocketClientInterface and pass the sock param to it
 
-        in App::init change this instruction:
-            head->setInternalJs("127.0.0.1:92", 20, 3000);
-        to set the port number identical to http server (91 actually)
-    */
     WebsocketClientInterface* wci = new WebsocketClientInterface(sock, false);
     ((App*)remi_application)->addWebsocketClientInterface(wci);
 }
 
-static int
+static MHD_Result
 __remi_server_answer(void *cls, struct MHD_Connection *connection,
 const char *url, const char *method,
 const char *version, const char *upload_data,
-size_t *upload_data_size, void **con_cls){
+unsigned int* upload_data_size, void **con_cls){
 
 	struct MHD_Response *response;
-	int ret;
+	MHD_Result ret;
+
+	const char* sessionCookieValue = MHD_lookup_connection_value(connection, MHD_COOKIE_KIND, "remi_session");
 
 	if (cls != NULL){
         const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Connection");
@@ -142,9 +138,8 @@ size_t *upload_data_size, void **con_cls){
             const char* upgrade_kind = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Upgrade");
             if(strcmp(upgrade_kind, "websocket")==0){
 
-                const char* session = MHD_lookup_connection_value(connection, MHD_COOKIE_KIND, "remi_session");
-                if( session != NULL && ((AnonymousServer*)cls)->_guiInstances.has(session) ){
-                    response = MHD_create_response_for_upgrade(&__remi_server_connection_upgrade_handler, (void*)((AnonymousServer*)cls)->_guiInstances.get(session));
+                if( sessionCookieValue != NULL && ((AnonymousServer*)cls)->_guiInstances.has(sessionCookieValue) ){
+                    response = MHD_create_response_for_upgrade(&__remi_server_connection_upgrade_handler, (void*)((AnonymousServer*)cls)->_guiInstances.get(sessionCookieValue));
                     if(!response){
                         cout << "__remi_server_answer - failed to create upgrade response" << endl;
                     }
@@ -172,45 +167,42 @@ size_t *upload_data_size, void **con_cls){
             }
         }else{
 
-            const char* session_cookie_value = MHD_lookup_connection_value(connection, MHD_COOKIE_KIND, "remi_session");
-            ServerResponse* serverResponse = ((AnonymousServer*)cls)->serve( url, connection, session_cookie_value );
-
-            response =
-                MHD_create_response_from_buffer(
-                    serverResponse->getBodyBufferSize() ,
-                    (void *)serverResponse->getBodyBuffer(),
-                    MHD_RESPMEM_MUST_COPY
-                );
-
-
-            ostringstream session;
-            if( session_cookie_value == NULL || ((AnonymousServer*)cls)->_guiInstances.has(session_cookie_value) == false ){
+            ostringstream session_key_value;
+            bool newSession = false;
+            char newSessionValue[80] = {0};
+            if( sessionCookieValue == NULL || ((AnonymousServer*)cls)->_guiInstances.has(sessionCookieValue) == false ){
                 //session is not valid
-                char buffer[80] = {0};
+                newSession = true;
                 time_t rawtime;
                 struct tm * timeinfo;
                 time (&rawtime);
                 timeinfo = localtime(&rawtime);
 
-                strftime(buffer,80,"%d%m%Y%H%M%S",timeinfo);
+                strftime(newSessionValue,80,"%d%m%Y%H%M%S",timeinfo);
 
-                session << "remi_session=" << buffer << "; SameSite=Lax; Path=/; HttpOnly" << endl;
-
-
-                if(MHD_NO == MHD_set_connection_value (connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_SET_COOKIE, session.str().c_str())){
-                    cout << "AnonymousServer::serve - ERROR unable to set session value." << endl;
-                    return NULL;
-                }
-
-                MHD_add_response_header(response, "Set-Cookie", session.str().c_str());
-
-                //MHD_set_connection_value (connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_SET_COOKIE, "SameSite=Lax");
+                session_key_value << "remi_session=" << newSessionValue << "; SameSite=Lax";
 
                 App* _guiInstance = (App*)((AnonymousServer*)cls)->buildInstance();
                 const char* host= MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Host");
                 cout << ">>>>>> host:" << host<< endl << endl;
                 _guiInstance->init(std::string(host));
-                ((AnonymousServer*)cls)->_guiInstances.set(session.str(), _guiInstance);
+                ((AnonymousServer*)cls)->_guiInstances.set(newSessionValue, _guiInstance);
+            }
+
+            ServerResponse* serverResponse = ((AnonymousServer*)cls)->serve( url, connection, newSession?newSessionValue:sessionCookieValue );
+            response = MHD_create_response_from_buffer( serverResponse->getBodyBufferSize(), (void *)serverResponse->getBodyBuffer(), MHD_RESPMEM_MUST_COPY );
+
+            //if this is a newly created session, set the cookie
+            if( newSession ){
+                /*
+                if(MHD_NO == MHD_set_connection_value (connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_SET_COOKIE, session.str().c_str())){
+                    cout << "AnonymousServer::serve - ERROR unable to set session value." << endl;
+                    return MHD_NO;
+                }
+                */
+                cout << "SESSION COOKIE: " << session_key_value.str() << endl;
+                ret = MHD_add_response_header(response, "Set-Cookie", session_key_value.str().c_str());
+                //MHD_set_connection_value (connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_SET_COOKIE, "SameSite=Lax");
             }
 
             ret = MHD_queue_response(connection, serverResponse->getCode(), response);
@@ -430,12 +422,10 @@ void AnonymousServer::stop(){
 ServerResponse* AnonymousServer::serve(std::string url, struct MHD_Connection *connection, const char* session){
     cout << ">>>>>> url:" << url << endl << endl;
     ServerResponse* response;
-    if(session > 0 && this->_guiInstances.has(session)){
-        App* _guiInstance = this->_guiInstances.get(session);
-        response = _guiInstance->serve(url);
-    }else{
-        response = new ServerResponse( utils::string_encode("<html><body>Bootstrap</body></html>") );
-    }
+    App* _guiInstance = this->_guiInstances.get(session);
+    response = _guiInstance->serve(url);
+    response->setCode(200);
+
     return response;
 }
 

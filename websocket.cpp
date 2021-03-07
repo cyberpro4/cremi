@@ -69,8 +69,11 @@ bool WebsocketClientInterface::readNextMessage(){
 		char length_buf[8] = { 0 };
 		std::cout << "recv: " << "new msg" << endl;
 		if (recv(_sock, length_buf, 2, 0) != 2){
+
 			std::cout << "recv failed: " << "first two bytes not recv" << endl;
-			return false;
+			//return false;
+            Sleep(1);
+            continue;
 		}
 		fin = length_buf[0] & 1;
 		opcode = (length_buf[0]>>4) & 0xf ;

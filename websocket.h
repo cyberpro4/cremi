@@ -7,6 +7,7 @@
 #include "TinySHA1.hpp"
 #include <iostream>
 #include <vector>
+#include <time.h>
 
 using namespace std;
 
