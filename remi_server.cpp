@@ -322,6 +322,23 @@ void App::sendMessageToAllClients(std::string message){
 }
 
 void App::onTimer(){
+    //dropping died websocket clients
+    while(this->_mutex_blocked_webSocketClients)
+        Sleep( 1 );
+    _mutex_blocked_webSocketClients = true;
+    std::list<WebsocketClientInterface*> diedClients;
+    for(WebsocketClientInterface* wci : _webSocketClients){
+        if(wci->isDead())
+            diedClients.push_back(wci);
+    }
+    for(WebsocketClientInterface* wci : diedClients){
+        _webSocketClients.remove(wci);
+        delete wci;
+    }
+    _mutex_blocked_webSocketClients = false;
+
+    //update ui
+    //this->idle();
     this->update();
 }
 

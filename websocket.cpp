@@ -59,6 +59,7 @@ void* WebsocketClientInterface::_run(){
 			if( !readNextMessage() ){
 				_handshakeDone = false;
 				std::cout << "ws: read next message has failed";
+				_stopFlag = true;
 			}
 		}
     }
@@ -94,6 +95,7 @@ bool WebsocketClientInterface::readNextMessage(){
 
 		if (recv(_sock, length_buf, 2, 0) != 2){
 			std::cout << "recv failed: " << "first two bytes not recv" << endl;
+			_stopFlag = true;
             return false;
 		}
 		fin = length_buf[0] & 1;
@@ -232,7 +234,6 @@ void WebsocketClientInterface::handshake(){
 
 	_handshakeDone = true;
 }
-
 
 Dictionary<Buffer*>*	WebsocketClientInterface::parseParams(const char* paramString, unsigned long len){
 	/*std::smatch match;

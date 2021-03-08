@@ -23,6 +23,10 @@ namespace remi {
 
 			void stop();
 
+			bool isDead(){
+			    return _stopFlag;
+			}
+
 			void handshake();
 
 			void on_message(const char* message, unsigned long long len);
