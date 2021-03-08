@@ -91,28 +91,6 @@ int ServerResponse::prepareSize( int new_size ){
 	return old_size;
 }
 
-
-void App::addWebsocketClientInterface(WebsocketClientInterface* wci){
-    while(this->_mutex_blocked_webSocketClients)
-        Sleep( 1 );
-
-    _mutex_blocked_webSocketClients = true;
-    this->_webSocketClients.push_back(wci);
-    _mutex_blocked_webSocketClients = false;
-
-}
-
-void App::sendMessageToAllClients(std::string message){
-    while(this->_mutex_blocked_webSocketClients)
-        Sleep( 1 );
-
-    _mutex_blocked_webSocketClients = true;
-    for(WebsocketClientInterface* wci : _webSocketClients){
-        wci->send_message(message);
-    }
-    _mutex_blocked_webSocketClients = false;
-}
-
 void /* *MHD_UpgradeHandler*/ __remi_server_connection_upgrade_handler (void *remi_application, struct MHD_Connection *connection,
                           void* param, const char *extra_in, size_t extra_in_size,
                           MHD_socket sock, struct MHD_UpgradeResponseHandle *urh){
@@ -189,7 +167,11 @@ unsigned int* upload_data_size, void **con_cls){
                 ((AnonymousServer*)cls)->_guiInstances.set(newSessionValue, _guiInstance);
             }
 
-            ServerResponse* serverResponse = ((AnonymousServer*)cls)->serve( url, connection, newSession?newSessionValue:sessionCookieValue );
+            ServerResponse* serverResponse;
+            App* _guiInstance = ((AnonymousServer*)cls)->_guiInstances.get(newSession?newSessionValue:sessionCookieValue);
+            serverResponse = _guiInstance->serve(url);
+            serverResponse->setCode(200);
+
             response = MHD_create_response_from_buffer( serverResponse->getBodyBufferSize(), (void *)serverResponse->getBodyBuffer(), MHD_RESPMEM_MUST_COPY );
 
             //if this is a newly created session, set the cookie
@@ -244,8 +226,9 @@ void AnonymousServer::start(void* user_data){
 
 }
 
+
 std::string App::getStaticFile(std::string filename){
-    cout << "App::getStaticFile - filename: " << filename << endl;
+    //cout << "App::getStaticFile - filename: " << filename << endl;
     if(filename.find("..")>-1){
         filename = filename.replace(filename.find(".."), 2, ""); //avoid backdirs
     }
@@ -317,16 +300,34 @@ ServerResponse* App::serve(std::string url){
 	return new ServerResponse( utils::string_encode( output.str() ) );
 }
 
+void App::addWebsocketClientInterface(WebsocketClientInterface* wci){
+    while(this->_mutex_blocked_webSocketClients)
+        Sleep( 1 );
+
+    _mutex_blocked_webSocketClients = true;
+    this->_webSocketClients.push_back(wci);
+    _mutex_blocked_webSocketClients = false;
+
+}
+
+void App::sendMessageToAllClients(std::string message){
+    while(this->_mutex_blocked_webSocketClients)
+        Sleep( 1 );
+
+    _mutex_blocked_webSocketClients = true;
+    for(WebsocketClientInterface* wci : _webSocketClients){
+        wci->send_message(message);
+    }
+    _mutex_blocked_webSocketClients = false;
+}
+
 void App::onTimer(){
     this->update();
 }
 
-bool App::update(){
-	if (this == NULL){
-        return false;
-	}
+void App::update(){
 	if (this->_rootWidget == NULL){
-        return false;
+        return;
 	}
 	if (this->_needUpdateFlag){
         Dictionary<Represantable*>* local_changed_widgets = new Dictionary<Represantable*>();
@@ -334,17 +335,13 @@ bool App::update(){
 
 		for(std::string identifier:local_changed_widgets->keys()){
             _html = ((Tag*)local_changed_widgets->get(identifier))->getLatestRepr();
-            cout << "App::update - update message: " << WebsocketClientInterface::packUpdateMessage(identifier, _html).c_str() << endl;
+            //cout << "App::update - update message: " << WebsocketClientInterface::packUpdateMessage(identifier, _html).c_str() << endl;
             this->sendMessageToAllClients(WebsocketClientInterface::packUpdateMessage(identifier, _html));
 		}
 
 		_needUpdateFlag = false;
-		return true;
-
+		return;
 	}
-
-	//propagating the children changed flag
-	return false;
 }
 
 App::App(){
@@ -430,22 +427,6 @@ void App::_notifyParentForUpdate(EventSource* source, Dictionary<Buffer*>* param
     this->_needUpdateFlag = true;
 }
 
-
-void AnonymousServer::serve_forever(){
-}
-
-void AnonymousServer::stop(){
-}
-
-ServerResponse* AnonymousServer::serve(std::string url, struct MHD_Connection *connection, const char* session){
-    cout << ">>>>>> url:" << url << endl << endl;
-    ServerResponse* response;
-    App* _guiInstance = this->_guiInstances.get(session);
-    response = _guiInstance->serve(url);
-    response->setCode(200);
-
-    return response;
-}
 
 
 

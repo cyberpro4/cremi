@@ -76,9 +76,7 @@ namespace remi {
 
 			void setRootWidget(Widget* widget);
 
-			bool update();
-
-            void _notifyParentForUpdate(EventSource*, Dictionary<Buffer*>*, void* );
+			void _notifyParentForUpdate(EventSource*, Dictionary<Buffer*>*, void* );
 
             std::string getStaticFile(std::string filename);
 
@@ -94,6 +92,8 @@ namespace remi {
             virtual void onresize(void* emitter, Dictionary<Buffer*>* params, void* user_data);
 
             void onTimer();
+
+            void update();
 
 		private:
 		    utils::Timer	    _updateTimer;
@@ -132,13 +132,7 @@ namespace remi {
 
 			void start( void* user_data = NULL );
 
-			void serve_forever();
-
-			void stop();
-
 			void onTimer();
-
-			ServerResponse*		serve( std::string url, struct MHD_Connection *connection, const char* session );
 
 			virtual App* buildInstance() = 0;
 
