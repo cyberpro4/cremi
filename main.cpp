@@ -54,14 +54,14 @@ private:
 	int counter;
 
 public:
-    void idle(){
+    /*void idle(){
         label->setText(utils::sformat("%d", counter));
         counter++;
-    }
+    }*/
 
 	Widget* main(){
         counter = 0;
-		mainContainer = new remi::VBox();
+		mainContainer = new remi::HBox();
 
 		//mainContainer->addClass("myclass2");
 		mainContainer->style.set("width", "500px");

@@ -419,6 +419,35 @@ namespace remi {
             virtual void operator()(Dictionary<Buffer*>*)=0;
     };
 
+#define EVENT(NAME) class NAME:public Event{ \
+                        public: \
+                            NAME(EventSource* eventSource):Event::Event(eventSource, CLASS_NAME(NAME)){ \
+                                eventSource->event_handlers.set(this->_eventName, this); \
+                            } \
+                            void operator()(Dictionary<Buffer*>* parameters=NULL){ \
+                                Event::operator()(_eventSource, parameters); \
+                            } \
+                    }* event_onchange;
+
+#define EVENT_JS(NAME, JSCODE) class NAME : public Event{ \
+                                public: \
+                                    NAME(Tag* emitter):Event::Event(emitter, CLASS_NAME(NAME)){ \
+                                        ((Tag*)emitter)->event_handlers.set(this->_eventName, this); \
+                                        emitter->attributes[this->_eventName] = utils::sformat( JSCODE, emitter->getIdentifier().c_str(), this->_eventName); \
+                                    } \
+                                    void operator()(Dictionary<Buffer*>* parameters=NULL){ \
+                                        Event::operator()(_eventSource, parameters); \
+                                    } \
+                            }* event_##NAME;
+
+#define EVENT_JS_DO(NAME, JSCODE, DOFUNCTION)  class NAME : public Event{ \
+                                    public: \
+                                        NAME(Tag* emitter):Event::Event(emitter, CLASS_NAME(NAME)){ \
+                                            ((Tag*)emitter)->event_handlers.set(this->_eventName, this); \
+                                            emitter->attributes[this->_eventName] = utils::sformat( JSCODE, emitter->getIdentifier().c_str(), this->_eventName); \
+                                        } \
+                                        void operator()(Dictionary<Buffer*>* parameters=NULL)DOFUNCTION; \
+                                }* event_##NAME;
 
     template<class T> class VersionedDictionary : public Dictionary<T>, public EventSource {
     public:
@@ -458,11 +487,9 @@ namespace remi {
 			return _version != _lastVersion;
 		}
 
+		/*
         class onChange:public Event{
-            friend class Widget;
             public:
-                //int status = 0;
-                //evt(void* emitter):Event::Event(emitter, abi::__cxa_demangle(typeid(this).name(),0,0,&status)){
                 onChange(EventSource* eventSource):Event::Event(eventSource, CLASS_NAME(onChange)){
                     eventSource->event_handlers.set(this->_eventName, this);
                 }
@@ -470,6 +497,9 @@ namespace remi {
                     Event::operator()(_eventSource, parameters);
                 }
         }* event_onchange;
+        */
+        EVENT(onChange)
+
     private:
 
         long _version;
@@ -575,7 +605,8 @@ namespace remi {
 
     class Widget : public Tag {
         public:
-            class onclick:public Event{
+
+            /*class onclick:public Event{
                 public:
                     onclick(Tag* emitter):Event::Event(emitter, CLASS_NAME(onclick)){
                         ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
@@ -585,6 +616,14 @@ namespace remi {
                         Event::operator()(_eventSource, parameters);
                     }
             }* event_onclick;
+            */
+
+            EVENT_JS(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+
+            /*EVENT_JS_DO(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",{
+                std::cout << "do some code here, maybe parse parameters" << std::endl;
+                Event::operator()(_eventSource, parameters);
+            })*/
 
 
         public:
