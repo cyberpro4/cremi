@@ -273,7 +273,7 @@ ServerResponse* App::serve(std::string url){
 		ServerResponse* response = new ServerResponse();
 
 		std::string resFilePath = this->getStaticFile(static_file_match[1].str()); //utils::sformat("%s/%s", _staticResourcesPath.c_str() , static_file_match[1].str().c_str() );
-        cout << "App::serve - resource file path: " << resFilePath << endl;
+        //cout << "App::serve - resource file path: " << resFilePath << endl;
 		FILE* resFile = fopen( resFilePath.c_str() , "rb" );
 		if( !resFile )
 			return new ServerResponse(404); // FIXME
@@ -338,7 +338,7 @@ void App::onTimer(){
     _mutex_blocked_webSocketClients = false;
 
     //update ui
-    //this->idle();
+    this->idle();
     this->update();
 }
 

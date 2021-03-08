@@ -51,10 +51,16 @@ private:
 
 	remi::FileUploader*		fileUploader;
 
+	int counter;
+
 public:
+    void idle(){
+        label->setText(utils::sformat("%d", counter));
+        counter++;
+    }
 
-	virtual Widget* main(){
-
+	Widget* main(){
+        counter = 0;
 		mainContainer = new remi::VBox();
 
 		//mainContainer->addClass("myclass2");

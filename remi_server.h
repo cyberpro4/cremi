@@ -68,6 +68,10 @@ namespace remi {
                 }
 			}
 
+			virtual void idle(){
+                // Idle function is called before each update cycle
+			};
+
 			virtual Widget* main();
 
 			void init(std::string host_address);
