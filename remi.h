@@ -372,7 +372,7 @@ namespace remi {
                 _listener = NULL;
                 _listener_member = NULL;
                 _listener_instance = NULL;
-            };
+            }
 
             //event registration in explicit form myevent._do(listener, userData);
             void _do(EventListener* instance, EventListener::listener_type listener, void* userData=0){
@@ -576,11 +576,8 @@ namespace remi {
     class Widget : public Tag {
         public:
             class onclick:public Event{
-                friend class Widget;
                 public:
-                    //int status = 0;
                     onclick(Tag* emitter):Event::Event(emitter, CLASS_NAME(onclick)){
-                    //evt(void* emitter):Event::Event(emitter, abi::__cxa_demangle(typeid(this).name(),0,0,&status)){
                         ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
                         emitter->attributes["onclick"] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
                     }

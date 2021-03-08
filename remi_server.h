@@ -72,11 +72,11 @@ namespace remi {
                 // Idle function is called before each update cycle
 			};
 
-			virtual Widget* main();
-
 			void init(std::string host_address);
 
-			ServerResponse*		serve( std::string url );
+			virtual Widget* main();
+
+			ServerResponse*	serve( std::string url );
 
 			void setRootWidget(Widget* widget);
 

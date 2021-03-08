@@ -227,6 +227,47 @@ void AnonymousServer::start(void* user_data){
 }
 
 
+App::App(){
+	_rootWidget = NULL;
+}
+
+void App::init(std::string host_address){
+    html = new remi::HTML();
+
+    //head.setTitle(self.server.title);
+
+    // use the default css, but append a version based on its hash, to stop browser caching
+    head = new remi::HEAD(std::string("Remi App"));
+    head->addChild("<link href='/res:style.css' rel='stylesheet' />\n", "internal_css");
+    struct sockaddr *so;
+
+    //head->setInternalJs(utils::sformat("%d", (int)this), host_address, 20, 3000);
+    head->setInternalJs("127.0.0.1:91", 20, 3000);
+    head->event_onerror->_do(this, (EventListener::listener_type)&this->onpageerror);
+
+    body = new remi::BODY();
+    body->addClass("remi-main");
+    body->event_onload->_do(this, (EventListener::listener_type)&this->onload, NULL);
+    body->event_ononline->_do(this, (EventListener::listener_type)&this->ononline, NULL);
+    body->event_onpagehide->_do(this, (EventListener::listener_type)&this->onpagehide, NULL);
+    body->event_onpageshow->_do(this, (EventListener::listener_type)&this->onpageshow, NULL);
+    body->event_onresize->_do(this, (EventListener::listener_type)&this->onresize, NULL);
+
+    html->addChild(head, "head");
+    html->addChild(body, "body");
+    html->event_onrequiredupdate->_do(this, (EventListener::listener_type)&this->_notifyParentForUpdate, NULL);
+
+    setRootWidget(this->main());
+
+    _updateTimer.setInterval( 100 );
+	_updateTimer.setListener( this );
+	_updateTimer.start();
+}
+
+remi::Widget* App::main(){
+	return 0;
+}
+
 std::string App::getStaticFile(std::string filename){
     //cout << "App::getStaticFile - filename: " << filename << endl;
     if(filename.find("..")>-1){
@@ -361,47 +402,6 @@ void App::update(){
 	}
 }
 
-App::App(){
-	_rootWidget = NULL;
-}
-
-remi::Widget* App::main(){
-	return 0;
-}
-
-void App::init(std::string host_address){
-    html = new remi::HTML();
-
-    //head.setTitle(self.server.title);
-
-    // use the default css, but append a version based on its hash, to stop browser caching
-    head = new remi::HEAD(std::string("Remi App"));
-    head->addChild("<link href='/res:style.css' rel='stylesheet' />\n", "internal_css");
-    struct sockaddr *so;
-
-    //head->setInternalJs(utils::sformat("%d", (int)this), host_address, 20, 3000);
-    head->setInternalJs("127.0.0.1:91", 20, 3000);
-    head->event_onerror->_do(this, (EventListener::listener_type)&this->onpageerror);
-
-    body = new remi::BODY();
-    body->addClass("remi-main");
-    body->event_onload->_do(this, (EventListener::listener_type)&this->onload, NULL);
-    body->event_ononline->_do(this, (EventListener::listener_type)&this->ononline, NULL);
-    body->event_onpagehide->_do(this, (EventListener::listener_type)&this->onpagehide, NULL);
-    body->event_onpageshow->_do(this, (EventListener::listener_type)&this->onpageshow, NULL);
-    body->event_onresize->_do(this, (EventListener::listener_type)&this->onresize, NULL);
-
-    html->addChild(head, "head");
-    html->addChild(body, "body");
-    html->event_onrequiredupdate->_do(this, (EventListener::listener_type)&this->_notifyParentForUpdate, NULL);
-
-    setRootWidget(this->main());
-
-    _updateTimer.setInterval( 100 );
-	_updateTimer.setListener( this );
-	_updateTimer.start();
-}
-
 void App::onpageerror(void* emitter, Dictionary<Buffer*>* params, void* user_data){
     std::cout << "Event onPageError - ";
     for(std::string key : params->keys()){
@@ -427,7 +427,6 @@ void App::onpageshow(void* emitter, Dictionary<Buffer*>* params, void* user_data
 }
 void App::onresize(void* emitter, Dictionary<Buffer*>* params, void* user_data){
 }
-
 
 void App::setRootWidget(Widget* widget){
     body->append(widget, "root");
