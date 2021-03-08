@@ -15,9 +15,14 @@ remi_thread_result WebsocketClientInterface_threadEntry( remi_thread_param param
 
 WebsocketClientInterface::WebsocketClientInterface( remi_socket clientSock, bool doHandshake=true ){
     _sock = clientSock;
+    /*Since the socket already exists ( it comes from microhttpd ) we cannot set WSA_FLAG_OVERLAPPED
+        and so we cannot set a timeout. *select* function will be used instead
+        This occurs with WSAsockets*/
+    /*
     DWORD timeout = 3000;
     setsockopt(_sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
     setsockopt(_sock, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
+    */
     _stopFlag = false;
 	_handshakeDone = !doHandshake;
 
@@ -61,6 +66,19 @@ void* WebsocketClientInterface::_run(){
 	return NULL;
 }
 
+int waitForSocketDataAvailable(int sockHandle, int timeout){
+    fd_set fds;
+    struct timeval tv;
+    // Set up the file descriptor set.
+    FD_ZERO(&fds);
+    FD_SET(sockHandle, &fds);
+    // Set up the struct timeval for the timeout.
+    tv.tv_sec = timeout;
+    tv.tv_usec = 0;
+    // Wait until timeout or data received.
+    return select( sockHandle, &fds, NULL, NULL, &tv );
+}
+
 bool WebsocketClientInterface::readNextMessage(){
 	bool fin = false;
 	unsigned char opcode = 0; //opcode==0 indicates continuationFrame
@@ -69,13 +87,14 @@ bool WebsocketClientInterface::readNextMessage(){
 	unsigned long long entireMsgLen = 0;
 	while (opcode==0){
 		char length_buf[8] = { 0 };
-		std::cout << "recv: " << "new msg" << endl;
-		if (recv(_sock, length_buf, 2, 0) != 2){
 
-			std::cout << "recv failed: " << "first two bytes not recv" << endl;
-			//return false;
-            Sleep(1);
+		if(waitForSocketDataAvailable( _sock, 3 ) == 0){
             continue;
+        }
+
+		if (recv(_sock, length_buf, 2, 0) != 2){
+			std::cout << "recv failed: " << "first two bytes not recv" << endl;
+            return false;
 		}
 		fin = length_buf[0] & 1;
 		opcode = (length_buf[0]>>4) & 0xf ;
