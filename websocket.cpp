@@ -104,7 +104,7 @@ bool WebsocketClientInterface::readNextMessage(){
 		payload_len = _l;
 
 		bool mask_enable = (length_buf[1] & (1 << 7)) != 0;
-		std::cout << "recv: " << "payload_len" << payload_len << endl;
+		//std::cout << "recv: " << "payload_len" << payload_len << endl;
 		// manage payload len 126 / 127
 		if (payload_len == 126){
 			if (recv(_sock, length_buf, 2, 0) != 2){
@@ -116,7 +116,7 @@ bool WebsocketClientInterface::readNextMessage(){
 			int _i = 0;
 			payload_len += (unsigned char)length_buf[_i++]; payload_len = (payload_len << 8);
 			payload_len += (unsigned char)length_buf[_i++];
-			std::cout << "payload 127: " << payload_len << "      length_buf: " << length_buf[_i++] << " " << length_buf[_i++] << endl;
+			//std::cout << "payload 127: " << payload_len << "      length_buf: " << length_buf[_i++] << " " << length_buf[_i++] << endl;
 
 		}
 		else if (payload_len == 127){
@@ -136,7 +136,7 @@ bool WebsocketClientInterface::readNextMessage(){
 			payload_len += (unsigned char)length_buf[_i++]; payload_len = (payload_len << 8);
 			payload_len += (unsigned char)length_buf[_i++];
 			_i = 0;
-			std::cout << "payload 127: " << payload_len << "      length_buf: " <<
+			/*std::cout << "payload 127: " << payload_len << "      length_buf: " <<
 				length_buf[_i++] << " "
 				<< length_buf[_i++] << " "
 				<< length_buf[_i++] << " "
@@ -144,18 +144,18 @@ bool WebsocketClientInterface::readNextMessage(){
 				<< length_buf[_i++] << " "
 				<< length_buf[_i++] << " "
 				<< length_buf[_i++] << " "
-				<< length_buf[_i++] << endl;
+				<< length_buf[_i++] << endl;*/
 		}
 
 		char mask[4];
-		std::cout << "recv: " << "mask enb:" << mask_enable << endl;
+		//std::cout << "recv: " << "mask enb:" << mask_enable << endl;
 		if (mask_enable){
 			if (recv(_sock, mask, 4, 0) != 4){
 				std::cout << "recv failed: " << "mask recv not received" << endl;
 				return false;
 			}
 		}
-        cout << "payload: " << payload_len << endl;
+        //cout << "payload: " << payload_len << endl;
 		char *buf = new char[payload_len + 1];
 		std::memset(buf, 0, payload_len + 1);
 

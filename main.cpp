@@ -72,8 +72,6 @@ public:
 		btn1->style.set("width", "100px");
 		mainContainer->addChild(btn1);
 
-		this->head->event_onerror->_do(this, (EventListener::listener_type)&this->onPageError);
-        this->body->event_onpageshow->_do(this, (EventListener::listener_type)&this->onPageShow);
 		return mainContainer;
 	}
 
@@ -83,7 +81,7 @@ public:
 		this->btn1->style.set("background-color", "red");
 	}
 
-    void onPageShow(Tag* emitter, Dictionary<Buffer*>* params, void* userdata){
+    void onpageshow(void* emitter, Dictionary<Buffer*>* params, void* user_data){
         std::cout << "Event onPageShow - ";
         for(std::string key : params->keys()){
             std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
@@ -95,7 +93,7 @@ public:
         cout << width << " - " << height << endl;
     }
 
-    void onPageError(Tag* emitter, Dictionary<Buffer*>* params, void* userdata){
+    void onpageerror(Tag* emitter, Dictionary<Buffer*>* params, void* userdata){
         std::cout << "Event onPageError - ";
         for(std::string key : params->keys()){
             std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;

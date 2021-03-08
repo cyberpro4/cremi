@@ -226,12 +226,7 @@ void AnonymousServer::address(){
 }
 
 void AnonymousServer::onTimer(){
-    //ATTENTION, actually the update it is single threaded, each application should have its own timer thread
-    for(std::string& key : this->_guiInstances.keys()){
-        App* _guiInstance = this->_guiInstances.get(key);
-        _guiInstance->update();
-    }
-	//cout << "AnonymousServer::onTimer()" << endl;
+    /* here maybe we can delete expired App instances */
 }
 
 void AnonymousServer::start(void* user_data){
@@ -322,6 +317,10 @@ ServerResponse* App::serve(std::string url){
 	return new ServerResponse( utils::string_encode( output.str() ) );
 }
 
+void App::onTimer(){
+    this->update();
+}
+
 bool App::update(){
 	if (this == NULL){
         return false;
@@ -343,15 +342,6 @@ bool App::update(){
 		return true;
 
 	}
-	/*bool changed_or = false;
-
-	//checking if subwidgets changed
-	for (std::string key : child_tag->children.keys()){
-		Represantable* represantable = child_tag->children.get(key);
-		if (dynamic_cast<Tag*>(represantable) != 0){
-			changed_or |= this->update((remi::Widget*)represantable, avoid_update_because_new_subchild);
-		}
-	}*/
 
 	//propagating the children changed flag
 	return false;
@@ -377,29 +367,57 @@ void App::init(std::string host_address){
 
     //head->setInternalJs(utils::sformat("%d", (int)this), host_address, 20, 3000);
     head->setInternalJs("127.0.0.1:91", 20, 3000);
+    head->event_onerror->_do(this, (EventListener::listener_type)&this->onpageerror);
 
     body = new remi::BODY();
     body->addClass("remi-main");
-    /*body.onload.connect(self.onload)
-    body.ononline.connect(self.ononline)
-    body.onpagehide.connect(self.onpagehide)
-    body.onpageshow.connect(self.onpageshow)
-    body.onresize.connect(self.onresize)*/
+    body->event_onload->_do(this, (EventListener::listener_type)&this->onload, NULL);
+    body->event_ononline->_do(this, (EventListener::listener_type)&this->ononline, NULL);
+    body->event_onpagehide->_do(this, (EventListener::listener_type)&this->onpagehide, NULL);
+    body->event_onpageshow->_do(this, (EventListener::listener_type)&this->onpageshow, NULL);
+    body->event_onresize->_do(this, (EventListener::listener_type)&this->onresize, NULL);
 
     html->addChild(head, "head");
     html->addChild(body, "body");
     html->event_onrequiredupdate->_do(this, (EventListener::listener_type)&this->_notifyParentForUpdate, NULL);
 
     setRootWidget(this->main());
+
+    _updateTimer.setInterval( 100 );
+	_updateTimer.setListener( this );
+	_updateTimer.start();
 }
+
+void App::onpageerror(void* emitter, Dictionary<Buffer*>* params, void* user_data){
+    std::cout << "Event onPageError - ";
+    for(std::string key : params->keys()){
+        std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+    }
+}
+void App::onload(void* emitter, Dictionary<Buffer*>* params, void* user_data){
+}
+void App::ononline(void* emitter, Dictionary<Buffer*>* params, void* user_data){
+}
+void App::onpagehide(void* emitter, Dictionary<Buffer*>* params, void* user_data){
+}
+void App::onpageshow(void* emitter, Dictionary<Buffer*>* params, void* user_data){
+    std::cout << "Event onPageShow - ";
+    for(std::string key : params->keys()){
+        std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+    }
+    int width = 0;
+    int height = 0;
+    sscanf(params->get("width")->str().c_str(), "%d", &width);
+    sscanf(params->get("height")->str().c_str(), "%d", &height);
+    cout << width << " - " << height << endl;
+}
+void App::onresize(void* emitter, Dictionary<Buffer*>* params, void* user_data){
+}
+
 
 void App::setRootWidget(Widget* widget){
     body->append(widget, "root");
     _rootWidget = widget;
-    //_rootWidget.disable_refresh()
-    //_rootWidget->attributes["data-parent-widget"] = str(id(self));
-    //_rootWidget->setParent(&body);
-    //_rootWidget.enable_refresh()
     Dictionary<Represantable*> changedWidgets;
     std::ostringstream msg;
     msg << "0" << _rootWidget->getIdentifier().c_str() << ',' << remi::utils::string_encode(remi::utils::escape_json(body->innerHTML(&changedWidgets, true)));

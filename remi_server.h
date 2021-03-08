@@ -56,7 +56,7 @@ namespace remi {
 
 
 
-		class App:public EventListener {
+		class App:public EventListener, private utils::TimerListener {
 
 		public:
 
@@ -86,7 +86,18 @@ namespace remi {
             void addWebsocketClientInterface(WebsocketClientInterface* wci);
             void sendMessageToAllClients(std::string message);
 
+            virtual void onpageerror(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+            virtual void onload(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+            virtual void ononline(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+            virtual void onpagehide(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+            virtual void onpageshow(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+            virtual void onresize(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+
+            void onTimer();
+
 		private:
+		    utils::Timer	    _updateTimer;
+
 			Widget*             _rootWidget;
 
 			bool                _needUpdateFlag;
