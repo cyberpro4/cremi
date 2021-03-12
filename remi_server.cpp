@@ -218,9 +218,15 @@ void AnonymousServer::start(void* user_data){
 	int		port = 91;
 
 	std::cout << "cRemi Http server listening on port " << port << std::endl;
-
-	daemon = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY | MHD_ALLOW_SUSPEND_RESUME | MHD_ALLOW_UPGRADE , port, NULL, NULL,
-		&__remi_server_answer, this, MHD_OPTION_END);
+				/*unsigned int flags,
+                  uint16_t port,
+                  MHD_AcceptPolicyCallback apc, void *apc_cls,
+                  MHD_AccessHandlerCallback dh, void *dh_cls,*/
+	daemon = MHD_start_daemon((unsigned int)MHD_USE_SELECT_INTERNALLY | MHD_ALLOW_SUSPEND_RESUME | MHD_ALLOW_UPGRADE , 
+								(uint16_t)port, 
+								(MHD_AcceptPolicyCallback)NULL, (void*)NULL,
+								(MHD_AccessHandlerCallback)&__remi_server_answer, this, 
+								MHD_OPTION_END);
 
 	_serverInfo = (void*)daemon;
 
@@ -243,19 +249,19 @@ void App::init(std::string host_address){
 
     //head->setInternalJs(utils::sformat("%d", (int)this), host_address, 20, 3000);
     head->setInternalJs("127.0.0.1:91", 20, 3000);
-    head->event_onerror->_do(this, (EventListener::listener_type)&this->onpageerror);
+    head->event_onerror->_do(this, (EventListener::listener_class_member_type)&App::onpageerror);
 
     body = new remi::BODY();
     body->addClass("remi-main");
-    body->event_onload->_do(this, (EventListener::listener_type)&this->onload, NULL);
-    body->event_ononline->_do(this, (EventListener::listener_type)&this->ononline, NULL);
-    body->event_onpagehide->_do(this, (EventListener::listener_type)&this->onpagehide, NULL);
-    body->event_onpageshow->_do(this, (EventListener::listener_type)&this->onpageshow, NULL);
-    body->event_onresize->_do(this, (EventListener::listener_type)&this->onresize, NULL);
+    body->event_onload->_do(this, (EventListener::listener_class_member_type)&App::onload, NULL);
+    body->event_ononline->_do(this, (EventListener::listener_class_member_type)&App::ononline, NULL);
+    body->event_onpagehide->_do(this, (EventListener::listener_class_member_type)&App::onpagehide, NULL);
+    body->event_onpageshow->_do(this, (EventListener::listener_class_member_type)&App::onpageshow, NULL);
+    body->event_onresize->_do(this, (EventListener::listener_class_member_type)&App::onresize, NULL);
 
     html->addChild(head, "head");
     html->addChild(body, "body");
-    html->event_onrequiredupdate->_do(this, (EventListener::listener_type)&this->_notifyParentForUpdate, NULL);
+    html->event_onrequiredupdate->_do(this, (EventListener::listener_class_member_type)&App::_notifyParentForUpdate, NULL);
 
     setRootWidget(this->main());
 

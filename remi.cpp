@@ -392,16 +392,16 @@ std::string StringRepresantable::repr(Dictionary<Represantable*>* changedWidgets
 
 
 Tag::Tag(){
-    this->attributes.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
-	this->style.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
-	this->children.event_onchange->_do(this, (EventListener::listener_type)&this->_needUpdate);
+    this->attributes.event_onchange->_do(this, (EventListener::listener_class_member_type)&Tag::_needUpdate);
+	this->style.event_onchange->_do(this, (EventListener::listener_class_member_type)&Tag::_needUpdate);
+	this->children.event_onchange->_do(this, (EventListener::listener_class_member_type)&Tag::_needUpdate);
 
     _parent = NULL;
 
 	ignoreUpdate = false;
 
     type = "div";
-	setIdentifier(utils::sformat("%d", (int)this));
+	setIdentifier(utils::sformat("%llu", (unsigned long long)this));
 
     int status = 0;
 	std::string _class = std::string( abi::__cxa_demangle(typeid(*this).name(),0,0,&status) );
@@ -512,7 +512,7 @@ void Tag::addChild( Represantable* child , std::string key ){
 
 	std::string _key = key;
 	if( _key.length() < 1 ){
-		_key = utils::sformat( "%d" , (int)(void*)child );
+		_key = utils::sformat( "%llu" , (unsigned long long)(void*)child );
 	}
 
 	if( dynamic_cast<Tag*>(child) != 0 ){
@@ -551,7 +551,7 @@ void Tag::setUpdated(){
 Widget::Widget() : Tag::Tag() {
     this->event_onclick = new Widget::onclick(this);
     style.set( "margin" , "0px auto" );
-
+	
     setClass(CLASS_NAME(Widget));
 }
 

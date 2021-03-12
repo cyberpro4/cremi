@@ -37,6 +37,15 @@ int run_test(){
 }
 
 
+void funcOnclick(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
+	remi::Button* btn1 = (remi::Button*)userdata;
+	std::cout << "Event onClick btn1" << endl;
+	remi::Button* btn1_cast = static_cast<remi::Button*>(emitter);
+	
+	btn1_cast->style.set("background-color", "orange");
+}
+
+
 class TestApp : public remi::server::App{
 private:
 	remi::Widget*			mainContainer;
@@ -62,7 +71,7 @@ public:
 	Widget* main(){
         counter = 0;
 		mainContainer = new remi::HBox();
-
+		
 		//mainContainer->addClass("myclass2");
 		mainContainer->style.set("width", "500px");
 		mainContainer->style.set("height", "600px");
@@ -73,8 +82,9 @@ public:
 		mainContainer->addChild(label);
 
 		btn1 = new remi::Button("Show generic dialog");
-		//btn1->onClickListener = this;
-		btn1->event_onclick->_do(this, (EventListener::listener_type)&this->onClick);
+		
+		btn1->event_onclick->_do(this, (EventListener::listener_class_member_type)&TestApp::onClick);
+		btn1->event_onclick->_do((Event::listener_function_type)&funcOnclick, btn1);
 		btn1->style.set("width", "100px");
 		mainContainer->addChild(btn1);
 
@@ -118,9 +128,7 @@ public:
 };
 
 
-
 int main() {
-
 
 	remi::server::Server<TestApp>* srv = new remi::server::Server<TestApp>();
 	srv->start();

@@ -349,7 +349,7 @@ namespace remi {
 
     class EventListener{
         public:
-            typedef void (EventListener::*listener_type)(EventSource*, Dictionary<Buffer*>*, void* );
+            typedef void (EventListener::*listener_class_member_type)(EventSource*, Dictionary<Buffer*>*, void* );
     };
 
 
@@ -360,42 +360,42 @@ namespace remi {
             EventSource* _eventSource; //the event owner, that calls the listener
 
         public:
-            typedef void (*listener_type)(EventSource*, Dictionary<Buffer*>*, void* );
-            listener_type _listener;
-            EventListener::listener_type _listener_member;
+            typedef void (*listener_function_type)(EventSource*, Dictionary<Buffer*>*, void* );
+            listener_function_type _listener_function;
+            EventListener::listener_class_member_type _listener_member;
             EventListener* _listener_instance;
 
             void* _userData;
 
         public:
             Event(EventSource* eventSource, const char* eventName):_eventSource(eventSource),_eventName(eventName){
-                _listener = NULL;
+                _listener_function = NULL;
                 _listener_member = NULL;
                 _listener_instance = NULL;
             }
 
             //event registration in explicit form myevent._do(listener, userData);
-            void _do(EventListener* instance, EventListener::listener_type listener, void* userData=0){
+            void _do(EventListener* instance, EventListener::listener_class_member_type listener, void* userData=0){
                 this->_listener_instance = instance;
                 this->_listener_member = listener;
                 this->_userData = userData;
             }
 
-            void _do(listener_type listener, void* userData=0){
-                this->_listener = listener;
+            void _do(listener_function_type listener, void* userData=0){
+                this->_listener_function = listener;
                 this->_userData = userData;
             }
 
             //event registration in stream form myevent >> listener >> userData;;
-            Event& operator>> (listener_type listener){
-                this->_listener = listener;
+            Event& operator>> (listener_function_type listener){
+                this->_listener_function = listener;
                 return *this;
             }
             Event& operator>> (EventListener* instance){
                 this->_listener_instance = instance;
                 return *this;
             }
-            Event& operator>> (EventListener::listener_type listener){
+            Event& operator>> (EventListener::listener_class_member_type listener){
                 this->_listener_member = listener;
                 return *this;
             }
@@ -404,19 +404,17 @@ namespace remi {
                 return *this;
             }
 
-            void operator()(EventSource* eventSource, Dictionary<Buffer*>* params){
-                if(this->_listener!=NULL){
-                    this->_listener(eventSource, params, this->_userData);
+            virtual void operator()(Dictionary<Buffer*>* params){
+                if(this->_listener_function!=NULL){
+                    this->_listener_function(_eventSource, params, this->_userData);
                     return;
                 }
                 if(this->_listener_member!=NULL){
                     //(*this->_listener_instance).*(this->_listener_member)(eventSource, params, this->_userData);
                     //invoke(this->_listener_member, this->_listener_instance, eventSource, params, this->_userData);
-                    CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(eventSource, params, this->_userData);
+                    CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, params, this->_userData);
                 }
             }
-
-            virtual void operator()(Dictionary<Buffer*>*)=0;
     };
 
 #define EVENT(NAME) class NAME:public Event{ \
@@ -425,7 +423,7 @@ namespace remi {
                                 eventSource->event_handlers.set(this->_eventName, this); \
                             } \
                             void operator()(Dictionary<Buffer*>* parameters=NULL){ \
-                                Event::operator()(_eventSource, parameters); \
+                                Event::operator()(parameters); \
                             } \
                     }* event_onchange;
 
@@ -436,7 +434,7 @@ namespace remi {
                                         emitter->attributes[this->_eventName] = utils::sformat( JSCODE, emitter->getIdentifier().c_str(), this->_eventName); \
                                     } \
                                     void operator()(Dictionary<Buffer*>* parameters=NULL){ \
-                                        Event::operator()(_eventSource, parameters); \
+                                        Event::operator()(parameters); \
                                     } \
                             }* event_##NAME;
 
@@ -668,7 +666,7 @@ namespace remi {
                     emitter->attributes["onrequiredupdate"] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
                 }
                 void operator()(Dictionary<Buffer*>* parameters=NULL){
-                    Event::operator()(_eventSource, parameters);
+                    Event::operator()(parameters);
                 }
             }* event_onrequiredupdate;
 
@@ -712,7 +710,7 @@ namespace remi {
                         /* It is not required to set the attribute[onerror] because it is already present int the page javascript*/
                     }
                     void operator()(Dictionary<Buffer*>* parameters=NULL){
-                        Event::operator()(_eventSource, parameters);
+                        Event::operator()(parameters);
                     }
             }* event_onerror;
 
@@ -1054,7 +1052,7 @@ namespace remi {
                         emitter->attributes[this->_eventName] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
                     }
                     void operator()(Dictionary<Buffer*>* parameters=NULL){
-                        Event::operator()(_eventSource, parameters);
+                        Event::operator()(parameters);
                     }
             }* event_onload;
 
@@ -1065,7 +1063,7 @@ namespace remi {
                         emitter->attributes[this->_eventName] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
                     }
                     void operator()(Dictionary<Buffer*>* parameters=NULL){
-                        Event::operator()(_eventSource, parameters);
+                        Event::operator()(parameters);
                     }
             }* event_ononline;
 
@@ -1076,7 +1074,7 @@ namespace remi {
                         emitter->attributes[this->_eventName] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
                     }
                     void operator()(Dictionary<Buffer*>* parameters=NULL){
-                        Event::operator()(_eventSource, parameters);
+                        Event::operator()(parameters);
                     }
             }* event_onpagehide;
 
@@ -1091,7 +1089,7 @@ namespace remi {
                             remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), this->_eventName);
                     }
                     void operator()(Dictionary<Buffer*>* parameters=NULL){
-                        Event::operator()(_eventSource, parameters);
+                        Event::operator()(parameters);
                     }
             }* event_onpageshow;
 
@@ -1106,7 +1104,7 @@ namespace remi {
                             remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), this->_eventName);
                     }
                     void operator()(Dictionary<Buffer*>* parameters=NULL){
-                        Event::operator()(_eventSource, parameters);
+                        Event::operator()(parameters);
                     }
             }* event_onresize;
 
