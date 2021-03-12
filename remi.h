@@ -380,37 +380,61 @@ namespace remi {
                 _listener_context_lambda = NULL;
             }
 
-            //event registration in explicit form myevent._do(listener, userData);
             void _do(EventListener* instance, EventListener::listener_class_member_type listener, void* userData=0){
+                _listener_function = NULL;
+                _listener_context_lambda = NULL;
+                
                 this->_listener_instance = instance;
                 this->_listener_member = listener;
                 this->_userData = userData;
             }
 
             void _do(listener_function_type listener, void* userData=0){
+                _listener_member = NULL;
+                _listener_instance = NULL;
+                _listener_context_lambda = NULL;
+                
                 this->_listener_function = listener;
                 this->_userData = userData;
             }
             
             void _do(listener_contextualized_lambda_type listener, void* userData=0){
+                _listener_function = NULL;
+                _listener_member = NULL;
+                _listener_instance = NULL;
+                
                 this->_listener_context_lambda = listener;
                 this->_userData = userData;
             }
 
             //event registration in stream form myevent >> listener >> userData;;
             Event& operator>> (listener_function_type listener){
+                _listener_member = NULL;
+                _listener_instance = NULL;
+                _listener_context_lambda = NULL;
+                
                 this->_listener_function = listener;
                 return *this;
             }
             Event& operator>> (listener_contextualized_lambda_type listener){
+                _listener_function = NULL;
+                _listener_member = NULL;
+                _listener_instance = NULL;
+                
                 this->_listener_context_lambda = listener;
                 return *this;
             }
             Event& operator>> (EventListener* instance){
+                _listener_function = NULL;
+                _listener_context_lambda = NULL;
+                
                 this->_listener_instance = instance;
                 return *this;
             }
             Event& operator>> (EventListener::listener_class_member_type listener){
+                _listener_function = NULL;
+                _listener_context_lambda = NULL;
+                
                 this->_listener_member = listener;
                 return *this;
             }
