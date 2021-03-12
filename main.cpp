@@ -83,8 +83,18 @@ public:
 
 		btn1 = new remi::Button("Show generic dialog");
 		
-		btn1->event_onclick->_do(this, (EventListener::listener_class_member_type)&TestApp::onClick);
-		btn1->event_onclick->_do((Event::listener_function_type)&funcOnclick, btn1);
+		/* registering a class member listener */
+		//btn1->event_onclick->_do(this, (EventListener::listener_class_member_type)&TestApp::onClick);
+		
+		/* registering a function listener */
+		//btn1->event_onclick->_do((Event::listener_function_type)&funcOnclick, btn1);
+		
+		/* registering a lambda expression listener */
+		//btn1->event_onclick->_do((Event::listener_function_type)[](EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){static_cast<remi::Button*>(emitter)->style.set("background-color", "green");});
+		
+		/* registering a context capturing lambda expression listener */
+		btn1->event_onclick->_do((Event::listener_contextualized_lambda_type)[this](EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){this->btn1->style.set("background-color", "purple");});
+		
 		btn1->style.set("width", "100px");
 		mainContainer->addChild(btn1);
 
@@ -92,7 +102,7 @@ public:
 	}
 
 
-	void onClick(Tag* emitter, Dictionary<Buffer*>* params, void* userdata){
+	void onClick(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
 		std::cout << "Event onClick btn1" << endl;
 		this->btn1->style.set("background-color", "red");
 	}

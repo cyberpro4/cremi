@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <cxxabi.h>
+#include <functional>
 
 //#include <thread>       //std::this_thread::sleep_for std::thread
 #include <chrono>
@@ -362,8 +363,12 @@ namespace remi {
         public:
             typedef void (*listener_function_type)(EventSource*, Dictionary<Buffer*>*, void* );
             listener_function_type _listener_function;
+            
             EventListener::listener_class_member_type _listener_member;
             EventListener* _listener_instance;
+            
+            typedef std::function<void (EventSource*, Dictionary<Buffer*>*, void* )> listener_contextualized_lambda_type;
+            listener_contextualized_lambda_type _listener_context_lambda;
 
             void* _userData;
 
@@ -372,6 +377,7 @@ namespace remi {
                 _listener_function = NULL;
                 _listener_member = NULL;
                 _listener_instance = NULL;
+                _listener_context_lambda = NULL;
             }
 
             //event registration in explicit form myevent._do(listener, userData);
@@ -385,10 +391,19 @@ namespace remi {
                 this->_listener_function = listener;
                 this->_userData = userData;
             }
+            
+            void _do(listener_contextualized_lambda_type listener, void* userData=0){
+                this->_listener_context_lambda = listener;
+                this->_userData = userData;
+            }
 
             //event registration in stream form myevent >> listener >> userData;;
             Event& operator>> (listener_function_type listener){
                 this->_listener_function = listener;
+                return *this;
+            }
+            Event& operator>> (listener_contextualized_lambda_type listener){
+                this->_listener_context_lambda = listener;
                 return *this;
             }
             Event& operator>> (EventListener* instance){
@@ -413,6 +428,10 @@ namespace remi {
                     //(*this->_listener_instance).*(this->_listener_member)(eventSource, params, this->_userData);
                     //invoke(this->_listener_member, this->_listener_instance, eventSource, params, this->_userData);
                     CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, params, this->_userData);
+                }
+                if(this->_listener_context_lambda !=NULL){
+                    this->_listener_context_lambda(_eventSource, params, this->_userData);
+                    return;
                 }
             }
     };
