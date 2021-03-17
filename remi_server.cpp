@@ -310,10 +310,10 @@ ServerResponse* App::serve(std::string url){
 	//std::regex::
 
 	std::smatch attr_call_match;
-	bool attr_call = std::regex_match(url, attr_call_match, std::regex("^/*(\\w+)\\/(\w+)\\?{0,1}(\\w*\\={1}(\\w|\\.)+\\&{0,1})*$")); //std::regex("^\\/*(\\w+)\\/(\\w+)\\?{0,1}(\\w*\\={1}\\w+\\&{0,1})*$"));
+	bool attr_call = std::regex_match(url, attr_call_match, std::regex("^/*(\\w+)\\/(\\w+)\\?{0,1}(\\w*\\={1}(\\w|\\.)+\\&{0,1})*$")); //std::regex("^\\/*(\\w+)\\/(\\w+)\\?{0,1}(\\w*\\={1}\\w+\\&{0,1})*$"));
 
 	std::smatch static_file_match;
-	bool static_file = std::regex_match( url, static_file_match, std::regex("^([\\/]*[\\w\\d]+:[-_. $@?#£'%=()\\/\\[\\]!+°§^,\\w\\d]+)")); //std::regex("^/*res\\/(.*)$") );
+	bool static_file = std::regex_match( url, static_file_match, std::regex("^([\\/]*[\\w\\d]+:[-_. $@?#Â£'%=()\\/\\[\\]!+Â°Â§^,\\w\\d]+)")); //std::regex("^/*res\\/(.*)$") );
 
 	if( static_file && static_file_match.size() == 2 ){
 

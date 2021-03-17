@@ -94,7 +94,7 @@ public:
 		
 		/* registering a context capturing lambda expression listener */
 		btn1->event_onclick->_do([this](EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){this->btn1->style.set("background-color", "purple");});
-		
+		btn1->event_onmousedown->_do(this, (EventListener::listener_class_member_type)&TestApp::onMouseDown);
 		btn1->style.set("width", "100px");
 		mainContainer->addChild(btn1);
 
@@ -105,6 +105,13 @@ public:
 	void onClick(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
 		std::cout << "Event onClick btn1" << endl;
 		this->btn1->style.set("background-color", "red");
+	}
+	
+	void onMouseDown(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
+		std::cout << "Event onMouseDown btn1" << endl;
+		for(std::string key : params->keys()){
+            std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+        }
 	}
 
     void onpageshow(void* emitter, Dictionary<Buffer*>* params, void* user_data){

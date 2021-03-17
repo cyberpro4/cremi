@@ -380,35 +380,20 @@ namespace remi {
                 _listener_context_lambda = NULL;
             }
 
-            void _do(EventListener* instance, EventListener::listener_class_member_type listener, void* userData=0){
-                _listener_function = NULL;
-                _listener_context_lambda = NULL;
-                
-                this->_listener_instance = instance;
-                this->_listener_member = listener;
-                this->_userData = userData;
+            virtual void _do(EventListener* instance, EventListener::listener_class_member_type listener, void* userData=0){
+                (*this) >> instance >> listener >> userData;
             }
 
-            void _do(listener_function_type listener, void* userData=0){
-                _listener_member = NULL;
-                _listener_instance = NULL;
-                _listener_context_lambda = NULL;
-                
-                this->_listener_function = listener;
-                this->_userData = userData;
+            virtual void _do(listener_function_type listener, void* userData=0){
+                (*this) >> listener >> userData;
             }
             
-            void _do(listener_contextualized_lambda_type listener, void* userData=0){
-                _listener_function = NULL;
-                _listener_member = NULL;
-                _listener_instance = NULL;
-                
-                this->_listener_context_lambda = listener;
-                this->_userData = userData;
+            virtual void _do(listener_contextualized_lambda_type listener, void* userData=0){
+                (*this) >> listener >> userData;
             }
 
             //event registration in stream form myevent >> listener >> userData;;
-            Event& operator>> (listener_function_type listener){
+            virtual Event& operator>> (listener_function_type listener){
                 _listener_member = NULL;
                 _listener_instance = NULL;
                 _listener_context_lambda = NULL;
@@ -416,7 +401,7 @@ namespace remi {
                 this->_listener_function = listener;
                 return *this;
             }
-            Event& operator>> (listener_contextualized_lambda_type listener){
+            virtual Event& operator>> (listener_contextualized_lambda_type listener){
                 _listener_function = NULL;
                 _listener_member = NULL;
                 _listener_instance = NULL;
@@ -424,21 +409,21 @@ namespace remi {
                 this->_listener_context_lambda = listener;
                 return *this;
             }
-            Event& operator>> (EventListener* instance){
+            virtual Event& operator>> (EventListener* instance){
                 _listener_function = NULL;
                 _listener_context_lambda = NULL;
                 
                 this->_listener_instance = instance;
                 return *this;
             }
-            Event& operator>> (EventListener::listener_class_member_type listener){
+            virtual Event& operator>> (EventListener::listener_class_member_type listener){
                 _listener_function = NULL;
                 _listener_context_lambda = NULL;
                 
                 this->_listener_member = listener;
                 return *this;
             }
-            Event& operator>> (void* userData){
+            virtual Event& operator>> (void* userData){
                 this->_userData = userData;
                 return *this;
             }
@@ -459,7 +444,7 @@ namespace remi {
                 }
             }
     };
-
+    
 #define EVENT(NAME) class NAME:public Event{ \
                         public: \
                             NAME(EventSource* eventSource):Event::Event(eventSource, CLASS_NAME(NAME)){ \
@@ -469,26 +454,6 @@ namespace remi {
                                 Event::operator()(parameters); \
                             } \
                     }* event_onchange;
-
-#define EVENT_JS(NAME, JSCODE) class NAME : public Event{ \
-                                public: \
-                                    NAME(Tag* emitter):Event::Event(emitter, CLASS_NAME(NAME)){ \
-                                        ((Tag*)emitter)->event_handlers.set(this->_eventName, this); \
-                                        emitter->attributes[this->_eventName] = utils::sformat( JSCODE, emitter->getIdentifier().c_str(), this->_eventName); \
-                                    } \
-                                    void operator()(Dictionary<Buffer*>* parameters=NULL){ \
-                                        Event::operator()(parameters); \
-                                    } \
-                            }* event_##NAME;
-
-#define EVENT_JS_DO(NAME, JSCODE, DOFUNCTION)  class NAME : public Event{ \
-                                    public: \
-                                        NAME(Tag* emitter):Event::Event(emitter, CLASS_NAME(NAME)){ \
-                                            ((Tag*)emitter)->event_handlers.set(this->_eventName, this); \
-                                            emitter->attributes[this->_eventName] = utils::sformat( JSCODE, emitter->getIdentifier().c_str(), this->_eventName); \
-                                        } \
-                                        void operator()(Dictionary<Buffer*>* parameters=NULL)DOFUNCTION; \
-                                }* event_##NAME;
 
     template<class T> class VersionedDictionary : public Dictionary<T>, public EventSource {
     public:
@@ -638,35 +603,176 @@ namespace remi {
     };
 
 
+	class EventJS:public Event{
+		/* This class is used to set event widget attributes only when connected to a listener */
+        public:
+            std::string js_code;
 
-	namespace server {
-		class App;
-	}
+        public:
+            EventJS(EventSource* eventSource, const char* eventName):Event::Event(eventSource, eventName){
+            }
+
+            //event registration in stream form myevent >> listener >> userData;;
+            Event& operator>> (listener_function_type listener){
+                Tag* emitter = static_cast<Tag*>(_eventSource);
+                emitter->attributes[this->_eventName] = utils::sformat( this->js_code, emitter->getIdentifier().c_str(), this->_eventName);
+                return Event::operator>>(listener);
+            }
+            Event& operator>> (listener_contextualized_lambda_type listener){
+                Tag* emitter = static_cast<Tag*>(_eventSource);
+                emitter->attributes[this->_eventName] = utils::sformat( this->js_code, emitter->getIdentifier().c_str(), this->_eventName);
+                return Event::operator>>(listener);
+            }
+            Event& operator>> (EventListener* instance){
+                Tag* emitter = static_cast<Tag*>(_eventSource);
+                emitter->attributes[this->_eventName] = utils::sformat( this->js_code, emitter->getIdentifier().c_str(), this->_eventName);
+                return Event::operator>>(instance);
+            }
+            Event& operator>> (EventListener::listener_class_member_type listener){
+                //not required to set attribute js code, because it will be in
+                //operator>>(EventListener* instance)
+                //_eventSource->attributes[this->_eventName] = utils::sformat( this->js_code, this->_eventSource->getIdentifier().c_str(), this->_eventName);
+                return Event::operator>>(listener);
+            }
+            Event& operator>> (void* userData){
+                //not required to set attribute js code, because it will be in
+                //operator>>(EventListener* instance)
+                //_eventSource->attributes[this->_eventName] = utils::sformat( this->js_code, this->_eventSource->getIdentifier().c_str(), this->_eventName);
+                return Event::operator>>(userData);
+            }
+    };
+    
+    #define EVENT_JS(NAME, JSCODE) class NAME : public EventJS{ \
+                                public: \
+                                    NAME(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(NAME)){ \
+                                        ((Tag*)emitter)->event_handlers.set(this->_eventName, this); \
+                                        this->js_code = utils::sformat( JSCODE, emitter->getIdentifier().c_str(), this->_eventName); \
+                                    } \
+                                    void operator()(Dictionary<Buffer*>* parameters=NULL){ \
+                                        Event::operator()(parameters); \
+                                    } \
+                            }* event_##NAME;
+
+	#define EVENT_JS_DO(NAME, JSCODE, DOFUNCTION)  class NAME : public EventJS{ \
+	                                    public: \
+	                                        NAME(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(NAME)){ \
+	                                            ((Tag*)emitter)->event_handlers.set(this->_eventName, this); \
+	                                            this->js_code = utils::sformat( JSCODE, emitter->getIdentifier().c_str(), this->_eventName); \
+	                                        } \
+	                                        void operator()(Dictionary<Buffer*>* parameters=NULL)DOFUNCTION; \
+	                                }* event_##NAME;
 
 
     class Widget : public Tag {
         public:
 
-            /*class onclick:public Event{
+            /*class onclick:public EventJS{
                 public:
-                    onclick(Tag* emitter):Event::Event(emitter, CLASS_NAME(onclick)){
+                    onclick(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(onclick)){
                         ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-                        emitter->attributes["onclick"] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+                        this->js_code = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
                     }
                     void operator()(Dictionary<Buffer*>* parameters=NULL){
-                        Event::operator()(_eventSource, parameters);
+                        Event::operator()(parameters);
                     }
-            }* event_onclick;
-            */
+            }* event_onclick;*/
+            
 
             EVENT_JS(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
             /*EVENT_JS_DO(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",{
                 std::cout << "do some code here, maybe parse parameters" << std::endl;
-                Event::operator()(_eventSource, parameters);
+                Event::operator()(parameters);
             })*/
-
-
+			
+			EVENT_JS(onblur, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+			EVENT_JS(onfocus, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+			EVENT_JS(ondblclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+			EVENT_JS(oncontextmenu, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+			EVENT_JS_DO(onmousedown, R"(var params={};
+							            var boundingBox = this.getBoundingClientRect();
+							            params['x']=event.clientX-boundingBox.left;
+							            params['y']=event.clientY-boundingBox.top;
+							            remi.sendCallbackParam('%s','%s',params);)",{
+							            	/*std::string x = parameters->get("x");
+							            	std::string y = parameters->get("y");
+							            	float xf = std::stof(x);
+							            	float yf = std::stof(y);*/
+							            	Event::operator()(parameters);
+							            })
+			EVENT_JS_DO(onmouseup, R"(var params={};
+							            var boundingBox = this.getBoundingClientRect();
+							            params['x']=event.clientX-boundingBox.left;
+							            params['y']=event.clientY-boundingBox.top;
+							            remi.sendCallbackParam('%s','%s',params);)",{
+							            	/*std::string x = parameters->get("x");
+							            	std::string y = parameters->get("y");
+							            	float xf = std::stof(x);
+							            	float yf = std::stof(y);*/
+							            	Event::operator()(parameters);
+							            })
+			EVENT_JS(onmouseout, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+			EVENT_JS(onmouseover, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+			EVENT_JS(onmouseleave, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+			EVENT_JS_DO(onmousemove, R"(var params={};
+							            var boundingBox = this.getBoundingClientRect();
+							            params['x']=event.clientX-boundingBox.left;
+							            params['y']=event.clientY-boundingBox.top;
+							            remi.sendCallbackParam('%s','%s',params);)",{
+							            	Event::operator()(parameters);
+							            })
+			EVENT_JS_DO(ontouchmove, R"(var params={};" \
+							            "var boundingBox = this.getBoundingClientRect();" \
+							            "params['x']=parseInt(event.changedTouches[0].clientX)-boundingBox.left;" \
+							            "params['y']=parseInt(event.changedTouches[0].clientY)-boundingBox.top;" \
+							            "remi.sendCallbackParam('%s','%s',params);)",{
+							            	Event::operator()(parameters);
+							            })
+			EVENT_JS_DO(ontouchstart, R"(var params={};" \
+							            "var boundingBox = this.getBoundingClientRect();" \
+							            "params['x']=parseInt(event.changedTouches[0].clientX)-boundingBox.left;" \
+							            "params['y']=parseInt(event.changedTouches[0].clientY)-boundingBox.top;" \
+							            "remi.sendCallbackParam('%s','%s',params);)",{
+							            	Event::operator()(parameters);
+							            })
+			EVENT_JS_DO(ontouchend, R"(var params={};" \
+							            "var boundingBox = this.getBoundingClientRect();" \
+							            "params['x']=parseInt(event.changedTouches[0].clientX)-boundingBox.left;" \
+							            "params['y']=parseInt(event.changedTouches[0].clientY)-boundingBox.top;" \
+							            "remi.sendCallbackParam('%s','%s',params);)",{
+							            	Event::operator()(parameters);
+							            })
+			EVENT_JS_DO(ontouchenter, R"(var params={};" \
+							            "var boundingBox = this.getBoundingClientRect();" \
+							            "params['x']=parseInt(event.changedTouches[0].clientX)-boundingBox.left;" \
+							            "params['y']=parseInt(event.changedTouches[0].clientY)-boundingBox.top;" \
+							            "remi.sendCallbackParam('%s','%s',params);)",{
+							            	Event::operator()(parameters);
+							            })
+			EVENT_JS(ontouchleave, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+			EVENT_JS(ontouchcancel, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+			EVENT_JS_DO(onkeyup, R"(var params={};params['key']=event.key;
+							            params['keycode']=(event.which||event.keyCode);
+							            params['ctrl']=event.ctrlKey;
+							            params['shift']=event.shiftKey;
+							            params['alt']=event.altKey;
+							            remi.sendCallbackParam('%s','%s',params);)",{
+							                /*  key (str): the character value
+            									keycode (str): the numeric char code
+							                */
+							            	Event::operator()(parameters);
+							            })
+			EVENT_JS_DO(onkeydown, R"(var params={};params['key']=event.key;
+							            params['keycode']=(event.which||event.keyCode);
+							            params['ctrl']=event.ctrlKey;
+							            params['shift']=event.shiftKey;
+							            params['alt']=event.altKey;
+							            remi.sendCallbackParam('%s','%s',params);)",{
+							                /*  key (str): the character value
+            									keycode (str): the numeric char code
+							                */
+							            	Event::operator()(parameters);
+							            })
         public:
             Widget();
             Widget(std::string _class);

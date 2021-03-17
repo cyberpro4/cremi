@@ -548,15 +548,31 @@ void Tag::setUpdated(){
 }
 
 
-Widget::Widget() : Tag::Tag() {
-    this->event_onclick = new Widget::onclick(this);
-    style.set( "margin" , "0px auto" );
-	
-    setClass(CLASS_NAME(Widget));
+Widget::Widget() : Widget::Widget(CLASS_NAME(Widget)) {
+    
 }
 
 Widget::Widget(std::string _class) : Tag::Tag() {
     this->event_onclick = new Widget::onclick(this);
+	this->event_onblur = new Widget::onblur(this);
+	this->event_onfocus = new Widget::onfocus(this);
+	this->event_ondblclick = new Widget::ondblclick(this);
+	this->event_oncontextmenu = new Widget::oncontextmenu(this);
+	this->event_onmousedown = new Widget::onmousedown(this);
+	this->event_onmouseup = new Widget::onmouseup(this);
+	this->event_onmouseout = new Widget::onmouseout(this);
+	this->event_onmouseover = new Widget::onmouseover(this);
+	this->event_onmouseleave = new Widget::onmouseleave(this);
+	this->event_onmousemove = new Widget::onmousemove(this);
+	this->event_ontouchmove = new Widget::ontouchmove(this);
+	this->event_ontouchstart = new Widget::ontouchstart(this);
+	this->event_ontouchend = new Widget::ontouchend(this);
+	this->event_ontouchenter = new Widget::ontouchenter(this);
+	this->event_ontouchleave = new Widget::ontouchleave(this);
+	this->event_ontouchcancel = new Widget::ontouchcancel(this);
+	this->event_onkeyup = new Widget::onkeyup(this);
+	this->event_onkeydown = new Widget::onkeydown(this);
+	
     style.set( "margin" , "0px auto" );
 
     setClass(_class);
@@ -588,7 +604,7 @@ void Widget::addChild( Represantable* child, std::string key ){
 
 Container::Container(Dictionary<Widget*>* children, Container::Layout layout_orientation):Widget(CLASS_NAME(Container)){
     this->setLayoutOrientation(layout_orientation);
-    if(!children==NULL){
+    if(!(children==NULL)){
         for( std::string k : children->keys() ){
             this->append(children->get(k), k);
         }
@@ -607,6 +623,7 @@ std::string Container::append(Dictionary<Widget*>* _children){
     for( std::string k : _children->keys() ){
         this->append(_children->get(k), k);
     }
+    return "";
 }
 
 void Container::setLayoutOrientation(Container::Layout orientation){
