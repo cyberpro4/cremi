@@ -56,7 +56,7 @@ namespace remi {
 
 
 
-		class App:public EventListener, private utils::TimerListener {
+		class App:public EventListener, public CommonAppInterface, private utils::TimerListener {
 
 		public:
 

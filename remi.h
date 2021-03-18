@@ -170,6 +170,13 @@ namespace remi {
         };
     };
 
+	//some remi_server::App functionalities have to be called by widgets. Here a common
+	//interface is defined
+	class CommonAppInterface{
+		public:
+			virtual void executeJavascript(std::string command)=0;
+	};
+
     template<class T> class DictionaryValue {
     public:
 
@@ -453,14 +460,14 @@ namespace remi {
                             void operator()(Dictionary<Buffer*>* parameters=NULL){ \
                                 Event::operator()(parameters); \
                             } \
-                    }* event_onchange;
+                    }* event_##NAME;
 
     template<class T> class VersionedDictionary : public Dictionary<T>, public EventSource {
     public:
 
         VersionedDictionary(){
             this->_version = 0;
-            this->event_onchange = new onChange(this);
+            this->event_onchange = new onchange(this);
         }
 
         void set( std::string name , T value, int version_increment = 1 ){
@@ -504,7 +511,7 @@ namespace remi {
                 }
         }* event_onchange;
         */
-        EVENT(onChange)
+        EVENT(onchange)
 
     private:
 
@@ -771,32 +778,33 @@ namespace remi {
 							                */
 							            	Event::operator()(parameters);
 							            })
-			/*
-			void queryClient(App* app_instance, Dictionary<Buffer*>* attribute_list, Dictionary<Buffer*>* style_property_list){
-		        app_instance.execute_javascript("""
-		                var params={};
-		                %(attributes)s
-		                %(style)s
-		                remi.sendCallbackParam('%(emitter_identifier)s','%(callback_name)s',params);
-		            """ % {
-		                    'attributes': ";".join(map(lambda param_name: "params['%(param_name)s']=document.getElementById('%(emitter_identifier)s').%(param_name)s" % {'param_name': param_name, 'emitter_identifier': str(self.identifier)}, attribute_list)),
-		                    'style': ";".join(map(lambda param_name: "params['%(param_name)s']=document.getElementById('%(emitter_identifier)s').style.%(param_name)s" % {'param_name': param_name, 'emitter_identifier': str(self.identifier)}, style_property_list)),
-		                    'emitter_identifier': str(self.identifier),
-		                    'callback_name': 'onquery_client_result'
-		                }
-		            )
+			
+			void queryClient(CommonAppInterface* appInstance, std::list<std::string>& attributes_list, std::list<std::string>& style_properties_list){
+				std::string attributes_string = "";
+				for(std::string& attribute : attributes_list){
+					attributes_string += "params['" + attribute + "']=document.getElementById('" + this->getIdentifier() + "')." + attribute + ";";
+				}
+				
+				std::string style_string = "";
+				for(std::string& style_prop : style_properties_list){
+					style_string += "params['" + style_prop + "']=document.getElementById('" + this->getIdentifier() + "').style." + style_prop + ";";
+				}
+				
+				std::string command = "var params={};" + attributes_string + style_string + utils::sformat("remi.sendCallbackParam('%s','%s',params);", this->getIdentifier().c_str(), "onqueryClientResult");
+				
+		        appInstance->executeJavascript(command);
     		}
-		
-		    @decorate_set_on_listener("(self, emitter, values_dictionary)")
-		    @decorate_event
-		    def onquery_client_result(self, **kwargs):
-		        """ WARNING: this is a new feature, subject to changes.
-		            This event allows to get back the values fetched by 'query' method.
-		            Returns:
-		                values_dictionary (dict): a dictionary containing name:value of all the requested parameters
-		        """
-		        return (kwargs,)
-		    */
+    		
+			/*			
+			class onqueryClientResult:public Event{
+	            public:
+	                onqueryClientResult(Tag* emitter):Event::Event(emitter, CLASS_NAME(onqueryClientResult)){
+	                    ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+	                }
+            }* event_onqueryClientResult;
+            */
+            EVENT(onqueryClientResult)
+		    
         public:
             Widget();
             Widget(std::string _class);

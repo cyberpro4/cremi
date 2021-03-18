@@ -110,11 +110,24 @@ public:
 		this->setRootWidget(this->mainContainer);
 	}
 
+	void onQueryResult(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
+		std::cout << "Event onquery result" << endl;
+		for(std::string key : params->keys()){
+            std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+        }
+	}
+
 	void onClick(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
 		std::cout << "Event onClick btn1" << endl;
 		this->btn1->style.set("background-color", "red");
 		this->setRootWidget(this->dialog);
 		this->executeJavascript("alert('hello');");
+		/*
+		std::list<std::string> _attrs = {"id", "class"};
+		std::list<std::string> _styles = {"width", "height"};
+		(*this->btn1->event_onqueryClientResult) >> this >> (EventListener::listener_class_member_type)&TestApp::onQueryResult;
+		this->btn1->queryClient(this, _attrs, _styles);
+		*/
 	}
 	
 	void onMouseDown(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
