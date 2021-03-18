@@ -695,14 +695,14 @@ Label::Label( std::string text ){
 	setClass(CLASS_NAME(Label));
 }
 
-GenericDialog::GenericDialog( std::string title , std::string message ){
-    setClass(CLASS_NAME(GenericDialog));
+GenericDialog::GenericDialog( std::string title , std::string message ):Container::Container(){
+	setClass(CLASS_NAME(GenericDialog));
 	setLayoutOrientation( Container::Layout::Vertical );
 	style["display"] = "block";
 	style["overflow"] = "auto";
 
-	onConfirmListener = NULL;
-	onCancelListener = NULL;
+	this->event_onconfirm = new onconfirm(this);
+	this->event_oncancel = new oncancel(this);
 
 	if( title.length() > 0 ){
 		Label *l = new Label( title );
@@ -725,12 +725,12 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 	_confirmButton = new Button("Ok");
 	_confirmButton->setSize(100, 30);
 	_confirmButton->style["margin"] = "3px";
-	//_confirmButton->onClickListener = this;
+	(*_confirmButton->event_onclick) >> (EventListener*)this->event_onconfirm >> (EventListener::listener_class_member_type)&GenericDialog::onconfirm::operator();
 
 	_cancelButton = new Button("Cancel");
 	_cancelButton->setSize(100, 30);
 	_cancelButton->style["margin"] = "3px";
-	//_cancelButton->onClickListener = this;
+	(*_cancelButton->event_onclick) >> (EventListener*)this->event_oncancel >> (EventListener::listener_class_member_type)&GenericDialog::oncancel::operator();
 
 	_hLay = new HBox();
 	_hLay->setHeight( 35 );
@@ -745,14 +745,6 @@ GenericDialog::GenericDialog( std::string title , std::string message ){
 	addChild(_container);
 	addChild(_hLay);
 
-}
-
-void GenericDialog::onClick(Widget* w){
-	if (w==_confirmButton){
-		if (onConfirmListener!= NULL)onConfirmListener->onConfirm(this);
-	}else if (w==_cancelButton){
-		if (onCancelListener!=NULL)onCancelListener->onCancel(this);
-	}
 }
 
 void GenericDialog::addFieldWithLabel(std::string key, std::string label_description, Widget* field){

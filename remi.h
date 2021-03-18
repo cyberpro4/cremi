@@ -1329,11 +1329,27 @@ namespace remi {
 
 	class GenericDialog : public Container {
 	public:
-		class GenericDialogOnConfirmListener{ public: virtual void onConfirm(GenericDialog*) = 0; };
-		class GenericDialogOnCancelListener{ public: virtual void onCancel(GenericDialog*) = 0; };
-
-		GenericDialogOnConfirmListener* onConfirmListener;
-		GenericDialogOnCancelListener* onCancelListener;
+	    class onconfirm:public Event, EventListener{
+            public:
+                onconfirm(Tag* emitter):Event::Event(emitter, CLASS_NAME(onconfirm)){}
+                
+                //this will get called by another event (the button click) so it must conform
+                //  listener prototype
+                void operator()(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
+                    Event::operator()(params);
+                }
+        }* event_onconfirm;
+        
+        class oncancel:public Event, EventListener{
+            public:
+                oncancel(Tag* emitter):Event::Event(emitter, CLASS_NAME(oncancel)){}
+                /*void operator()(Dictionary<Buffer*>* parameters=NULL){
+                    Event::operator()(parameters);
+                }*/
+                void operator()(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
+                    Event::operator()(params);
+                }
+        }* event_oncancel;
 	public:
 
 		GenericDialog( std::string title = "" , std::string message = "" );
@@ -1343,8 +1359,6 @@ namespace remi {
 		void addField(std::string key, Widget* field);
 
 		Widget* getField(std::string key);
-
-		void onClick(Widget*);
 
 	private:
 

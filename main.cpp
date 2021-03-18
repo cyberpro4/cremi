@@ -84,7 +84,7 @@ public:
 		btn1 = new remi::Button("Show generic dialog");
 		
 		/* registering a class member listener */
-		//btn1->event_onclick->_do(this, (EventListener::listener_class_member_type)&TestApp::onClick);
+		btn1->event_onclick->_do(this, (EventListener::listener_class_member_type)&TestApp::onClick);
 		
 		/* registering a function listener */
 		//btn1->event_onclick->_do(&funcOnclick, btn1);
@@ -93,18 +93,27 @@ public:
 		//btn1->event_onclick->_do((Event::listener_function_type)[](EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){static_cast<remi::Button*>(emitter)->style.set("background-color", "green");});
 		
 		/* registering a context capturing lambda expression listener */
-		btn1->event_onclick->_do([this](EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){this->btn1->style.set("background-color", "purple");});
+		//btn1->event_onclick->_do([this](EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){this->btn1->style.set("background-color", "purple");});
+		
 		btn1->event_onmousedown->_do(this, (EventListener::listener_class_member_type)&TestApp::onMouseDown);
 		btn1->style.set("width", "100px");
 		mainContainer->addChild(btn1);
 
+		dialog = new remi::GenericDialog("POTATO", "Chips");
+		(*dialog->event_onconfirm) >> this >> (EventListener::listener_class_member_type)&TestApp::dialogOnConfirm;
+
 		return mainContainer;
 	}
 
+	void dialogOnConfirm(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
+		std::cout << "Dialog Confirmed" << endl;
+		this->setRootWidget(this->mainContainer);
+	}
 
 	void onClick(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
 		std::cout << "Event onClick btn1" << endl;
 		this->btn1->style.set("background-color", "red");
+		this->setRootWidget(this->dialog);
 	}
 	
 	void onMouseDown(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
