@@ -609,7 +609,8 @@ namespace remi {
             std::string js_code;
 
         public:
-            EventJS(EventSource* eventSource, const char* eventName):Event::Event(eventSource, eventName){
+            EventJS(EventSource* eventSource, const char* eventName, std::string _js_code):Event::Event(eventSource, eventName){
+                this->js_code = _js_code;
             }
 
             //event registration in stream form myevent >> listener >> userData;;
@@ -644,9 +645,8 @@ namespace remi {
     
     #define EVENT_JS(NAME, JSCODE) class NAME : public EventJS{ \
                                 public: \
-                                    NAME(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(NAME)){ \
+                                    NAME(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(NAME), utils::sformat( JSCODE, emitter->getIdentifier().c_str(), CLASS_NAME(NAME))){ \
                                         ((Tag*)emitter)->event_handlers.set(this->_eventName, this); \
-                                        this->js_code = utils::sformat( JSCODE, emitter->getIdentifier().c_str(), this->_eventName); \
                                     } \
                                     void operator()(Dictionary<Buffer*>* parameters=NULL){ \
                                         Event::operator()(parameters); \
@@ -655,9 +655,8 @@ namespace remi {
 
 	#define EVENT_JS_DO(NAME, JSCODE, DOFUNCTION)  class NAME : public EventJS{ \
 	                                    public: \
-	                                        NAME(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(NAME)){ \
+	                                        NAME(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(NAME), utils::sformat( JSCODE, emitter->getIdentifier().c_str(), CLASS_NAME(NAME))){ \
 	                                            ((Tag*)emitter)->event_handlers.set(this->_eventName, this); \
-	                                            this->js_code = utils::sformat( JSCODE, emitter->getIdentifier().c_str(), this->_eventName); \
 	                                        } \
 	                                        void operator()(Dictionary<Buffer*>* parameters=NULL)DOFUNCTION; \
 	                                }* event_##NAME;
@@ -668,9 +667,8 @@ namespace remi {
 
             /*class onclick:public EventJS{
                 public:
-                    onclick(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(onclick)){
+                    onclick(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(onclick), utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName)){
                         ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-                        this->js_code = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
                     }
                     void operator()(Dictionary<Buffer*>* parameters=NULL){
                         Event::operator()(parameters);
