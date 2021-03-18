@@ -368,6 +368,10 @@ void App::sendMessageToAllClients(std::string message){
     _mutex_blocked_webSocketClients = false;
 }
 
+void App::executeJavascript(std::string command){
+	this->sendMessageToAllClients(WebsocketClientInterface::packExecuteJavascriptMessage(command));
+}
+
 void App::onTimer(){
     //dropping died websocket clients
     while(this->_mutex_blocked_webSocketClients)

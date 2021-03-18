@@ -87,7 +87,8 @@ namespace remi {
             /* these method must handle a mutex for the access to websocket list */
             void addWebsocketClientInterface(WebsocketClientInterface* wci);
             void sendMessageToAllClients(std::string message);
-
+			void executeJavascript(std::string command);
+			
             virtual void onpageerror(void* emitter, Dictionary<Buffer*>* params, void* user_data);
             virtual void onload(void* emitter, Dictionary<Buffer*>* params, void* user_data);
             virtual void ononline(void* emitter, Dictionary<Buffer*>* params, void* user_data);

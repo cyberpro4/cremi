@@ -380,3 +380,9 @@ std::string WebsocketClientInterface::packUpdateMessage(std::string tagToUpdateI
     output << _MSG_UPDATE << tagToUpdateIdentifier.c_str() << "," << htmlContent.c_str();
     return output.str();
 }
+
+std::string WebsocketClientInterface::packExecuteJavascriptMessage(std::string command){
+    std::ostringstream output;
+    output << _MSG_JS << command.c_str();
+    return output.str();
+}

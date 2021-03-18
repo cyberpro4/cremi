@@ -114,6 +114,7 @@ public:
 		std::cout << "Event onClick btn1" << endl;
 		this->btn1->style.set("background-color", "red");
 		this->setRootWidget(this->dialog);
+		this->executeJavascript("alert('hello');");
 	}
 	
 	void onMouseDown(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){

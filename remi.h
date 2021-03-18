@@ -771,6 +771,32 @@ namespace remi {
 							                */
 							            	Event::operator()(parameters);
 							            })
+			/*
+			void queryClient(App* app_instance, Dictionary<Buffer*>* attribute_list, Dictionary<Buffer*>* style_property_list){
+		        app_instance.execute_javascript("""
+		                var params={};
+		                %(attributes)s
+		                %(style)s
+		                remi.sendCallbackParam('%(emitter_identifier)s','%(callback_name)s',params);
+		            """ % {
+		                    'attributes': ";".join(map(lambda param_name: "params['%(param_name)s']=document.getElementById('%(emitter_identifier)s').%(param_name)s" % {'param_name': param_name, 'emitter_identifier': str(self.identifier)}, attribute_list)),
+		                    'style': ";".join(map(lambda param_name: "params['%(param_name)s']=document.getElementById('%(emitter_identifier)s').style.%(param_name)s" % {'param_name': param_name, 'emitter_identifier': str(self.identifier)}, style_property_list)),
+		                    'emitter_identifier': str(self.identifier),
+		                    'callback_name': 'onquery_client_result'
+		                }
+		            )
+    		}
+		
+		    @decorate_set_on_listener("(self, emitter, values_dictionary)")
+		    @decorate_event
+		    def onquery_client_result(self, **kwargs):
+		        """ WARNING: this is a new feature, subject to changes.
+		            This event allows to get back the values fetched by 'query' method.
+		            Returns:
+		                values_dictionary (dict): a dictionary containing name:value of all the requested parameters
+		        """
+		        return (kwargs,)
+		    */
         public:
             Widget();
             Widget(std::string _class);
@@ -1362,7 +1388,7 @@ namespace remi {
 
 	private:
 
-		Container*		_container;
+		Container*	_container;
 		Button*		_confirmButton;
 		Button*		_cancelButton;
 		HBox*		_hLay;

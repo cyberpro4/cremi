@@ -37,6 +37,8 @@ namespace remi {
 
 			static std::string packUpdateMessage(std::string tagToUpdateIdentifier, std::string htmlContent);
 
+			static std::string packExecuteJavascriptMessage(std::string command);
+			
 		private:
 
 			Dictionary<Buffer*>*		parseParams(const char* paramString, unsigned long len);
