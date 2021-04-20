@@ -169,7 +169,6 @@ public:
 
 
 int main() {
-
 	remi::server::Server<TestApp>* srv = new remi::server::Server<TestApp>();
 	srv->start();
 

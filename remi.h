@@ -469,6 +469,10 @@ namespace remi {
             this->_version = 0;
             this->event_onchange = new onchange(this);
         }
+        
+        ~VersionedDictionary(){
+        	delete this->event_onchange;
+        }
 
         void set( std::string name , T value, int version_increment = 1 ){
             /*if( has( name ) ){
@@ -546,6 +550,18 @@ namespace remi {
         Tag();
 
         Tag(VersionedDictionary<std::string> attributes, std::string _type, std::string _class="");
+
+		~Tag(){
+			//Children are deleted by parent
+			for (std::string k : this->children.keys()) {
+				delete this->children.get(k);
+			}
+			
+			//Event handlers are deleted here
+			for (std::string k : this->event_handlers.keys()){
+				delete this->event_handlers.get(k);
+			}
+		}
 
         void setClass( std::string name );
 
@@ -810,6 +826,30 @@ namespace remi {
             Widget(std::string _class);
             Widget(VersionedDictionary<std::string> _attributes, VersionedDictionary<std::string> _style, std::string _type, std::string _class);
 
+			~Widget(){
+				//Event handlers are deleted by Tag destructor
+			    /*delete this->event_onclick;
+				delete this->event_onblur;
+				delete this->event_onfocus;
+				delete this->event_ondblclick;
+				delete this->event_oncontextmenu;
+				delete this->event_onmousedown;
+				delete this->event_onmouseup;
+				delete this->event_onmouseout;
+				delete this->event_onmouseover;
+				delete this->event_onmouseleave;
+				delete this->event_onmousemove;
+				delete this->event_ontouchmove;
+				delete this->event_ontouchstart;
+				delete this->event_ontouchend;
+				delete this->event_ontouchenter;
+				delete this->event_ontouchleave;
+				delete this->event_ontouchcancel;
+				delete this->event_onkeyup;
+				delete this->event_onkeydown;
+				delete this->event_onqueryClientResult;*/
+			}
+			
             void setWidth( int width );
             void setHeight( int height );
             void setSize( int width, int height );
@@ -857,6 +897,11 @@ namespace remi {
                 type = "html";
             }
 
+			~HTML(){
+				//Event handlers are deleted by Tag destructor
+				//delete this->event_onrequiredupdate;
+			}
+			
             void _notifyParentForUpdate(){
                 (*this->event_onrequiredupdate)();
             }
@@ -906,6 +951,11 @@ namespace remi {
                 this->event_onerror = new onerror(this);
             }
 
+			~HEAD(){
+				//Event handlers are deleted by Tag destructor
+				//delete this->event_onerror;
+			}
+			
             void setIconFile(std::string filename, std::string rel="icon", std::string mimetype="image/png"){
                 /* Allows to define an icon for the App
 
@@ -1310,6 +1360,18 @@ namespace remi {
                 this->event_onpagehide = new onpagehide(this);
                 this->event_onpageshow = new onpageshow(this);
                 this->event_onresize = new onresize(this);
+            }
+            
+            ~BODY(){
+                //Event handlers are deleted by Tag destructor
+                /*delete this->event_onload;
+                delete this->event_ononline;
+                delete this->event_onpagehide;
+                delete this->event_onpageshow;
+                delete this->event_onresize;*/
+                
+                //children are deleted by Tag destructor
+                delete this->children["loading_container"];
             }
 
     };
