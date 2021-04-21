@@ -98,6 +98,10 @@ namespace remi {
 		int sscan( std::string from , std::string format , ... );
 
 		std::list<std::string> split( std::string subject , std::string delimiter );
+		
+		std::string strip( std::string subject , char char_to_strip );
+		
+		int count( std::string subject, std::string pattern );
 
 		unsigned long long searchIndexOf(const char* buffer, char __char, unsigned long long len, unsigned long long start);
 
@@ -474,20 +478,32 @@ namespace remi {
         	delete this->event_onchange;
         }
 
-        void set( std::string name , T value, int version_increment = 1 ){
+		void update( const Dictionary<T>& d ) {
+			_version++;
+			Dictionary<T>::update(d);
+			this->event_onchange->operator()(NULL);
+		}
+
+		void remove( std::string name ){
+			_version++;
+            Dictionary<T>::remove(name);
+            this->event_onchange->operator()(NULL);
+        }
+
+        void set( std::string name , T value){
             /*if( has( name ) ){
                 if( getAttribute( name ).compare( value ) != 0 )
                     _version += version_increment;
             } else
                 _version += version_increment;*/
-            _version += version_increment;
+            _version ++;
 
             Dictionary<T>::set(name, value);
             this->event_onchange->operator()(NULL);
         }
 
-        void clear( int version_increment = 1 ){
-            _version += version_increment;
+        void clear(){
+            _version++;
             Dictionary<T>::clear();
             this->event_onchange->operator()(NULL);
         }
@@ -873,10 +889,116 @@ namespace remi {
             Container(Dictionary<Widget*>* children=NULL, Container::Layout layout_orientation = Layout::Vertical);
 
             std::string append(Widget* w, std::string key=std::string(""));
-            std::string append(Dictionary<Widget*>* w);
+            virtual std::string append(Dictionary<Widget*>* w);
 
             void setLayoutOrientation( Container::Layout orientation );
     };
+
+	
+	class AsciiContainer : public Container{
+		public:
+	    	Dictionary<std::map<std::string, float>*> widget_layout_map; //here are contained the position and size of each widget
+	
+	    public:
+	    	AsciiContainer(std::string asciipattern="", float gap_horizontal=0, float gap_vertical=0, Dictionary<Widget*>* children=NULL):Container(children){
+	    		this->style["position"] = "relative";
+	    		this->set_from_asciiart(asciipattern, gap_horizontal, gap_vertical);
+	    	}
+	    	
+	    	~AsciiContainer(){
+	    	    for(std::string key : widget_layout_map.keys()){
+		            delete widget_layout_map.get(key);
+		        }
+		    }
+	        
+	    	void set_from_asciiart(std::string asciipattern, float gap_horizontal=0, float gap_vertical=0){
+		        /*
+		            asciipattern (std::string): a multiline string representing the layout
+		                | widget1               |
+		                | widget1               |
+		                | widget2 | widget3     |
+		            gap_horizontal (float): a percent value (0..100)
+		            gap_vertical (float): a percent value
+		        */
+		        
+		        //deleting old map
+		        for(std::string key : widget_layout_map.keys()){
+		            delete widget_layout_map.get(key);
+		        }
+		        widget_layout_map.clear();
+		        
+		        std::list<std::string> pattern_rows = utils::split(asciipattern, "\n");
+		        pattern_rows.remove_if([](std::string value){return (utils::strip(utils::strip(value, ' '), '\t').length() < 1 );});
+		
+		        int layout_height_in_chars = pattern_rows.size();
+		        
+		        float row_index = 0.0;
+		        for(std::string r : pattern_rows){
+		            std::string row = utils::strip(r, ' ');
+		            row = utils::strip(row, '\t');
+		            
+		            if(row.length()<2)continue;  //at least two pipes
+		            int pipes_count = utils::count(row, "|");
+		            float row_width = row.length() - pipes_count; //the row width is calculated without pipes
+		            row = row.substr(1, row.length()-2); //removing |pipes at beginning and end
+		            
+		            std::list<std::string> columns = utils::split(row, "|");
+		
+		            float left_value = 0.0;
+		            for(std::string c : columns){
+		                std::string widget_key = utils::strip(c, ' ');
+		                float widget_width = (c).length();
+		                
+		                if( !widget_layout_map.has(widget_key) ){
+		                    /*width is calculated in percent
+		                     height is instead initialized at 1 and incremented by 1 each row the key is present
+		                     at the end of algorithm the height will be converted in percent 
+		                    */
+		                    widget_layout_map[widget_key] = new std::map<std::string, float>{{"width", widget_width / (row_width) * 100.0 - gap_horizontal}, 
+		                                            {"height", 1},
+		                                            {"top", (row_index / layout_height_in_chars) * 100.0 + (gap_vertical/2.0)},
+		                                            {"left", (left_value / row_width) * 100.0 + (gap_horizontal/2.0)} };
+		                }else{
+		                    (*(std::map<std::string, float>*)widget_layout_map.get(widget_key))["height"] += 1;
+		                }
+		                left_value += widget_width;
+		            }
+		            row_index++;
+		        }
+		
+		        //converting height values in percent string
+		        for(std::string key : widget_layout_map.keys()){
+		            std::map<std::string, float>* m = widget_layout_map.get(key);
+		            std::cout << "dovrebbe essere: " << ((*m)["height"] / layout_height_in_chars) * 100.0 - gap_vertical << std::endl;
+		            (*m)["height"] = ((*m)["height"] / layout_height_in_chars) * 100.0 - gap_vertical;
+		            std::cout << "invece: " << ((std::map<std::string, float>)*widget_layout_map.get(key))["height"]<< std::endl;
+		        }
+		
+		        for(std::string key : widget_layout_map.keys()){
+		            set_widget_layout(key);
+		        }
+	    	}
+	    	
+		    std::string append(Widget* w, std::string key=std::string("")){
+		        Container* c = static_cast<Container*>(this);
+		        c->append(w, key);
+		    	set_widget_layout(key);
+		    	return key;
+		    }
+		    
+		    void set_widget_layout(std::string key){
+		        if( children.has(key)==false || widget_layout_map.has(key)==false ){
+		            return;
+		        }
+		        static_cast<Tag*>(children.get(key))->style.set("position", "absolute");
+		        
+		        static_cast<Tag*>(children.get(key))->style.set("width", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["width"]));
+		        static_cast<Tag*>(children.get(key))->style.set("height",  utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["height"]));
+		        static_cast<Tag*>(children.get(key))->style.set("left", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["left"]));
+		        static_cast<Tag*>(children.get(key))->style.set("top", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["top"]));
+		    }
+	};
+
 
     class HTML:public Tag{
         public: //Events

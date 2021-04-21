@@ -181,6 +181,37 @@ std::list<std::string> remi::utils::split( std::string subject , std::string del
 	return list;
 }
 
+std::string remi::utils::strip( std::string subject , char char_to_strip ){
+	std::string result;
+	const char* cstr = subject.c_str();
+	
+	int length = subject.length();
+	while(((char)cstr[length-1]) == char_to_strip && length > 0){
+		length--;
+	}
+	
+	bool found_a_different_char = false;
+	for(int i = 0; i < length; i++){
+		if( ((char)cstr[i]) != char_to_strip ){
+			found_a_different_char = true;
+		}
+		if( found_a_different_char ){
+			result += ((char)cstr[i]);
+		}
+	}
+	
+	return result;
+}
+
+int remi::utils::count( std::string subject, std::string pattern ){
+	int result = 0;
+	int pos = -1;
+	while( (pos=subject.find(pattern, (pos+1))) < subject.length() ){
+		result++;
+	}
+	return result;
+}
+
 unsigned long long remi::utils::searchIndexOf(const char* buffer, char __char, unsigned long long len, unsigned long long start){
 	unsigned long long __i = start;
 	while (__i < len && buffer[__i++] != __char);

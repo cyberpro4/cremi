@@ -48,10 +48,12 @@ void funcOnclick(EventSource* emitter, Dictionary<Buffer*>* params, void* userda
 
 class TestApp : public remi::server::App{
 private:
-	remi::Widget*			mainContainer;
+	//remi::Widget*			mainContainer;
+	remi::AsciiContainer*	mainContainer;
 
 	remi::Button*			btn1;
 	remi::Button*			btn2;
+	remi::Button*			btn3;
 
 	remi::GenericDialog*	dialog;
 	remi::Label*			label;
@@ -70,7 +72,14 @@ public:
 
 	Widget* main(){
         counter = 0;
-		mainContainer = new remi::HBox();
+		//mainContainer = new remi::HBox();
+		mainContainer = new remi::AsciiContainer(
+			R"(
+			|label | button |
+			|button2 |bt3   |
+			|button2 |bt3   |
+			)", 10.0, 10.0
+		);
 		
 		//mainContainer->addClass("myclass2");
 		mainContainer->style.set("width", "500px");
@@ -79,7 +88,7 @@ public:
 		//tag1->setOnClickListener(this);
 
 		label = new remi::Label("CRemi");
-		mainContainer->addChild(label);
+		mainContainer->append(label, "label");
 
 		btn1 = new remi::Button("Show generic dialog");
 		
@@ -96,8 +105,13 @@ public:
 		//btn1->event_onclick->_do([this](EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){this->btn1->style.set("background-color", "purple");});
 		
 		btn1->event_onmousedown->_do(this, (EventListener::listener_class_member_type)&TestApp::onMouseDown);
-		btn1->style.set("width", "100px");
-		mainContainer->addChild(btn1);
+		//btn1->style.set("width", "100px");
+		mainContainer->append(btn1, "button");
+		
+		btn2 = new remi::Button("bt2");
+		btn3 = new remi::Button("bt3");
+		mainContainer->append(btn2, "button2");
+		mainContainer->append(btn3, "bt3");
 
 		dialog = new remi::GenericDialog("POTATO", "Chips");
 		(*dialog->event_onconfirm) >> this >> (EventListener::listener_class_member_type)&TestApp::dialogOnConfirm;
