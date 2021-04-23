@@ -13,8 +13,7 @@
 
 using namespace std;
 using namespace remi;
-
-
+using namespace remi::utils;
 
 int run_test(){
 
@@ -80,7 +79,7 @@ public:
 			|button2 |bt3   |
 			)", 10.0, 10.0
 		);
-		
+				
 		//mainContainer->addClass("myclass2");
 		mainContainer->style.set("width", "500px");
 		mainContainer->style.set("height", "600px");

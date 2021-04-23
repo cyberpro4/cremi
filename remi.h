@@ -86,6 +86,12 @@ namespace remi {
     namespace utils {
 
         std::string toPix( int v );
+        
+        //https://en.cppreference.com/w/cpp/language/user_literal
+        //permits to set values expressed as 12_px and returns a string as "12px"
+		std::string operator "" _px(long double value);
+		//pc stays for percent
+		std::string operator "" _pc(long double value);
 
         std::string join(std::list<std::string> stringList , std::string glue );
 

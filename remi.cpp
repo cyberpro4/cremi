@@ -161,6 +161,14 @@ std::string remi::utils::toPix( int v ){
     return ss.str();
 }
 
+std::string remi::utils::operator "" _px(long double value){
+	return remi::utils::sformat("%.2fpx", (float)value);
+}
+//pc stays for percent
+std::string remi::utils::operator "" _pc(long double value){
+	return remi::utils::sformat("%.2f%%", (float)value);
+}
+
 std::list<std::string> remi::utils::split( std::string subject , std::string delimiter ){
 	std::list<std::string> list;
 
