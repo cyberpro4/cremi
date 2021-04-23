@@ -64,10 +64,10 @@ private:
 	int counter;
 
 public:
-    /*void idle(){
+    void idle(){
         label->setText(utils::sformat("%d", counter));
         counter++;
-    }*/
+    }
 
 	Widget* main(){
         counter = 0;
@@ -108,6 +108,8 @@ public:
 		mainContainer->append(btn1, "button");
 		
 		btn2 = new remi::Button("bt2");
+		btn2->event_onclick->_do(this, (EventListener::listener_class_member_type)&TestApp::onBt2Click);
+		
 		btn3 = new remi::Button("bt3");
 		mainContainer->append(btn2, "button2");
 		mainContainer->append(btn3, "bt3");
@@ -116,6 +118,10 @@ public:
 		(*dialog->event_onconfirm) >> this >> (EventListener::listener_class_member_type)&TestApp::dialogOnConfirm;
 
 		return mainContainer;
+	}
+
+	void onBt2Click(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
+		label->style["color"] = "red";
 	}
 
 	void dialogOnConfirm(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
@@ -132,7 +138,7 @@ public:
 
 	void onClick(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
 		std::cout << "Event onClick btn1" << endl;
-		this->btn1->style.set("background-color", "red");
+		this->btn1->style["background-color"] = "red";
 		this->setRootWidget(this->dialog);
 		this->executeJavascript("alert('hello');");
 		/*

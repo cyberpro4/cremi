@@ -484,6 +484,28 @@ namespace remi {
         	delete this->event_onchange;
         }
 
+		/* With this operator the dictionary stores the key of the value to be accessed
+			and returns itself. The overload of operator= and operator T() allows to
+			get or set the value of the element for which the key has been stored.
+			This is done in order to get rid of the changes over the element making it possible
+			to spawn the onchange event.
+			The Dictionay::operator[] returns the DictionaryValue, and this would make 
+			impossible to track value changes. This is why it has been overloaded.
+		*/
+		VersionedDictionary & operator [] ( std::string name ) {
+			Dictionary<T>::operator[]( name );
+			this->_elementKey = name;
+			return *this;
+		}
+
+		void operator = ( T value ){
+			this->set(this->_elementKey, value);
+		}
+
+		operator T(){
+			return this->get(this->_elementKey);
+		}
+
 		void update( const Dictionary<T>& d ) {
 			_version++;
 			Dictionary<T>::update(d);
@@ -495,7 +517,7 @@ namespace remi {
             Dictionary<T>::remove(name);
             this->event_onchange->operator()(NULL);
         }
-
+        
         void set( std::string name , T value){
             /*if( has( name ) ){
                 if( getAttribute( name ).compare( value ) != 0 )
@@ -543,6 +565,7 @@ namespace remi {
 
         long _version;
 		long _lastVersion;
+		std::string _elementKey; //this is the key to be accessed from the operator[]
     };
 
 
@@ -1011,8 +1034,8 @@ namespace remi {
             class onrequiredupdate:public Event{
             public:
                 onrequiredupdate(Tag* emitter):Event::Event(emitter, CLASS_NAME(onrequiredupdate)){
-                    ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
                     emitter->attributes["onrequiredupdate"] = utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+                    ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
                 }
                 void operator()(Dictionary<Buffer*>* parameters=NULL){
                     Event::operator()(parameters);
@@ -1031,7 +1054,12 @@ namespace remi {
 			}
 			
             void _notifyParentForUpdate(){
-                (*this->event_onrequiredupdate)();
+                //this condition prevents the event to be called in
+                //onrequiredupdate::onrequiredupdate(), where the .attributes dictionary gets
+                //changed
+                if(this->event_handlers.has("onrequiredupdate")){
+                	(*this->event_onrequiredupdate)();
+                }
             }
 
             std::string repr(Dictionary<Represantable*>* changed_widgets, bool forceUpdate=false){
@@ -1499,7 +1527,7 @@ namespace remi {
                 delete this->event_onresize;*/
                 
                 //children are deleted by Tag destructor
-                delete this->children["loading_container"];
+                delete this->children.get("loading_container");
             }
 
     };

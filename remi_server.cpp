@@ -404,7 +404,7 @@ void App::update(){
 		for(std::string identifier:local_changed_widgets->keys()){
             _html = ((Tag*)local_changed_widgets->get(identifier))->getLatestRepr();
             //cout << "App::update - update message: " << WebsocketClientInterface::packUpdateMessage(identifier, _html).c_str() << endl;
-            this->sendMessageToAllClients(WebsocketClientInterface::packUpdateMessage(identifier, _html));
+            this->sendMessageToAllClients(WebsocketClientInterface::packUpdateMessage(identifier, remi::utils::string_encode(remi::utils::escape_json(_html))));
 		}
 
 		_needUpdateFlag = false;
