@@ -188,6 +188,13 @@ public:
 
 
 int main() {
+	/*int i = 0;
+	for(i=0;i<1000000;i++){
+		remi::server::ServerResponse* s = new remi::server::ServerResponse();
+		s->appendToBody("patatas fritas");
+		delete s;
+	}*/
+	
 	remi::server::Server<TestApp>* srv = new remi::server::Server<TestApp>();
 	srv->start();
 

@@ -35,7 +35,7 @@ ServerResponse::ServerResponse( std::string body ){
 
 ServerResponse::~ServerResponse(){
 	if( _body_buffer != NULL )
-		delete _body_buffer;
+		delete[] _body_buffer;
 }
 
 int	ServerResponse::getCode(){
@@ -112,7 +112,8 @@ unsigned int* upload_data_size, void **con_cls){
 
 	if (cls != NULL){
         const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Connection");
-        if(strcmp(value, "Upgrade")==0){
+        //if(strcmp(value, "Upgrade")==0){
+        if(remi::utils::count(value, "Upgrade")>0){
             const char* upgrade_kind = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Upgrade");
             if(strcmp(upgrade_kind, "websocket")==0){
 

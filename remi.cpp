@@ -355,23 +355,24 @@ remi_thread_result utils::Timer::thread_entry( remi_thread_param instance ){
 	((utils::Timer*)instance)->tick();
 	return 0;
 }
-
+/*
 double remi::utils::Timer::elapsed(){
-	return std::chrono::duration_cast<second_>
+	double res = std::chrono::duration_cast<second_>
             (clock_::now() - _start).count();
+	return res;
 }
-
+*/
 void remi::utils::Timer::setInterval( int msecInterval ){
 	_millisecondsInterval = msecInterval;
 }
-
+/*
 bool utils::Timer::has_passed(){
 	return elapsed() > (_millisecondsInterval/1000.f);
 }
-
+*/
 void remi::utils::Timer::tick(){
 	while( !_stopFlag ){
-		if( has_passed() ){
+		/*if( has_passed() ){
 			_passed = true;
 			if( _listener != NULL ){
 				_listener->onTimer();
@@ -380,16 +381,21 @@ void remi::utils::Timer::tick(){
 			//stop();
 			_start = clock_::now();
 		}
-
 		Sleep( 2 );
+		*/
+
+		Sleep( _millisecondsInterval );
+		if( _listener != NULL ){
+			_listener->onTimer();
+		}
 	}
 
 }
 
 void remi::utils::Timer::start(){
-	_start = clock_::now();
+	//_start = clock_::now();
     _stopFlag = false;
-	_passed = false;
+	//_passed = false;
 
 	if( _listener != NULL ){
 		remi_createThread( (remi_thread_callback)&utils::Timer::thread_entry, this );

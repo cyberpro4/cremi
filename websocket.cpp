@@ -86,6 +86,7 @@ bool WebsocketClientInterface::readNextMessage(){
 	std::list<char*> chunks;
 	std::list<unsigned long long> sizes;
 	unsigned long long entireMsgLen = 0;
+	bool skip = false; //this is used to store that the algorithm is interrupted and the memory have to be released
 	while (opcode==0){
 		char length_buf[8] = { 0 };
 
@@ -96,7 +97,9 @@ bool WebsocketClientInterface::readNextMessage(){
 		if (recv(_sock, length_buf, 2, 0) != 2){
 			std::cout << "recv failed: " << "first two bytes not recv" << endl;
 			_stopFlag = true;
-            return false;
+			skip = true;
+			break;
+            //return false;
 		}
 		fin = length_buf[0] & 1;
 		opcode = (length_buf[0]>>4) & 0xf ;
@@ -111,7 +114,9 @@ bool WebsocketClientInterface::readNextMessage(){
 		if (payload_len == 126){
 			if (recv(_sock, length_buf, 2, 0) != 2){
 				std::cout << "recv failed: " << "length_buf, 2" << endl;
-				return false;
+				skip = true;
+				break;
+				//return false;
 			}
 
 			payload_len = 0;
@@ -124,7 +129,9 @@ bool WebsocketClientInterface::readNextMessage(){
 		else if (payload_len == 127){
 			if (recv(_sock, length_buf, 8, 0) != 8){
 				std::cout << "recv failed: " << "length_buf, 8" << endl;
-				return false;
+				skip = true;
+				break;
+				//return false;
 			}
 
 			payload_len = 0;
@@ -154,7 +161,9 @@ bool WebsocketClientInterface::readNextMessage(){
 		if (mask_enable){
 			if (recv(_sock, mask, 4, 0) != 4){
 				std::cout << "recv failed: " << "mask recv not received" << endl;
-				return false;
+				skip = true;
+				break;
+				//return false;
 			}
 		}
         //cout << "payload: " << payload_len << endl;
@@ -165,7 +174,9 @@ bool WebsocketClientInterface::readNextMessage(){
 		if ((_rv = recv(_sock, buf, payload_len, 0)) != (size_t)payload_len){
 			std::cout << "recv failed: " << "recv size mismatch" << endl;
 			delete[] buf;
-			return false;
+			skip = true;
+			break;
+			//return false;
 		}
 
 		for (size_t l = 0; l < _rv; l++){
@@ -177,6 +188,15 @@ bool WebsocketClientInterface::readNextMessage(){
 		entireMsgLen += _rv;
 		//delete[] buf; //this is deleted below
 	}
+	
+	if(skip){
+		//deleting already stored chunks
+		for (char* _pointer : chunks){
+			delete[] _pointer;
+		}
+		return false;
+	}
+	
 	char* entireMsg = new char[entireMsgLen];
 	unsigned long long _offset = 0;
 	for (char* _pointer : chunks){
