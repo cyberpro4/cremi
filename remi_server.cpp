@@ -82,7 +82,7 @@ int ServerResponse::prepareSize( int new_size ){
 
 	if( _body_buffer != NULL ){
 		memcpy( _nb , _body_buffer , _body_buffer_size );
-		delete _body_buffer;
+		delete[] _body_buffer;
 	}
 
 	_body_buffer = _nb;
@@ -384,6 +384,7 @@ void App::onTimer(){
     }
     for(WebsocketClientInterface* wci : diedClients){
         _webSocketClients.remove(wci);
+        std::cout << "Deleting died websocket client" << std::endl;
         delete wci;
     }
     _mutex_blocked_webSocketClients = false;
@@ -407,6 +408,7 @@ void App::update(){
             this->sendMessageToAllClients(WebsocketClientInterface::packUpdateMessage(identifier, remi::utils::string_encode(remi::utils::escape_json(_html))));
 		}
 
+		delete local_changed_widgets;
 		_needUpdateFlag = false;
 		return;
 	}

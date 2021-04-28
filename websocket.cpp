@@ -175,7 +175,7 @@ bool WebsocketClientInterface::readNextMessage(){
 		chunks.push_back(buf);
 		sizes.push_back(_rv);
 		entireMsgLen += _rv;
-		//delete buf;
+		//delete[] buf; //this is deleted below
 	}
 	char* entireMsg = new char[entireMsgLen];
 	unsigned long long _offset = 0;

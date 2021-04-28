@@ -122,13 +122,13 @@ void remi::utils::url_decode(const char* from, unsigned long long len, char*& co
 
 		out.replace( match.position(0) , match.length(0) , r );
 	}*/
+	converted = new char[len];
 	if (len < 3){
-		converted = new char[len];
+		//converted = new char[len];
 		memcpy(converted, from, len);
 		return;
 	}
-
-	converted = new char[len];
+	
 	unsigned long long int __i = 0;
 	unsigned short val = 0;
 
@@ -260,10 +260,12 @@ std::string remi::utils::join(std::list<std::string> stringList , std::string gl
 }
 
 std::string remi::utils::string_encode(std::string text){
-	std::locale loc(std::locale(), new std::codecvt_utf8<wchar_t>);
+	std::codecvt_utf8<wchar_t>* _cdcv = new std::codecvt_utf8<wchar_t>;
+	std::locale loc(std::locale(), _cdcv);
 	std::ostringstream o;
 	o.imbue(loc);
 	o << text;
+	//delete _cdcv;
 	return o.str();
 }
 
@@ -381,7 +383,6 @@ void remi::utils::Timer::tick(){
 
 		Sleep( 2 );
 	}
-    cout << "remi::utils::Timer::tick - TIMER STOPPED" << endl;
 
 }
 
@@ -485,7 +486,7 @@ void Tag::setIdentifier(std::string newIdentifier) {
 std::string Tag::innerHTML(Dictionary<Represantable*>* localChangedWidgets, bool forceUpdate) {
 	std::ostringstream ret;
 	for (std::string k : this->children.keys()) {
-        cout << "representing: " << k << endl;
+        //cout << "representing: " << k << endl;
 		Represantable* s = children.get(k);
 		ret << s->repr(localChangedWidgets, forceUpdate);
 	}
@@ -498,7 +499,7 @@ std::string Tag::repr(Dictionary<Represantable*>* changedWidgets, bool forceUpda
 	std::ostringstream  _innerHtml;
 
 	_innerHtml << innerHTML(localChangedWidgets, forceUpdate);
-    cout << "Tag::repr - representing: " << this->type << " localChangedWidgets->size() = " << localChangedWidgets->size() << endl;
+    //cout << "Tag::repr - representing: " << this->type << " localChangedWidgets->size() = " << localChangedWidgets->size() << endl;
 	if (this->isChanged() || (localChangedWidgets->size() > 0 || forceUpdate)) {
 		_backupRepr.str(std::string());
 		_backupRepr << "<" << type <<
@@ -536,11 +537,11 @@ void Tag::_needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata)
 
 
     this->_reprAttributes.str(std::string());
-    cout << this->_reprAttributes.str() << endl<<endl;
+    //cout << this->_reprAttributes.str() << endl<<endl;
 	for (std::string k : tmp.keys()) {
 		this->_reprAttributes << k << "=\"" << tmp[k].value << "\"";
 	}
-	cout << this->_reprAttributes.str() << endl<<endl;
+	//cout << this->_reprAttributes.str() << endl<<endl;
 	_notifyParentForUpdate();
 }
 

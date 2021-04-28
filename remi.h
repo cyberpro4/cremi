@@ -998,9 +998,7 @@ namespace remi {
 		        //converting height values in percent string
 		        for(std::string key : widget_layout_map.keys()){
 		            std::map<std::string, float>* m = widget_layout_map.get(key);
-		            std::cout << "dovrebbe essere: " << ((*m)["height"] / layout_height_in_chars) * 100.0 - gap_vertical << std::endl;
 		            (*m)["height"] = ((*m)["height"] / layout_height_in_chars) * 100.0 - gap_vertical;
-		            std::cout << "invece: " << ((std::map<std::string, float>)*widget_layout_map.get(key))["height"]<< std::endl;
 		        }
 		
 		        for(std::string key : widget_layout_map.keys()){
