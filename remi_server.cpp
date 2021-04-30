@@ -251,19 +251,19 @@ void App::init(std::string host_address) {
 
 	//head->setInternalJs(utils::sformat("%d", (int)this), host_address, 20, 3000);
 	head->setInternalJs("127.0.0.1:91", 20, 3000);
-	LINK_CLASS_MEMBER(head->event_onerror, this, &App::onpageerror);
+	LINK_EVENT_TO_CLASS_MEMBER(head->event_onerror, this, &App::onpageerror);
 
 	body = new remi::BODY();
 	body->addClass("remi-main");
-	LINK_CLASS_MEMBER(body->event_onload, this, &App::onload);
-	LINK_CLASS_MEMBER(body->event_ononline, this, &App::ononline);
-	LINK_CLASS_MEMBER(body->event_onpagehide, this, &App::onpagehide);
-	LINK_CLASS_MEMBER(body->event_onpageshow, this, &App::onpageshow);
-	LINK_CLASS_MEMBER(body->event_onresize, this, &App::onresize);
+	LINK_EVENT_TO_CLASS_MEMBER(body->event_onload, this, &App::onload);
+	LINK_EVENT_TO_CLASS_MEMBER(body->event_ononline, this, &App::ononline);
+	LINK_EVENT_TO_CLASS_MEMBER(body->event_onpagehide, this, &App::onpagehide);
+	LINK_EVENT_TO_CLASS_MEMBER(body->event_onpageshow, this, &App::onpageshow);
+	LINK_EVENT_TO_CLASS_MEMBER(body->event_onresize, this, &App::onresize);
 
 	html->addChild(head, "head");
 	html->addChild(body, "body");
-	LINK_CLASS_MEMBER(html->event_onrequiredupdate, this, &App::_notifyParentForUpdate);
+	LINK_EVENT_TO_CLASS_MEMBER(html->event_onrequiredupdate, this, &App::_notifyParentForUpdate);
 
 	setRootWidget(this->main());
 

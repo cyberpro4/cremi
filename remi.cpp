@@ -439,9 +439,9 @@ std::string StringRepresantable::repr(Dictionary<Represantable*>* changedWidgets
 
 
 Tag::Tag() {
-	LINK_CLASS_MEMBER(this->attributes.event_onchange, this, &Tag::_needUpdate);
-	LINK_CLASS_MEMBER(this->style.event_onchange, this, &Tag::_needUpdate);
-	LINK_CLASS_MEMBER(this->children.event_onchange, this, &Tag::_needUpdate);
+	LINK_EVENT_TO_CLASS_MEMBER(this->attributes.event_onchange, this, &Tag::_needUpdate);
+	LINK_EVENT_TO_CLASS_MEMBER(this->style.event_onchange, this, &Tag::_needUpdate);
+	LINK_EVENT_TO_CLASS_MEMBER(this->children.event_onchange, this, &Tag::_needUpdate);
 
 	_parent = NULL;
 

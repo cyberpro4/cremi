@@ -467,10 +467,10 @@ namespace remi {
 		}
 	};
 
-#define LINK_CLASS_MEMBER(event, pointerToObject, pointerToMember, pointerVoidPtrUserdata) event->link(reinterpret_cast<remi::EventListener*>(pointerToObject), reinterpret_cast<EventListener::listener_class_member_type>(pointerToMember), pointerVoidPtrUserdata);
-#define LINK_CLASS_MEMBER(event, pointerToObject, pointerToMember) event->link(reinterpret_cast<remi::EventListener*>(pointerToObject), reinterpret_cast<EventListener::listener_class_member_type>(pointerToMember));
-#define LINK_FUNCTION(event, pointerToFunction, pointerVoidPtrUserdata) event->link(reinterpret_cast<Event::listener_function_type(pointerToFunction), pointerVoidPtrUserdata);
-#define LINK_LAMBDA(event, lambdaExpression) event->link(lambdaExpression);
+#define LINK_EVENT_TO_CLASS_MEMBER(event, pointerToObject, pointerToMember, pointerVoidPtrUserdata) event->link(reinterpret_cast<remi::EventListener*>(pointerToObject), reinterpret_cast<EventListener::listener_class_member_type>(pointerToMember), pointerVoidPtrUserdata);
+#define LINK_EVENT_TO_CLASS_MEMBER(event, pointerToObject, pointerToMember) event->link(reinterpret_cast<remi::EventListener*>(pointerToObject), reinterpret_cast<EventListener::listener_class_member_type>(pointerToMember));
+#define LINK_EVENT_TO_FUNCTION(event, pointerToFunction, pointerVoidPtrUserdata) event->link(reinterpret_cast<Event::listener_function_type(pointerToFunction), pointerVoidPtrUserdata);
+#define LINK_EVENT_TO_LAMBDA(event, lambdaExpression) event->link(lambdaExpression);
 
 #define EVENT(NAME) class NAME:public Event{ \
                         public: \

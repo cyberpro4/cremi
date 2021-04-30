@@ -71,6 +71,7 @@ public:
 
 	Widget* main() {
 		counter = 0;
+
 		//mainContainer = new remi::HBox();
 		mainContainer = new remi::AsciiContainer(
 			R"(
@@ -90,9 +91,9 @@ public:
 		mainContainer->append(label, "label");
 
 		btn1 = new remi::Button("Show generic dialog");
-
+		
 		/* registering a class member listener */
-		LINK_CLASS_MEMBER(btn1->event_onclick, this, &TestApp::onClick);
+		LINK_EVENT_TO_CLASS_MEMBER(btn1->event_onclick, this, &TestApp::onClick);
 
 		/* registering a function listener */
 		//btn1->event_onclick->link(&funcOnclick, btn1);
@@ -103,19 +104,19 @@ public:
 		/* registering a context capturing lambda expression listener */
 		//btn1->event_onclick->link([this](EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){this->btn1->style.set("background-color", "purple");});
 
-		LINK_CLASS_MEMBER(btn1->event_onmousedown, this, &TestApp::onMouseDown);
+		LINK_EVENT_TO_CLASS_MEMBER(btn1->event_onmousedown, this, &TestApp::onMouseDown);
 		//btn1->style.set("width", "100px");
 		mainContainer->append(btn1, "button");
 
 		btn2 = new remi::Button("bt2");
-		LINK_CLASS_MEMBER(btn2->event_onclick, this, &TestApp::onBt2Click);
+		LINK_EVENT_TO_CLASS_MEMBER(btn2->event_onclick, this, &TestApp::onBt2Click);
 
 		btn3 = new remi::Button("bt3");
 		mainContainer->append(btn2, "button2");
 		mainContainer->append(btn3, "bt3");
 
 		dialog = new remi::GenericDialog("POTATO", "Chips");
-		LINK_CLASS_MEMBER( dialog->event_onconfirm, this, &TestApp::dialogOnConfirm);
+		LINK_EVENT_TO_CLASS_MEMBER( dialog->event_onconfirm, this, &TestApp::dialogOnConfirm);
 
 		return mainContainer;
 	}
