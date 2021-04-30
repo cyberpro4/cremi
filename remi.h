@@ -14,12 +14,13 @@
 #include <iomanip>
 #include <stdio.h>
 #include <stdarg.h>
-#include <cxxabi.h>
 #include <functional>
 
 //#include <thread>       //std::this_thread::sleep_for std::thread
 #include <chrono>
 #include <typeinfo>
+
+#pragma pointers_to_members(full_generality, virtual_inheritance)
 
 #define CALL_MEMBER_FN(object,ptrToMember)  ((object).*(ptrToMember))
 
@@ -78,7 +79,7 @@ typedef     void* (*remi_thread_callback)(remi_thread_param param);
 
 long long int	remi_timestamp();
 
-remi_thread		remi_createThread(remi_thread_callback callback , remi_thread_param param);
+remi_thread		remi_createThread(remi_thread_callback callback, remi_thread_param param);
 
 namespace remi {
 
@@ -93,19 +94,19 @@ namespace remi {
 		//pc stays for percent
 		std::string operator "" _pc(long double value);
 
-		std::string join(std::list<std::string> stringList , std::string glue);
+		std::string join(std::list<std::string> stringList, std::string glue);
 
 		std::string string_encode(std::string text);
 
-		std::string escape_json(const std::string &s);
+		std::string escape_json(const std::string& s);
 
-		std::string sformat(std::string format , ...);
+		std::string sformat(std::string format, ...);
 
-		int sscan(std::string from , std::string format , ...);
+		int sscan(std::string from, std::string format, ...);
 
-		std::list<std::string> split(std::string subject , std::string delimiter);
+		std::list<std::string> split(std::string subject, std::string delimiter);
 
-		std::string strip(std::string subject , char char_to_strip);
+		std::string strip(std::string subject, char char_to_strip);
 
 		int count(std::string subject, std::string pattern);
 
@@ -121,10 +122,10 @@ namespace remi {
 
 
 		template< class org >
-		org list_at(std::list<org> list , int index) {
+		org list_at(std::list<org> list, int index) {
 			int c = 0;
 			org fitem;
-		for (org item : list) {
+			for (org item : list) {
 				if (c == index)
 					fitem = item;
 				c++;
@@ -134,207 +135,208 @@ namespace remi {
 		}
 
 		class TimerListener {
-			public:
-				virtual void onTimer() = 0;
+		public:
+			virtual void onTimer() = 0;
 		};
 
 		//Timer utility. Calls a function (in a parallel std::thread) at a predefined 'millisecondsInterval' until stopFlag turns True.
 		class Timer {
-			public:
+		public:
 
-				Timer(int millisecondsInterval , TimerListener* listener = NULL);
-				Timer();
+			Timer(int millisecondsInterval, TimerListener* listener = NULL);
+			Timer();
 
-				void stop();
+			void stop();
 
-				void start();
+			void start();
 
-				void setInterval(int millisecondsInterval);
+			void setInterval(int millisecondsInterval);
 
-				void setListener(TimerListener* listener);
+			void setListener(TimerListener* listener);
 
-				//bool has_passed();
+			//bool has_passed();
 
-				void tick();
+			void tick();
 
-				//double elapsed();
+			//double elapsed();
 
-			private:
+		private:
 
-				remi_thread     _t;
+			remi_thread     _t;
 
-				TimerListener*	_listener;
+			TimerListener* _listener;
 
-				int             _millisecondsInterval;
+			int             _millisecondsInterval;
 
-				bool            _stopFlag;
+			bool            _stopFlag;
 
-				//bool			_passed;
+			//bool			_passed;
 
-				typedef std::chrono::steady_clock clock_;
-				typedef std::chrono::duration<double, std::ratio<1> > second_;
+			typedef std::chrono::steady_clock clock_;
+			typedef std::chrono::duration<double, std::ratio<1> > second_;
 
-				//std::chrono::time_point<clock_>		_start;
+			//std::chrono::time_point<clock_>		_start;
 
-				static remi_thread_result thread_entry(remi_thread_param p);
+			static remi_thread_result thread_entry(remi_thread_param p);
 		};
 	};
 
 	//some remi_server::App functionalities have to be called by widgets. Here a common
 	//interface is defined
 	class CommonAppInterface {
-		public:
-			virtual void executeJavascript(std::string command)=0;
+	public:
+		virtual void executeJavascript(std::string command) = 0;
 	};
 
 	template<class T> class DictionaryValue {
-		public:
+	public:
 
-			DictionaryValue(std::string name) {
-				this->name = name;
-			}
+		DictionaryValue(std::string name) {
+			this->name = name;
+		}
 
-			DictionaryValue(std::string name , T value) {
-				this->name = name;
-				this->value = value;
-			}
+		DictionaryValue(std::string name, T value) {
+			this->name = name;
+			this->value = value;
+		}
 
-			void operator = (T v) {
-				value = v;
-			}
+		void operator = (T v) {
+			value = v;
+		}
 
-			operator T() {
-				return value;
-			}
+		operator T() {
+			return value;
+		}
 
-			operator const T() const {
-				return (const T)value;
-			}
+		operator const T() const {
+			return (const T)value;
+		}
 
-			std::string     name;
-			T  value;
+		std::string     name;
+		T  value;
 	};
 
 	template<class T> class Dictionary {
 
-		public:
+	public:
 
-			Dictionary() {
-			}
+		Dictionary() {
+		}
 
-			Dictionary(Dictionary<T> & d) {
+		Dictionary(Dictionary<T>& d) {
 			for (DictionaryValue<T>* value : d._library) {
-					_library.push_front(new DictionaryValue<T>(value->name , value->value));
-				}
+				_library.push_front(new DictionaryValue<T>(value->name, value->value));
 			}
+		}
 
-			bool has(std::string name) {
-				DictionaryValue<T>* value = this->getDictionaryValue(name);
-				if (value != NULL)
-					return true;
-				return false;
-			}
+		bool has(std::string name) {
+			DictionaryValue<T>* value = this->getDictionaryValue(name);
+			if (value != NULL)
+				return true;
+			return false;
+		}
 
-			long size() {
-				return this->_library.size();
-			}
+		long size() {
+			return this->_library.size();
+		}
 
-			std::list<std::string> keys() {
-				std::list<std::string> k;
-				if (_library.size()>0) {
+		std::list<std::string> keys() {
+			std::list<std::string> k;
+			if (_library.size() > 0) {
 				for (DictionaryValue<T>* currentAttribute : _library) {
-						k.push_front(currentAttribute->name);
-					}
+					k.push_front(currentAttribute->name);
 				}
-
-				return k;
 			}
 
-			DictionaryValue<T> & operator [](std::string name) {
-				DictionaryValue<T>* objectAttribute = this->getDictionaryValue(name);
-				if (objectAttribute == NULL) {
-					objectAttribute = new DictionaryValue<T>(name);
-					_library.push_front(objectAttribute);
-				}
-				return (*objectAttribute);
-			}
+			return k;
+		}
 
-			void operator = (const Dictionary<T> & d) {
-				clear();
+		DictionaryValue<T>& operator [](std::string name) {
+			DictionaryValue<T>* objectAttribute = this->getDictionaryValue(name);
+			if (objectAttribute == NULL) {
+				objectAttribute = new DictionaryValue<T>(name);
+				_library.push_front(objectAttribute);
+			}
+			return (*objectAttribute);
+		}
+
+		void operator = (const Dictionary<T>& d) {
+			clear();
 			for (DictionaryValue<T>* value : d._library) {
-					_library.push_front(new DictionaryValue<T>(value->name , value->value));
-				}
+				_library.push_front(new DictionaryValue<T>(value->name, value->value));
 			}
+		}
 
-			void update(const Dictionary<T>& d) {
+		void update(const Dictionary<T>& d) {
 			for (DictionaryValue<T>* dictionaryValue : d._library) {
-					this->set(dictionaryValue->name, dictionaryValue->value);
-				}
-
+				this->set(dictionaryValue->name, dictionaryValue->value);
 			}
 
-			const T get(std::string name) const {
-				DictionaryValue<T>* objectAttribute = this->getDictionaryValue(name);
+		}
 
-				/*if( objectAttribute != NULL )
-				    return objectAttribute->value;*/
+		const T get(std::string name) const {
+			DictionaryValue<T>* objectAttribute = this->getDictionaryValue(name);
 
-				return objectAttribute->value;
+			/*if( objectAttribute != NULL )
+				return objectAttribute->value;*/
+
+			return objectAttribute->value;
+		}
+
+		void remove(std::string name) {
+			DictionaryValue<T>* dictionaryValue = this->getDictionaryValue(name);
+			if (dictionaryValue != NULL) {
+				_library.remove(dictionaryValue);
+				delete dictionaryValue;
 			}
+		}
 
-			void remove(std::string name) {
-				DictionaryValue<T>* dictionaryValue = this->getDictionaryValue(name);
-				if (dictionaryValue != NULL) {
-					_library.remove(dictionaryValue);
-					delete dictionaryValue;
-				}
+		void set(std::string name, T value) {
+			DictionaryValue<T>* dictionaryValue = this->getDictionaryValue(name);
+			if (dictionaryValue == NULL) {
+				DictionaryValue<T>* _value = new DictionaryValue<T>(name, value);
+				_library.push_front(_value);
 			}
-
-			void set(std::string name, T value) {
-				DictionaryValue<T>* dictionaryValue = this->getDictionaryValue(name);
-				if (dictionaryValue == NULL) {
-					DictionaryValue<T> *_value = new DictionaryValue<T>(name, value);
-					_library.push_front(_value);
-				} else {
-					dictionaryValue->value = value;
-				}
+			else {
+				dictionaryValue->value = value;
 			}
+		}
 
-			void clear() {
+		void clear() {
 			for (DictionaryValue<T>* currentAttribute : _library) {
-					delete currentAttribute;
-				}
-
-				_library.clear();
+				delete currentAttribute;
 			}
 
-			~Dictionary() {
-				clear();
-			}
+			_library.clear();
+		}
 
-		private:
+		~Dictionary() {
+			clear();
+		}
 
-			DictionaryValue<T>* getDictionaryValue(std::string name) const {
-				if (this->_library.size() == 0)
-					return NULL;
+	private:
+
+		DictionaryValue<T>* getDictionaryValue(std::string name) const {
+			if (this->_library.size() == 0)
+				return NULL;
 
 
 			for (DictionaryValue<T>* dictionaryValue : _library) {
-					if (dictionaryValue->name.compare(name) == 0) {
-						return dictionaryValue;
-					}
+				if (dictionaryValue->name.compare(name) == 0) {
+					return dictionaryValue;
 				}
-
-				return NULL;
 			}
 
-			std::list<DictionaryValue<T>*> _library;
+			return NULL;
+		}
+
+		std::list<DictionaryValue<T>*> _library;
 
 	};
 
 	namespace utils {
 
-		std::string join(Dictionary<std::string>& from , std::string nameValueGlue , std::string itemsGlue);
+		std::string join(Dictionary<std::string>& from, std::string nameValueGlue, std::string itemsGlue);
 
 		std::string toCss(Dictionary<std::string>& values);
 
@@ -342,128 +344,133 @@ namespace remi {
 
 
 	class Buffer {
-		public:
-			char* data;
-			unsigned long long len;
-		public:
-			Buffer(char* _data, unsigned long long _len) {
-				data = _data;
-				len = _len;
-			}
-			~Buffer() {
-				delete data;
-			}
-			std::string str() {
-				std::string _s;
-				_s.assign(data, len);
-				return _s;
-			}
+	public:
+		char* data;
+		unsigned long long len;
+	public:
+		Buffer(char* _data, unsigned long long _len) {
+			data = _data;
+			len = _len;
+		}
+		~Buffer() {
+			delete data;
+		}
+		std::string str() {
+			std::string _s;
+			_s.assign(data, len);
+			return _s;
+		}
 	};
 
 	class Event;
 
 
 	class EventSource {
-		public:
-			Dictionary<Event*> event_handlers;
+	public:
+		Dictionary<Event*> event_handlers;
 	};
 
 	class EventListener {
-		public:
-			typedef void (EventListener::*listener_class_member_type)(EventSource*, Dictionary<Buffer*>*, void*);
+	public:
+		typedef void (EventListener::* listener_class_member_type)(EventSource*, Dictionary<Buffer*>*, void*);
 	};
 
 
 	class Event {
-		public:
-			const char* _eventName; //this is used for comparison, when a js event occurs and have to be dispatched to widgets
+	public:
+		const char* _eventName; //this is used for comparison, when a js event occurs and have to be dispatched to widgets
 
-			EventSource* _eventSource; //the event owner, that calls the listener
+		EventSource* _eventSource; //the event owner, that calls the listener
 
-		public:
-			typedef void (*listener_function_type)(EventSource*, Dictionary<Buffer*>*, void*);
-			listener_function_type _listener_function;
+	public:
+		typedef void (*listener_function_type)(EventSource*, Dictionary<Buffer*>*, void*);
+		listener_function_type _listener_function;
 
-			EventListener::listener_class_member_type _listener_member;
-			EventListener* _listener_instance;
+		EventListener::listener_class_member_type _listener_member;
+		EventListener* _listener_instance;
 
-			typedef std::function<void (EventSource*, Dictionary<Buffer*>*, void*)> listener_contextualized_lambda_type;
-			listener_contextualized_lambda_type _listener_context_lambda;
+		typedef std::function<void(EventSource*, Dictionary<Buffer*>*, void*)> listener_contextualized_lambda_type;
+		listener_contextualized_lambda_type _listener_context_lambda;
 
-			void* _userData;
+		void* _userData;
 
-		public:
-			Event(EventSource* eventSource, const char* eventName):_eventSource(eventSource),_eventName(eventName) {
-				_listener_function = NULL;
-				_listener_member = NULL;
-				_listener_instance = NULL;
-				_listener_context_lambda = NULL;
+	public:
+		Event(EventSource* eventSource, const char* eventName) :_eventSource(eventSource), _eventName(eventName) {
+			_listener_function = NULL;
+			_listener_member = NULL;
+			_listener_instance = NULL;
+			_listener_context_lambda = NULL;
+		}
+
+		virtual void link(EventListener* instance, EventListener::listener_class_member_type listener, void* userData = 0) {
+			(*this) >> instance >> listener >> userData;
+		}
+
+		virtual void link(listener_function_type listener, void* userData = 0) {
+			(*this) >> listener >> userData;
+		}
+
+		virtual void link(listener_contextualized_lambda_type listener, void* userData = 0) {
+			(*this) >> listener >> userData;
+		}
+
+		//event registration in stream form myevent >> listener >> userData;;
+		virtual Event& operator>> (listener_function_type listener) {
+			_listener_member = NULL;
+			_listener_instance = NULL;
+			_listener_context_lambda = NULL;
+
+			this->_listener_function = listener;
+			return *this;
+		}
+		virtual Event& operator>> (listener_contextualized_lambda_type listener) {
+			_listener_function = NULL;
+			_listener_member = NULL;
+			_listener_instance = NULL;
+
+			this->_listener_context_lambda = listener;
+			return *this;
+		}
+		virtual Event& operator>> (EventListener* instance) {
+			_listener_function = NULL;
+			_listener_context_lambda = NULL;
+
+			this->_listener_instance = instance;
+			return *this;
+		}
+		virtual Event& operator>> (EventListener::listener_class_member_type listener) {
+			_listener_function = NULL;
+			_listener_context_lambda = NULL;
+
+			this->_listener_member = listener;
+			return *this;
+		}
+		virtual Event& operator>> (void* userData) {
+			this->_userData = userData;
+			return *this;
+		}
+
+		virtual void operator()(Dictionary<Buffer*>* params) {
+			if (this->_listener_function != NULL) {
+				this->_listener_function(_eventSource, params, this->_userData);
+				return;
 			}
-
-			virtual void _do(EventListener* instance, EventListener::listener_class_member_type listener, void* userData=0) {
-				(*this) >> instance >> listener >> userData;
+			if (this->_listener_member != NULL) {
+				//(*this->_listener_instance).*(this->_listener_member)(eventSource, params, this->_userData);
+				//invoke(this->_listener_member, this->_listener_instance, eventSource, params, this->_userData);
+				CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, params, this->_userData);
 			}
-
-			virtual void _do(listener_function_type listener, void* userData=0) {
-				(*this) >> listener >> userData;
+			if (this->_listener_context_lambda != NULL) {
+				this->_listener_context_lambda(_eventSource, params, this->_userData);
+				return;
 			}
-
-			virtual void _do(listener_contextualized_lambda_type listener, void* userData=0) {
-				(*this) >> listener >> userData;
-			}
-
-			//event registration in stream form myevent >> listener >> userData;;
-			virtual Event& operator>> (listener_function_type listener) {
-				_listener_member = NULL;
-				_listener_instance = NULL;
-				_listener_context_lambda = NULL;
-
-				this->_listener_function = listener;
-				return *this;
-			}
-			virtual Event& operator>> (listener_contextualized_lambda_type listener) {
-				_listener_function = NULL;
-				_listener_member = NULL;
-				_listener_instance = NULL;
-
-				this->_listener_context_lambda = listener;
-				return *this;
-			}
-			virtual Event& operator>> (EventListener* instance) {
-				_listener_function = NULL;
-				_listener_context_lambda = NULL;
-
-				this->_listener_instance = instance;
-				return *this;
-			}
-			virtual Event& operator>> (EventListener::listener_class_member_type listener) {
-				_listener_function = NULL;
-				_listener_context_lambda = NULL;
-
-				this->_listener_member = listener;
-				return *this;
-			}
-			virtual Event& operator>> (void* userData) {
-				this->_userData = userData;
-				return *this;
-			}
-
-			virtual void operator()(Dictionary<Buffer*>* params) {
-				if (this->_listener_function!=NULL) {
-					this->_listener_function(_eventSource, params, this->_userData);
-					return;
-				}
-				if (this->_listener_member!=NULL) {
-					//(*this->_listener_instance).*(this->_listener_member)(eventSource, params, this->_userData);
-					//invoke(this->_listener_member, this->_listener_instance, eventSource, params, this->_userData);
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, params, this->_userData);
-				}
-				if (this->_listener_context_lambda !=NULL) {
-					this->_listener_context_lambda(_eventSource, params, this->_userData);
-					return;
-				}
-			}
+		}
 	};
+
+#define LINK_CLASS_MEMBER(event, pointerToObject, pointerToMember, pointerVoidPtrUserdata) event->link(reinterpret_cast<remi::EventListener*>(pointerToObject), reinterpret_cast<EventListener::listener_class_member_type>(pointerToMember), pointerVoidPtrUserdata);
+#define LINK_CLASS_MEMBER(event, pointerToObject, pointerToMember) event->link(reinterpret_cast<remi::EventListener*>(pointerToObject), reinterpret_cast<EventListener::listener_class_member_type>(pointerToMember));
+#define LINK_FUNCTION(event, pointerToFunction, pointerVoidPtrUserdata) event->link(reinterpret_cast<Event::listener_function_type(pointerToFunction), pointerVoidPtrUserdata);
+#define LINK_LAMBDA(event, lambdaExpression) event->link(lambdaExpression);
 
 #define EVENT(NAME) class NAME:public Event{ \
                         public: \
@@ -476,242 +483,242 @@ namespace remi {
                     }* event_##NAME;
 
 	template<class T> class VersionedDictionary : public Dictionary<T>, public EventSource {
-		public:
+	public:
 
-			VersionedDictionary() {
-				this->_version = 0;
-				this->event_onchange = new onchange(this);
-			}
+		VersionedDictionary() {
+			this->_version = 0;
+			this->event_onchange = new onchange(this);
+		}
 
-			~VersionedDictionary() {
-				delete this->event_onchange;
-			}
+		~VersionedDictionary() {
+			delete this->event_onchange;
+		}
 
-			/* With this operator the dictionary stores the key of the value to be accessed
-				and returns itself. The overload of operator= and operator T() allows to
-				get or set the value of the element for which the key has been stored.
-				This is done in order to get rid of the changes over the element making it possible
-				to spawn the onchange event.
-				The Dictionay::operator[] returns the DictionaryValue, and this would make
-				impossible to track value changes. This is why it has been overloaded.
-			*/
-			VersionedDictionary & operator [](std::string name) {
-				Dictionary<T>::operator[](name);
-				this->_elementKey = name;
-				return *this;
-			}
+		/* With this operator the dictionary stores the key of the value to be accessed
+			and returns itself. The overload of operator= and operator T() allows to
+			get or set the value of the element for which the key has been stored.
+			This is done in order to get rid of the changes over the element making it possible
+			to spawn the onchange event.
+			The Dictionay::operator[] returns the DictionaryValue, and this would make
+			impossible to track value changes. This is why it has been overloaded.
+		*/
+		VersionedDictionary& operator [](std::string name) {
+			Dictionary<T>::operator[](name);
+			this->_elementKey = name;
+			return *this;
+		}
 
-			void operator = (T value) {
-				this->set(this->_elementKey, value);
-			}
+		void operator = (T value) {
+			this->set(this->_elementKey, value);
+		}
 
-			operator T() {
-				return this->get(this->_elementKey);
-			}
+		operator T() {
+			return this->get(this->_elementKey);
+		}
 
-			void update(const Dictionary<T>& d) {
-				_version++;
-				Dictionary<T>::update(d);
-				this->event_onchange->operator()(NULL);
-			}
+		void update(const Dictionary<T>& d) {
+			_version++;
+			Dictionary<T>::update(d);
+			this->event_onchange->operator()(NULL);
+		}
 
-			void remove(std::string name) {
-				_version++;
-				Dictionary<T>::remove(name);
-				this->event_onchange->operator()(NULL);
-			}
+		void remove(std::string name) {
+			_version++;
+			Dictionary<T>::remove(name);
+			this->event_onchange->operator()(NULL);
+		}
 
-			void set(std::string name , T value) {
-				/*if( has( name ) ){
-				    if( getAttribute( name ).compare( value ) != 0 )
-				        _version += version_increment;
-				} else
-				    _version += version_increment;*/
-				_version ++;
+		void set(std::string name, T value) {
+			/*if( has( name ) ){
+				if( getAttribute( name ).compare( value ) != 0 )
+					_version += version_increment;
+			} else
+				_version += version_increment;*/
+			_version++;
 
-				Dictionary<T>::set(name, value);
-				this->event_onchange->operator()(NULL);
-			}
+			Dictionary<T>::set(name, value);
+			this->event_onchange->operator()(NULL);
+		}
 
-			void clear() {
-				_version++;
-				Dictionary<T>::clear();
-				this->event_onchange->operator()(NULL);
-			}
+		void clear() {
+			_version++;
+			Dictionary<T>::clear();
+			this->event_onchange->operator()(NULL);
+		}
 
-			long getVersion() {
-				return _version;
-			}
+		long getVersion() {
+			return _version;
+		}
 
-			void alignVersion() {
-				_lastVersion = _version;
-			}
+		void alignVersion() {
+			_lastVersion = _version;
+		}
 
-			bool isChanged() {
-				return _version != _lastVersion;
-			}
+		bool isChanged() {
+			return _version != _lastVersion;
+		}
 
-			/*
-			class onChange:public Event{
-			    public:
-			        onChange(EventSource* eventSource):Event::Event(eventSource, CLASS_NAME(onChange)){
-			            eventSource->event_handlers.set(this->_eventName, this);
-			        }
-			        void operator()(Dictionary<Buffer*>* parameters=NULL){
-			            Event::operator()(_eventSource, parameters);
-			        }
-			}* event_onchange;
-			*/
-			EVENT(onchange)
+		/*
+		class onChange:public Event{
+			public:
+				onChange(EventSource* eventSource):Event::Event(eventSource, CLASS_NAME(onChange)){
+					eventSource->event_handlers.set(this->_eventName, this);
+				}
+				void operator()(Dictionary<Buffer*>* parameters=NULL){
+					Event::operator()(_eventSource, parameters);
+				}
+		}* event_onchange;
+		*/
+		EVENT(onchange)
 
-		private:
+	private:
 
-			long _version;
-			long _lastVersion;
-			std::string _elementKey; //this is the key to be accessed from the operator[]
+		long _version;
+		long _lastVersion;
+		std::string _elementKey; //this is the key to be accessed from the operator[]
 	};
 
 
 	class Represantable {
-		public:
-			virtual std::string repr(Dictionary<Represantable*>* changedWidgets, bool forceUpdate=false) = 0;
+	public:
+		virtual std::string repr(Dictionary<Represantable*>* changedWidgets, bool forceUpdate = false) = 0;
 	};
 
 
 	class StringRepresantable : public Represantable {
-		public:
+	public:
 
-			StringRepresantable(std::string v);
+		StringRepresantable(std::string v);
 
-			std::string repr(Dictionary<Represantable*>* changedWidgets = NULL, bool forceUpdate=false);
+		std::string repr(Dictionary<Represantable*>* changedWidgets = NULL, bool forceUpdate = false);
 
-		private:
+	private:
 
-			std::string v;
+		std::string v;
 	};
 
 
-	class Tag : public Represantable, public EventSource, public EventListener  {
+	class Tag : public Represantable, public EventSource, public EventListener {
 
-		public:
+	public:
 
-			Tag();
+		Tag();
 
-			Tag(VersionedDictionary<std::string> attributes, std::string _type, std::string _class="");
+		Tag(VersionedDictionary<std::string> attributes, std::string _type, std::string _class = "");
 
-			~Tag() {
-				//Children are deleted by parent
+		~Tag() {
+			//Children are deleted by parent
 			for (std::string k : this->children.keys()) {
-					delete this->children.get(k);
-				}
+				delete this->children.get(k);
+			}
 
-				//Event handlers are deleted here
+			//Event handlers are deleted here
 			for (std::string k : this->event_handlers.keys()) {
-					delete this->event_handlers.get(k);
-				}
+				delete this->event_handlers.get(k);
 			}
+		}
 
-			void setClass(std::string name);
+		void setClass(std::string name);
 
-			void addClass(std::string name);
+		void addClass(std::string name);
 
-			void removeClass(std::string name);
+		void removeClass(std::string name);
 
-			std::string getIdentifier();
+		std::string getIdentifier();
 
-			void setIdentifier(std::string newIdentifier);
+		void setIdentifier(std::string newIdentifier);
 
-			virtual std::string innerHTML(Dictionary<Represantable*>* localChangedWidgets, bool forceUpdate);
+		virtual std::string innerHTML(Dictionary<Represantable*>* localChangedWidgets, bool forceUpdate);
 
-			std::string repr(Dictionary<Represantable*>* changedWidgets, bool forceUpdate);
+		std::string repr(Dictionary<Represantable*>* changedWidgets, bool forceUpdate);
 
-			std::string getLatestRepr() {
-				return _backupRepr.str();
-			}
+		std::string getLatestRepr() {
+			return _backupRepr.str();
+		}
 
-			void setParent(Tag* tag) {
-				this->_parent = tag;
-				this->attributes.set("parent_widget" , this->getIdentifier());
-			}
+		void setParent(Tag* tag) {
+			this->_parent = tag;
+			this->attributes.set("parent_widget", this->getIdentifier());
+		}
 
-			void addChild(Represantable* child, std::string key = "");
+		void addChild(Represantable* child, std::string key = "");
 
-			void addChild(std::string child, std::string key = "");
+		void addChild(std::string child, std::string key = "");
 
-			Represantable * getChild(std::string key);
+		Represantable* getChild(std::string key);
 
-			void setUpdated();
+		void setUpdated();
 
-			bool isChanged() {
-				return attributes.isChanged() || style.isChanged() || children.isChanged();
-			}
+		bool isChanged() {
+			return attributes.isChanged() || style.isChanged() || children.isChanged();
+		}
 
-			virtual void _notifyParentForUpdate();
+		virtual void _notifyParentForUpdate();
 
-			//EventListener::listener_type _needUpdate;
-			void _needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata);
+		//EventListener::listener_type _needUpdate;
+		void _needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata);
 
-		public:
+	public:
 
-			std::list<std::string>              _classes;
+		std::list<std::string>              _classes;
 
-			VersionedDictionary<std::string>    attributes;
-			VersionedDictionary<std::string>    style;
+		VersionedDictionary<std::string>    attributes;
+		VersionedDictionary<std::string>    style;
 
-			VersionedDictionary<Represantable *>       children;
+		VersionedDictionary<Represantable*>       children;
 
-			std::string     type;
+		std::string     type;
 
-			Tag* _parent;
+		Tag* _parent;
 
-			bool ignoreUpdate;
+		bool ignoreUpdate;
 
-		private:
+	private:
 
-			std::list<Represantable *>  _render_children_list;
-			std::ostringstream          _backupRepr;
-			std::ostringstream          _reprAttributes;
+		std::list<Represantable*>  _render_children_list;
+		std::ostringstream          _backupRepr;
+		std::ostringstream          _reprAttributes;
 	};
 
 
-	class EventJS:public Event {
-			/* This class is used to set event widget attributes only when connected to a listener */
-		public:
-			std::string js_code;
+	class EventJS :public Event {
+		/* This class is used to set event widget attributes only when connected to a listener */
+	public:
+		std::string js_code;
 
-		public:
-			EventJS(EventSource* eventSource, const char* eventName, std::string _js_code):Event::Event(eventSource, eventName) {
-				this->js_code = _js_code;
-			}
+	public:
+		EventJS(EventSource* eventSource, const char* eventName, std::string _js_code) :Event::Event(eventSource, eventName) {
+			this->js_code = _js_code;
+		}
 
-			//event registration in stream form myevent >> listener >> userData;;
-			Event& operator>> (listener_function_type listener) {
-				Tag* emitter = static_cast<Tag*>(_eventSource);
-				emitter->attributes[this->_eventName] = utils::sformat(this->js_code, emitter->getIdentifier().c_str(), this->_eventName);
-				return Event::operator>>(listener);
-			}
-			Event& operator>> (listener_contextualized_lambda_type listener) {
-				Tag* emitter = static_cast<Tag*>(_eventSource);
-				emitter->attributes[this->_eventName] = utils::sformat(this->js_code, emitter->getIdentifier().c_str(), this->_eventName);
-				return Event::operator>>(listener);
-			}
-			Event& operator>> (EventListener* instance) {
-				Tag* emitter = static_cast<Tag*>(_eventSource);
-				emitter->attributes[this->_eventName] = utils::sformat(this->js_code, emitter->getIdentifier().c_str(), this->_eventName);
-				return Event::operator>>(instance);
-			}
-			Event& operator>> (EventListener::listener_class_member_type listener) {
-				//not required to set attribute js code, because it will be in
-				//operator>>(EventListener* instance)
-				//_eventSource->attributes[this->_eventName] = utils::sformat( this->js_code, this->_eventSource->getIdentifier().c_str(), this->_eventName);
-				return Event::operator>>(listener);
-			}
-			Event& operator>> (void* userData) {
-				//not required to set attribute js code, because it will be in
-				//operator>>(EventListener* instance)
-				//_eventSource->attributes[this->_eventName] = utils::sformat( this->js_code, this->_eventSource->getIdentifier().c_str(), this->_eventName);
-				return Event::operator>>(userData);
-			}
+		//event registration in stream form myevent >> listener >> userData;;
+		Event& operator>> (listener_function_type listener) {
+			Tag* emitter = static_cast<Tag*>(_eventSource);
+			emitter->attributes[this->_eventName] = utils::sformat(this->js_code, emitter->getIdentifier().c_str(), this->_eventName);
+			return Event::operator>>(listener);
+		}
+		Event& operator>> (listener_contextualized_lambda_type listener) {
+			Tag* emitter = static_cast<Tag*>(_eventSource);
+			emitter->attributes[this->_eventName] = utils::sformat(this->js_code, emitter->getIdentifier().c_str(), this->_eventName);
+			return Event::operator>>(listener);
+		}
+		Event& operator>> (EventListener* instance) {
+			Tag* emitter = static_cast<Tag*>(_eventSource);
+			emitter->attributes[this->_eventName] = utils::sformat(this->js_code, emitter->getIdentifier().c_str(), this->_eventName);
+			return Event::operator>>(instance);
+		}
+		Event& operator>> (EventListener::listener_class_member_type listener) {
+			//not required to set attribute js code, because it will be in
+			//operator>>(EventListener* instance)
+			//_eventSource->attributes[this->_eventName] = utils::sformat( this->js_code, this->_eventSource->getIdentifier().c_str(), this->_eventName);
+			return Event::operator>>(listener);
+		}
+		Event& operator>> (void* userData) {
+			//not required to set attribute js code, because it will be in
+			//operator>>(EventListener* instance)
+			//_eventSource->attributes[this->_eventName] = utils::sformat( this->js_code, this->_eventSource->getIdentifier().c_str(), this->_eventName);
+			return Event::operator>>(userData);
+		}
 	};
 
 #define EVENT_JS(NAME, JSCODE) class NAME : public EventJS{ \
@@ -734,24 +741,24 @@ namespace remi {
 
 
 	class Widget : public Tag {
-		public:
+	public:
 
-			/*class onclick:public EventJS{
-			    public:
-			        onclick(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(onclick), utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName)){
-			            ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			        }
-			        void operator()(Dictionary<Buffer*>* parameters=NULL){
-			            Event::operator()(parameters);
-			        }
-			}* event_onclick;*/
+		/*class onclick:public EventJS{
+			public:
+				onclick(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(onclick), utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName)){
+					((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+				}
+				void operator()(Dictionary<Buffer*>* parameters=NULL){
+					Event::operator()(parameters);
+				}
+		}* event_onclick;*/
 
 
-			EVENT_JS(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+		EVENT_JS(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
 			/*EVENT_JS_DO(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",{
-			    std::cout << "do some code here, maybe parse parameters" << std::endl;
-			    Event::operator()(parameters);
+				std::cout << "do some code here, maybe parse parameters" << std::endl;
+				Event::operator()(parameters);
 			})*/
 
 			EVENT_JS(onblur, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
@@ -763,388 +770,389 @@ namespace remi {
 						params['x']=event.clientX-boundingBox.left;
 						params['y']=event.clientY-boundingBox.top;
 			remi.sendCallbackParam('%s','%s',params);)", {
-				/*std::string x = parameters->get("x");
-				std::string y = parameters->get("y");
-				float xf = std::stof(x);
-				float yf = std::stof(y);*/
-				Event::operator()(parameters);
-			})
+					/*std::string x = parameters->get("x");
+					std::string y = parameters->get("y");
+					float xf = std::stof(x);
+					float yf = std::stof(y);*/
+					Event::operator()(parameters);
+				})
 			EVENT_JS_DO(onmouseup, R"(var params={};
 						var boundingBox = this.getBoundingClientRect();
 						params['x']=event.clientX-boundingBox.left;
 						params['y']=event.clientY-boundingBox.top;
 			remi.sendCallbackParam('%s','%s',params);)", {
-				/*std::string x = parameters->get("x");
-				std::string y = parameters->get("y");
-				float xf = std::stof(x);
-				float yf = std::stof(y);*/
-				Event::operator()(parameters);
-			})
-			EVENT_JS(onmouseout, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-			EVENT_JS(onmouseover, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-			EVENT_JS(onmouseleave, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-			EVENT_JS_DO(onmousemove, R"(var params={};
+					/*std::string x = parameters->get("x");
+					std::string y = parameters->get("y");
+					float xf = std::stof(x);
+					float yf = std::stof(y);*/
+					Event::operator()(parameters);
+				})
+					EVENT_JS(onmouseout, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+					EVENT_JS(onmouseover, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+					EVENT_JS(onmouseleave, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+					EVENT_JS_DO(onmousemove, R"(var params={};
 						var boundingBox = this.getBoundingClientRect();
 						params['x']=event.clientX-boundingBox.left;
 						params['y']=event.clientY-boundingBox.top;
 			remi.sendCallbackParam('%s','%s',params);)", {
 				Event::operator()(parameters);
-			})
-			EVENT_JS_DO(ontouchmove, R"(var params={};" \
+						})
+					EVENT_JS_DO(ontouchmove, R"(var params={};" \
 						"var boundingBox = this.getBoundingClientRect();" \
 						"params['x']=parseInt(event.changedTouches[0].clientX)-boundingBox.left;" \
 						"params['y']=parseInt(event.changedTouches[0].clientY)-boundingBox.top;" \
 			"remi.sendCallbackParam('%s','%s',params);)", {
 				Event::operator()(parameters);
-			})
-			EVENT_JS_DO(ontouchstart, R"(var params={};" \
+						})
+							EVENT_JS_DO(ontouchstart, R"(var params={};" \
 						"var boundingBox = this.getBoundingClientRect();" \
 						"params['x']=parseInt(event.changedTouches[0].clientX)-boundingBox.left;" \
 						"params['y']=parseInt(event.changedTouches[0].clientY)-boundingBox.top;" \
 			"remi.sendCallbackParam('%s','%s',params);)", {
 				Event::operator()(parameters);
-			})
-			EVENT_JS_DO(ontouchend, R"(var params={};" \
+								})
+							EVENT_JS_DO(ontouchend, R"(var params={};" \
 						"var boundingBox = this.getBoundingClientRect();" \
 						"params['x']=parseInt(event.changedTouches[0].clientX)-boundingBox.left;" \
 						"params['y']=parseInt(event.changedTouches[0].clientY)-boundingBox.top;" \
 			"remi.sendCallbackParam('%s','%s',params);)", {
 				Event::operator()(parameters);
-			})
-			EVENT_JS_DO(ontouchenter, R"(var params={};" \
+								})
+									EVENT_JS_DO(ontouchenter, R"(var params={};" \
 						"var boundingBox = this.getBoundingClientRect();" \
 						"params['x']=parseInt(event.changedTouches[0].clientX)-boundingBox.left;" \
 						"params['y']=parseInt(event.changedTouches[0].clientY)-boundingBox.top;" \
 			"remi.sendCallbackParam('%s','%s',params);)", {
 				Event::operator()(parameters);
-			})
-			EVENT_JS(ontouchleave, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-			EVENT_JS(ontouchcancel, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-			EVENT_JS_DO(onkeyup, R"(var params={};params['key']=event.key;
+										})
+									EVENT_JS(ontouchleave, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+											EVENT_JS(ontouchcancel, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+											EVENT_JS_DO(onkeyup, R"(var params={};params['key']=event.key;
 						params['keycode']=(event.which||event.keyCode);
 						params['ctrl']=event.ctrlKey;
 						params['shift']=event.shiftKey;
 						params['alt']=event.altKey;
 			remi.sendCallbackParam('%s','%s',params);)", {
-				/*  key (str): the character value
-					keycode (str): the numeric char code
-				*/
-				Event::operator()(parameters);
-			})
-			EVENT_JS_DO(onkeydown, R"(var params={};params['key']=event.key;
+													/*  key (str): the character value
+														keycode (str): the numeric char code
+													*/
+													Event::operator()(parameters);
+												})
+											EVENT_JS_DO(onkeydown, R"(var params={};params['key']=event.key;
 						params['keycode']=(event.which||event.keyCode);
 						params['ctrl']=event.ctrlKey;
 						params['shift']=event.shiftKey;
 						params['alt']=event.altKey;
 			remi.sendCallbackParam('%s','%s',params);)", {
-				/*  key (str): the character value
-					keycode (str): the numeric char code
-				*/
-				Event::operator()(parameters);
-			})
+													/*  key (str): the character value
+														keycode (str): the numeric char code
+													*/
+													Event::operator()(parameters);
+												})
 
-			void queryClient(CommonAppInterface* appInstance, std::list<std::string>& attributes_list, std::list<std::string>& style_properties_list) {
-				std::string attributes_string = "";
-			for (std::string& attribute : attributes_list) {
-					attributes_string += "params['" + attribute + "']=document.getElementById('" + this->getIdentifier() + "')." + attribute + ";";
-				}
+													void queryClient(CommonAppInterface* appInstance, std::list<std::string>& attributes_list, std::list<std::string>& style_properties_list) {
+													std::string attributes_string = "";
+													for (std::string& attribute : attributes_list) {
+														attributes_string += "params['" + attribute + "']=document.getElementById('" + this->getIdentifier() + "')." + attribute + ";";
+													}
 
-				std::string style_string = "";
-			for (std::string& style_prop : style_properties_list) {
-					style_string += "params['" + style_prop + "']=document.getElementById('" + this->getIdentifier() + "').style." + style_prop + ";";
-				}
+													std::string style_string = "";
+													for (std::string& style_prop : style_properties_list) {
+														style_string += "params['" + style_prop + "']=document.getElementById('" + this->getIdentifier() + "').style." + style_prop + ";";
+													}
 
-				std::string command = "var params={};" + attributes_string + style_string + utils::sformat("remi.sendCallbackParam('%s','%s',params);", this->getIdentifier().c_str(), "onqueryClientResult");
+													std::string command = "var params={};" + attributes_string + style_string + utils::sformat("remi.sendCallbackParam('%s','%s',params);", this->getIdentifier().c_str(), "onqueryClientResult");
 
-				appInstance->executeJavascript(command);
-			}
+													appInstance->executeJavascript(command);
+												}
 
-			/*
-			class onqueryClientResult:public Event{
-			    public:
-			        onqueryClientResult(Tag* emitter):Event::Event(emitter, CLASS_NAME(onqueryClientResult)){
-			            ((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			        }
-			}* event_onqueryClientResult;
-			*/
-			EVENT(onqueryClientResult)
+												/*
+												class onqueryClientResult:public Event{
+													public:
+														onqueryClientResult(Tag* emitter):Event::Event(emitter, CLASS_NAME(onqueryClientResult)){
+															((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+														}
+												}* event_onqueryClientResult;
+												*/
+												EVENT(onqueryClientResult)
 
-		public:
-			Widget();
-			Widget(std::string _class);
-			Widget(VersionedDictionary<std::string> _attributes, VersionedDictionary<std::string> _style, std::string _type, std::string _class);
+	public:
+		Widget();
+		Widget(std::string _class);
+		Widget(VersionedDictionary<std::string> _attributes, VersionedDictionary<std::string> _style, std::string _type, std::string _class);
 
-			~Widget() {
-				//Event handlers are deleted by Tag destructor
-				/*delete this->event_onclick;
-				delete this->event_onblur;
-				delete this->event_onfocus;
-				delete this->event_ondblclick;
-				delete this->event_oncontextmenu;
-				delete this->event_onmousedown;
-				delete this->event_onmouseup;
-				delete this->event_onmouseout;
-				delete this->event_onmouseover;
-				delete this->event_onmouseleave;
-				delete this->event_onmousemove;
-				delete this->event_ontouchmove;
-				delete this->event_ontouchstart;
-				delete this->event_ontouchend;
-				delete this->event_ontouchenter;
-				delete this->event_ontouchleave;
-				delete this->event_ontouchcancel;
-				delete this->event_onkeyup;
-				delete this->event_onkeydown;
-				delete this->event_onqueryClientResult;*/
-			}
+		~Widget() {
+			//Event handlers are deleted by Tag destructor
+			/*delete this->event_onclick;
+			delete this->event_onblur;
+			delete this->event_onfocus;
+			delete this->event_ondblclick;
+			delete this->event_oncontextmenu;
+			delete this->event_onmousedown;
+			delete this->event_onmouseup;
+			delete this->event_onmouseout;
+			delete this->event_onmouseover;
+			delete this->event_onmouseleave;
+			delete this->event_onmousemove;
+			delete this->event_ontouchmove;
+			delete this->event_ontouchstart;
+			delete this->event_ontouchend;
+			delete this->event_ontouchenter;
+			delete this->event_ontouchleave;
+			delete this->event_ontouchcancel;
+			delete this->event_onkeyup;
+			delete this->event_onkeydown;
+			delete this->event_onqueryClientResult;*/
+		}
 
-			void setWidth(int width);
-			void setHeight(int height);
-			void setSize(int width, int height);
+		void setWidth(int width);
+		void setHeight(int height);
+		void setSize(int width, int height);
 
-			void addChild(Represantable* child, std::string key = "");
+		void addChild(Represantable* child, std::string key = "");
 
 	};
 
 
-	class Container: public Widget {
-		public:
-			enum Layout {
-				Horizontal = 1,
-				Vertical = 0
-			};
+	class Container : public Widget {
+	public:
+		enum Layout {
+			Horizontal = 1,
+			Vertical = 0
+		};
 
-		private:
-			Container::Layout _layout_orientation;
+	private:
+		Container::Layout _layout_orientation;
 
-		public:
-			Container(Dictionary<Widget*>* children=NULL, Container::Layout layout_orientation = Layout::Vertical);
+	public:
+		Container(Dictionary<Widget*>* children = NULL, Container::Layout layout_orientation = Layout::Vertical);
 
-			std::string append(Widget* w, std::string key=std::string(""));
-			virtual std::string append(Dictionary<Widget*>* w);
+		std::string append(Widget* w, std::string key = std::string(""));
+		virtual std::string append(Dictionary<Widget*>* w);
 
-			void setLayoutOrientation(Container::Layout orientation);
+		void setLayoutOrientation(Container::Layout orientation);
 	};
 
 
 	class AsciiContainer : public Container {
-		public:
-			Dictionary<std::map<std::string, float>*> widget_layout_map; //here are contained the position and size of each widget
+	public:
+		Dictionary<std::map<std::string, float>*> widget_layout_map; //here are contained the position and size of each widget
 
-		public:
-			AsciiContainer(std::string asciipattern="", float gap_horizontal=0, float gap_vertical=0, Dictionary<Widget*>* children=NULL):Container(children) {
-				this->style["position"] = "relative";
-				this->set_from_asciiart(asciipattern, gap_horizontal, gap_vertical);
-			}
+	public:
+		AsciiContainer(std::string asciipattern = "", float gap_horizontal = 0, float gap_vertical = 0, Dictionary<Widget*> * children = NULL) :Container(children) {
+			this->style["position"] = "relative";
+			this->set_from_asciiart(asciipattern, gap_horizontal, gap_vertical);
+		}
 
-			~AsciiContainer() {
+		~AsciiContainer() {
 			for (std::string key : widget_layout_map.keys()) {
-					delete widget_layout_map.get(key);
-				}
+				delete widget_layout_map.get(key);
 			}
+		}
 
-			void set_from_asciiart(std::string asciipattern, float gap_horizontal=0, float gap_vertical=0) {
-				/*
-				    asciipattern (std::string): a multiline string representing the layout
-				        | widget1               |
-				        | widget1               |
-				        | widget2 | widget3     |
-				    gap_horizontal (float): a percent value (0..100)
-				    gap_vertical (float): a percent value
-				*/
+		void set_from_asciiart(std::string asciipattern, float gap_horizontal = 0, float gap_vertical = 0) {
+			/*
+				asciipattern (std::string): a multiline string representing the layout
+					| widget1               |
+					| widget1               |
+					| widget2 | widget3     |
+				gap_horizontal (float): a percent value (0..100)
+				gap_vertical (float): a percent value
+			*/
 
-				//deleting old map
+			//deleting old map
 			for (std::string key : widget_layout_map.keys()) {
-					delete widget_layout_map.get(key);
+				delete widget_layout_map.get(key);
+			}
+			widget_layout_map.clear();
+
+			std::list<std::string> pattern_rows = utils::split(asciipattern, "\n");
+			pattern_rows.remove_if([](std::string value) {
+				return (utils::strip(utils::strip(value, ' '), '\t').length() < 1);
 				}
-				widget_layout_map.clear();
+			);
 
-				std::list<std::string> pattern_rows = utils::split(asciipattern, "\n");
-				pattern_rows.remove_if([](std::string value) {
-					return (utils::strip(utils::strip(value, ' '), '\t').length() < 1);
-				}
-									  );
+			int layout_height_in_chars = pattern_rows.size();
 
-				int layout_height_in_chars = pattern_rows.size();
-
-				float row_index = 0.0;
+			float row_index = 0.0;
 			for (std::string r : pattern_rows) {
-					std::string row = utils::strip(r, ' ');
-					row = utils::strip(row, '\t');
+				std::string row = utils::strip(r, ' ');
+				row = utils::strip(row, '\t');
 
-					if (row.length()<2)
-						continue;  //at least two pipes
-					int pipes_count = utils::count(row, "|");
-					float row_width = row.length() - pipes_count; //the row width is calculated without pipes
-					row = row.substr(1, row.length()-2); //removing |pipes at beginning and end
+				if (row.length() < 2)
+					continue;  //at least two pipes
+				int pipes_count = utils::count(row, "|");
+				float row_width = row.length() - pipes_count; //the row width is calculated without pipes
+				row = row.substr(1, row.length() - 2); //removing |pipes at beginning and end
 
-					std::list<std::string> columns = utils::split(row, "|");
+				std::list<std::string> columns = utils::split(row, "|");
 
-					float left_value = 0.0;
+				float left_value = 0.0;
 				for (std::string c : columns) {
-						std::string widget_key = utils::strip(c, ' ');
-						float widget_width = (c).length();
+					std::string widget_key = utils::strip(c, ' ');
+					float widget_width = (c).length();
 
-						if (!widget_layout_map.has(widget_key)) {
-							/*width is calculated in percent
-							 height is instead initialized at 1 and incremented by 1 each row the key is present
-							 at the end of algorithm the height will be converted in percent
-							*/
-							widget_layout_map[widget_key] = new std::map<std::string, float> {{"width", widget_width / (row_width) * 100.0 - gap_horizontal},
-								{"height", 1},
-								{"top", (row_index / layout_height_in_chars) * 100.0 + (gap_vertical/2.0)},
-								{"left", (left_value / row_width) * 100.0 + (gap_horizontal/2.0)}
-							};
-						} else {
-							(*(std::map<std::string, float>*)widget_layout_map.get(widget_key))["height"] += 1;
-						}
-						left_value += widget_width;
+					if (!widget_layout_map.has(widget_key)) {
+						/*width is calculated in percent
+						 height is instead initialized at 1 and incremented by 1 each row the key is present
+						 at the end of algorithm the height will be converted in percent
+						*/
+						widget_layout_map[widget_key] = new std::map<std::string, float>{ {"width", widget_width / (row_width) * 100.0 - gap_horizontal},
+							{"height", 1},
+							{"top", (row_index / layout_height_in_chars) * 100.0 + (gap_vertical / 2.0)},
+							{"left", (left_value / row_width) * 100.0 + (gap_horizontal / 2.0)}
+						};
 					}
-					row_index++;
+					else {
+						(*(std::map<std::string, float>*)widget_layout_map.get(widget_key))["height"] += 1;
+					}
+					left_value += widget_width;
 				}
-
-				//converting height values in percent string
-			for (std::string key : widget_layout_map.keys()) {
-					std::map<std::string, float>* m = widget_layout_map.get(key);
-					(*m)["height"] = ((*m)["height"] / layout_height_in_chars) * 100.0 - gap_vertical;
-				}
-
-			for (std::string key : widget_layout_map.keys()) {
-					set_widget_layout(key);
-				}
+				row_index++;
 			}
 
-			std::string append(Widget* w, std::string key=std::string("")) {
-				Container* c = static_cast<Container*>(this);
-				c->append(w, key);
+			//converting height values in percent string
+			for (std::string key : widget_layout_map.keys()) {
+				std::map<std::string, float>* m = widget_layout_map.get(key);
+				(*m)["height"] = ((*m)["height"] / layout_height_in_chars) * 100.0 - gap_vertical;
+			}
+
+			for (std::string key : widget_layout_map.keys()) {
 				set_widget_layout(key);
-				return key;
 			}
+		}
 
-			void set_widget_layout(std::string key) {
-				if (children.has(key)==false || widget_layout_map.has(key)==false) {
-					return;
-				}
-				static_cast<Tag*>(children.get(key))->style.set("position", "absolute");
+		std::string append(Widget* w, std::string key = std::string("")) {
+			Container* c = static_cast<Container*>(this);
+			c->append(w, key);
+			set_widget_layout(key);
+			return key;
+		}
 
-				static_cast<Tag*>(children.get(key))->style.set("width", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["width"]));
-				static_cast<Tag*>(children.get(key))->style.set("height",  utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["height"]));
-				static_cast<Tag*>(children.get(key))->style.set("left", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["left"]));
-				static_cast<Tag*>(children.get(key))->style.set("top", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["top"]));
+		void set_widget_layout(std::string key) {
+			if (children.has(key) == false || widget_layout_map.has(key) == false) {
+				return;
 			}
+			static_cast<Tag*>(children.get(key))->style.set("position", "absolute");
+
+			static_cast<Tag*>(children.get(key))->style.set("width", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["width"]));
+			static_cast<Tag*>(children.get(key))->style.set("height", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["height"]));
+			static_cast<Tag*>(children.get(key))->style.set("left", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["left"]));
+			static_cast<Tag*>(children.get(key))->style.set("top", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["top"]));
+		}
 	};
 
 
-	class HTML:public Tag {
-		public: //Events
-		class onrequiredupdate:public Event {
-				public:
-					onrequiredupdate(Tag* emitter):Event::Event(emitter, CLASS_NAME(onrequiredupdate)) {
-						emitter->attributes["onrequiredupdate"] = utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
-						((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-					}
-					void operator()(Dictionary<Buffer*>* parameters=NULL) {
-						Event::operator()(parameters);
-					}
-			}* event_onrequiredupdate;
-
+	class HTML :public Tag {
+	public: //Events
+		class onrequiredupdate :public Event {
 		public:
-			HTML() {
-				event_onrequiredupdate = new onrequiredupdate(this);
-				type = "html";
+			onrequiredupdate(Tag* emitter) :Event::Event(emitter, CLASS_NAME(onrequiredupdate)) {
+				emitter->attributes["onrequiredupdate"] = utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
 			}
-
-			~HTML() {
-				//Event handlers are deleted by Tag destructor
-				//delete this->event_onrequiredupdate;
+			void operator()(Dictionary<Buffer*>* parameters = NULL) {
+				Event::operator()(parameters);
 			}
+		}*event_onrequiredupdate;
 
-			void _notifyParentForUpdate() {
-				//this condition prevents the event to be called in
-				//onrequiredupdate::onrequiredupdate(), where the .attributes dictionary gets
-				//changed
-				if (this->event_handlers.has("onrequiredupdate")) {
-					(*this->event_onrequiredupdate)();
-				}
+	public:
+		HTML() {
+			event_onrequiredupdate = new onrequiredupdate(this);
+			type = "html";
+		}
+
+		~HTML() {
+			//Event handlers are deleted by Tag destructor
+			//delete this->event_onrequiredupdate;
+		}
+
+		void _notifyParentForUpdate() {
+			//this condition prevents the event to be called in
+			//onrequiredupdate::onrequiredupdate(), where the .attributes dictionary gets
+			//changed
+			if (this->event_handlers.has("onrequiredupdate")) {
+				(*this->event_onrequiredupdate)();
 			}
+		}
 
-			std::string repr(Dictionary<Represantable*>* changed_widgets, bool forceUpdate=false) {
-				/*It is used to automatically represent the object to HTML format
-				packs all the attributes, children and so on.
+		std::string repr(Dictionary<Represantable*>* changed_widgets, bool forceUpdate = false) {
+			/*It is used to automatically represent the object to HTML format
+			packs all the attributes, children and so on.
 
-				Args:
-				    changed_widgets (dict): A dictionary containing a collection of tags that have to be updated.
-				        The tag that have to be updated is the key, and the value is its textual repr.
-				*/
+			Args:
+				changed_widgets (dict): A dictionary containing a collection of tags that have to be updated.
+					The tag that have to be updated is the key, and the value is its textual repr.
+			*/
 
-				Dictionary<Represantable*>* local_changed_widgets = new Dictionary<Represantable*>();
+			Dictionary<Represantable*>* local_changed_widgets = new Dictionary<Represantable*>();
 
-				std::ostringstream  result;
+			std::ostringstream  result;
 
-				result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets, forceUpdate) << "\n</" << type << ">";
-				this->setUpdated();
-				delete local_changed_widgets;
-				return result.str();
-			}
+			result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets, forceUpdate) << "\n</" << type << ">";
+			this->setUpdated();
+			delete local_changed_widgets;
+			return result.str();
+		}
 	};
 
 
-	class HEAD:public Tag {
+	class HEAD :public Tag {
+	public:
+		class onerror :public Event {
 		public:
-		class onerror:public Event {
-				public:
-					onerror(Tag* emitter):Event::Event(emitter, CLASS_NAME(onerror)) {
-						((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-						/* It is not required to set the attribute[onerror] because it is already present int the page javascript*/
-					}
-					void operator()(Dictionary<Buffer*>* parameters=NULL) {
-						Event::operator()(parameters);
-					}
-			}* event_onerror;
+			onerror(Tag* emitter) :Event::Event(emitter, CLASS_NAME(onerror)) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+				/* It is not required to set the attribute[onerror] because it is already present int the page javascript*/
+			}
+			void operator()(Dictionary<Buffer*>* parameters = NULL) {
+				Event::operator()(parameters);
+			}
+		}*event_onerror;
 
-		public:
-			HEAD(std::string title) {
-				type = "head";
-				this->addChild("<meta content='text/html;charset=utf-8' http-equiv='Content-Type'> \
+	public:
+		HEAD(std::string title) {
+			type = "head";
+			this->addChild("<meta content='text/html;charset=utf-8' http-equiv='Content-Type'> \
 							   <meta content='utf-8' http-equiv='encoding'> \
 							   <meta name='viewport' content='width=device-width, initial-scale=1.0'>", "meta");
 
-				this->setTitle(title);
-				this->event_onerror = new onerror(this);
-			}
+			this->setTitle(title);
+			this->event_onerror = new onerror(this);
+		}
 
-			~HEAD() {
-				//Event handlers are deleted by Tag destructor
-				//delete this->event_onerror;
-			}
+		~HEAD() {
+			//Event handlers are deleted by Tag destructor
+			//delete this->event_onerror;
+		}
 
-			void setIconFile(std::string filename, std::string rel="icon", std::string mimetype="image/png") {
-				/* Allows to define an icon for the App
+		void setIconFile(std::string filename, std::string rel = "icon", std::string mimetype = "image/png") {
+			/* Allows to define an icon for the App
 
-				    Args:
-				        filename (str): the resource file name (ie. "/res:myicon.png")
-				        rel (str): leave it unchanged (standard "icon")
-				*/
-				//mimetype, encoding = mimetypes.guess_type(filename)
-				this->addChild("favicon", utils::sformat("<link rel='%s' href='%s' type='%s' />", rel.c_str(), filename.c_str(), mimetype.c_str()));
-			}
+				Args:
+					filename (str): the resource file name (ie. "/res:myicon.png")
+					rel (str): leave it unchanged (standard "icon")
+			*/
+			//mimetype, encoding = mimetypes.guess_type(filename)
+			this->addChild("favicon", utils::sformat("<link rel='%s' href='%s' type='%s' />", rel.c_str(), filename.c_str(), mimetype.c_str()));
+		}
 
-			void setIconData(std::string base64_data, std::string mimetype="image/png", std::string rel="icon") {
-				/* Allows to define an icon for the App
+		void setIconData(std::string base64_data, std::string mimetype = "image/png", std::string rel = "icon") {
+			/* Allows to define an icon for the App
 
-				    Args:
-				        base64_data (str): base64 encoded image data  (ie. "data:image/x-icon;base64,AAABAAEAEBA....")
-				        mimetype (str): mimetype of the image ("image/png" or "image/x-icon"...)
-				        rel (str): leave it unchanged (standard "icon")
-				*/
-				this->addChild("favicon", utils::sformat("<link rel='%s' href='%s' type='%s' />", rel.c_str(), base64_data.c_str(), mimetype.c_str()));
-			}
+				Args:
+					base64_data (str): base64 encoded image data  (ie. "data:image/x-icon;base64,AAABAAEAEBA....")
+					mimetype (str): mimetype of the image ("image/png" or "image/x-icon"...)
+					rel (str): leave it unchanged (standard "icon")
+			*/
+			this->addChild("favicon", utils::sformat("<link rel='%s' href='%s' type='%s' />", rel.c_str(), base64_data.c_str(), mimetype.c_str()));
+		}
 
-			void setInternalJs(std::string net_interface_ip, unsigned short pending_messages_queue_length, unsigned short websocket_timeout_timer_ms) {
-				/* NOTE here are used raw string literals
-				    R"( ... )"
-				*/
-				this->addChild(utils::sformat(R"(
+		void setInternalJs(std::string net_interface_ip, unsigned short pending_messages_queue_length, unsigned short websocket_timeout_timer_ms) {
+			/* NOTE here are used raw string literals
+				R"( ... )"
+			*/
+			this->addChild(utils::sformat(R"(
 							   <script>
 							   /*'use strict';*/
 
@@ -1424,284 +1432,284 @@ window.onerror = function(message, source, lineno, colno, error) {
 window.remi = new Remi();
 
 </script>)", net_interface_ip.c_str(), pending_messages_queue_length, websocket_timeout_timer_ms, this->getIdentifier().c_str(), "onerror"), "internal_js");
-}
+		}
 
-void setTitle(std::string title){
-this->addChild(utils::sformat("<title>%s</title>", title.c_str()), "title");
-}
+		void setTitle(std::string title) {
+			this->addChild(utils::sformat("<title>%s</title>", title.c_str()), "title");
+		}
 
-std::string repr(Dictionary<Represantable*>* changed_widgets, bool forceUpdate){
-/*It is used to automatically represent the object to HTML format
-packs all the attributes, children and so on.
+		std::string repr(Dictionary<Represantable*>* changed_widgets, bool forceUpdate) {
+			/*It is used to automatically represent the object to HTML format
+			packs all the attributes, children and so on.
 
-Args:
-changed_widgets (dict): A dictionary containing a collection of tags that have to be updated.
-The tag that have to be updated is the key, and the value is its textual repr.
-*/
+			Args:
+			changed_widgets (dict): A dictionary containing a collection of tags that have to be updated.
+			The tag that have to be updated is the key, and the value is its textual repr.
+			*/
 
-Dictionary<Represantable*>* local_changed_widgets = new Dictionary<Represantable*>();
+			Dictionary<Represantable*>* local_changed_widgets = new Dictionary<Represantable*>();
 
-std::ostringstream  result;
+			std::ostringstream  result;
 
-result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets, forceUpdate) << "\n</" << type << ">";
-this->setUpdated();
-//delete changed_widgets;
-delete local_changed_widgets;
-return result.str();
-}
-};
+			result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets, forceUpdate) << "\n</" << type << ">";
+			this->setUpdated();
+			//delete changed_widgets;
+			delete local_changed_widgets;
+			return result.str();
+		}
+	};
 
 
-class BODY:public Container{
-public:
-class onload:public Event{
-public:
-onload(Tag* emitter):Event::Event(emitter, CLASS_NAME(onload)){
-((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-emitter->attributes[this->_eventName] = utils::sformat( "remi.sendCallback('%s', '%s');event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
-}
-void operator()(Dictionary<Buffer*>* parameters=NULL){
-Event::operator()(parameters);
-}
-}* event_onload;
+	class BODY :public Container {
+	public:
+		class onload :public Event {
+		public:
+			onload(Tag* emitter) :Event::Event(emitter, CLASS_NAME(onload)) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+				emitter->attributes[this->_eventName] = utils::sformat("remi.sendCallback('%s', '%s');event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+			}
+			void operator()(Dictionary<Buffer*>* parameters = NULL) {
+				Event::operator()(parameters);
+			}
+		}*event_onload;
 
-class ononline:public Event{
-public:
-ononline(Tag* emitter):Event::Event(emitter, CLASS_NAME(ononline)){
-((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-emitter->attributes[this->_eventName] = utils::sformat( "remi.sendCallback('%s', '%s');event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
-}
-void operator()(Dictionary<Buffer*>* parameters=NULL){
-Event::operator()(parameters);
-}
-}* event_ononline;
+		class ononline :public Event {
+		public:
+			ononline(Tag* emitter) :Event::Event(emitter, CLASS_NAME(ononline)) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+				emitter->attributes[this->_eventName] = utils::sformat("remi.sendCallback('%s', '%s');event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+			}
+			void operator()(Dictionary<Buffer*>* parameters = NULL) {
+				Event::operator()(parameters);
+			}
+		}*event_ononline;
 
-class onpagehide:public Event{
-public:
-onpagehide(Tag* emitter):Event::Event(emitter, CLASS_NAME(onpagehide)){
-((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-emitter->attributes[this->_eventName] = utils::sformat( "remi.sendCallback('%s', '%s');event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
-}
-void operator()(Dictionary<Buffer*>* parameters=NULL){
-Event::operator()(parameters);
-}
-}* event_onpagehide;
+		class onpagehide :public Event {
+		public:
+			onpagehide(Tag* emitter) :Event::Event(emitter, CLASS_NAME(onpagehide)) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+				emitter->attributes[this->_eventName] = utils::sformat("remi.sendCallback('%s', '%s');event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName);
+			}
+			void operator()(Dictionary<Buffer*>* parameters = NULL) {
+				Event::operator()(parameters);
+			}
+		}*event_onpagehide;
 
-class onpageshow:public Event{
-public:
-onpageshow(Tag* emitter):Event::Event(emitter, CLASS_NAME(onpageshow)){
-((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-emitter->attributes[this->_eventName] = utils::sformat( R"(
+		class onpageshow :public Event {
+		public:
+			onpageshow(Tag* emitter) :Event::Event(emitter, CLASS_NAME(onpageshow)) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+				emitter->attributes[this->_eventName] = utils::sformat(R"(
 	var params={};
 params['width']=window.innerWidth;
 params['height']=window.innerHeight;
 remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), this->_eventName);
-}
-void operator()(Dictionary<Buffer*>* parameters=NULL){
-Event::operator()(parameters);
-}
-}* event_onpageshow;
+			}
+			void operator()(Dictionary<Buffer*>* parameters = NULL) {
+				Event::operator()(parameters);
+			}
+		}*event_onpageshow;
 
-class onresize:public Event{
-public:
-onresize(Tag* emitter):Event::Event(emitter, CLASS_NAME(onresize)){
-((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-emitter->attributes[this->_eventName] = utils::sformat( R"(
+		class onresize :public Event {
+		public:
+			onresize(Tag* emitter) :Event::Event(emitter, CLASS_NAME(onresize)) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+				emitter->attributes[this->_eventName] = utils::sformat(R"(
 	var params={};
 params['width']=window.innerWidth;
 params['height']=window.innerHeight;
 remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), this->_eventName);
-}
-void operator()(Dictionary<Buffer*>* parameters=NULL){
-Event::operator()(parameters);
-}
-}* event_onresize;
+			}
+			void operator()(Dictionary<Buffer*>* parameters = NULL) {
+				Event::operator()(parameters);
+			}
+		}*event_onresize;
 
-public:
+	public:
 
-BODY():Container::Container(){
-type = "body";
-Widget* loading_anim = new Widget();
-loading_anim->style.remove("margin");
-loading_anim->setIdentifier("loading-animation");
+		BODY() :Container::Container() {
+			type = "body";
+			Widget* loading_anim = new Widget();
+			loading_anim->style.remove("margin");
+			loading_anim->setIdentifier("loading-animation");
 
-Container* loading_container = new Container();
-loading_container->append(loading_anim, "loading_animation");
-loading_container->style.set("display", "none");
-loading_container->style.remove("margin");
-loading_container->setIdentifier("loading");
+			Container* loading_container = new Container();
+			loading_container->append(loading_anim, "loading_animation");
+			loading_container->style.set("display", "none");
+			loading_container->style.remove("margin");
+			loading_container->setIdentifier("loading");
 
-this->append(loading_container, "loading_container");
+			this->append(loading_container, "loading_container");
 
-this->event_onload = new onload(this);
-this->event_ononline = new ononline(this);
-this->event_onpagehide = new onpagehide(this);
-this->event_onpageshow = new onpageshow(this);
-this->event_onresize = new onresize(this);
-}
+			this->event_onload = new onload(this);
+			this->event_ononline = new ononline(this);
+			this->event_onpagehide = new onpagehide(this);
+			this->event_onpageshow = new onpageshow(this);
+			this->event_onresize = new onresize(this);
+		}
 
-~BODY(){
-//Event handlers are deleted by Tag destructor
-/*delete this->event_onload;
-delete this->event_ononline;
-delete this->event_onpagehide;
-delete this->event_onpageshow;
-delete this->event_onresize;*/
+		~BODY() {
+			//Event handlers are deleted by Tag destructor
+			/*delete this->event_onload;
+			delete this->event_ononline;
+			delete this->event_onpagehide;
+			delete this->event_onpageshow;
+			delete this->event_onresize;*/
 
-//children are deleted by Tag destructor
-delete this->children.get("loading_container");
-}
+			//children are deleted by Tag destructor
+			delete this->children.get("loading_container");
+		}
 
-};
-
-
-class HBox : public Container {
-
-public:
-
-HBox();
-
-};
-
-class VBox : public Container {
-
-public:
-
-VBox();
-
-};
-
-class TextWidget : public Widget {
-
-public:
-
-void setText( std::string text );
-
-std::string text();
-
-};
-
-class Button : public TextWidget {
-public:
-
-Button( std::string text );
-
-void setEnabled( bool en );
-bool enabled();
-
-};
+	};
 
 
-class Label : public TextWidget {
+	class HBox : public Container {
 
-public:
+	public:
 
-Label( std::string text = "" );
+		HBox();
 
-};
+	};
 
+	class VBox : public Container {
 
-class GenericDialog : public Container {
-public:
-class onconfirm:public Event, EventListener{
-public:
-onconfirm(Tag* emitter):Event::Event(emitter, CLASS_NAME(onconfirm)){}
+	public:
 
-//this will get called by another event (the button click) so it must conform
-//  listener prototype
-void operator()(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
-Event::operator()(params);
-}
-}* event_onconfirm;
+		VBox();
 
-class oncancel:public Event, EventListener{
-public:
-oncancel(Tag* emitter):Event::Event(emitter, CLASS_NAME(oncancel)){}
-/*void operator()(Dictionary<Buffer*>* parameters=NULL){
-Event::operator()(parameters);
-}*/
-void operator()(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
-Event::operator()(params);
-}
-}* event_oncancel;
-public:
+	};
 
-GenericDialog( std::string title = "" , std::string message = "" );
+	class TextWidget : public Widget {
 
-void addFieldWithLabel(std::string key, std::string label_description, Widget* field);
+	public:
 
-void addField(std::string key, Widget* field);
+		void setText(std::string text);
 
-Widget* getField(std::string key);
+		std::string text();
 
-private:
+	};
 
-Container*	_container;
-Button*		_confirmButton;
-Button*		_cancelButton;
-HBox*		_hLay;
-std::map<std::string, Widget*> _inputs;
-};
+	class Button : public TextWidget {
+	public:
+
+		Button(std::string text);
+
+		void setEnabled(bool en);
+		bool enabled();
+
+	};
 
 
-class Image : public Widget{
-public:
+	class Label : public TextWidget {
 
-Image(std::string url);
+	public:
 
-void setURL(std::string);
+		Label(std::string text = "");
 
-std::string url();
-
-};
+	};
 
 
-class Input : public Widget {
+	class GenericDialog : public Container {
+	public:
+		class onconfirm :public Event, EventListener {
+		public:
+			onconfirm(Tag* emitter) :Event::Event(emitter, CLASS_NAME(onconfirm)) {}
 
-public:
+			//this will get called by another event (the button click) so it must conform
+			//  listener prototype
+			void operator()(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
+				Event::operator()(params);
+			}
+		}*event_onconfirm;
 
-Input();
+		class oncancel :public Event, EventListener {
+		public:
+			oncancel(Tag* emitter) :Event::Event(emitter, CLASS_NAME(oncancel)) {}
+			/*void operator()(Dictionary<Buffer*>* parameters=NULL){
+			Event::operator()(parameters);
+			}*/
+			void operator()(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
+				Event::operator()(params);
+			}
+		}*event_oncancel;
+	public:
 
-void setValue( std::string value );
-std::string getValue();
+		GenericDialog(std::string title = "", std::string message = "");
 
-void setEnable( bool on );
-bool isEnable();
+		void addFieldWithLabel(std::string key, std::string label_description, Widget* field);
 
-void setReadOnly( bool on );
-bool isReadOnly();
-};
+		void addField(std::string key, Widget* field);
 
-class FileUploader : public Widget {
-public:
-static const std::string Event_OnSuccess;
-static const std::string Event_OnFail;
-static const std::string Event_OnData;
-//static const std::string Event_OnProgress;
+		Widget* getField(std::string key);
 
-class FileUploaderOnSuccessListener{ public: virtual void onSuccess(FileUploader*) = 0; };
-FileUploaderOnSuccessListener* onSuccessListener;
-class FileUploaderOnFailListener{ public: virtual void onFail(FileUploader*) = 0; };
-FileUploaderOnFailListener* onFailListener;
-class FileUploaderOnDataListener{ public: virtual void onData( FileUploader*, std::string fileName, const char* data, unsigned long long len ) = 0; };
-FileUploaderOnDataListener* onDataListener;
+	private:
 
-public:
-FileUploader( std::string path = "./", bool multipleSelectionAllowed = true );
+		Container* _container;
+		Button* _confirmButton;
+		Button* _cancelButton;
+		HBox* _hLay;
+		std::map<std::string, Widget*> _inputs;
+	};
 
-void setSavePath( std::string path );
-std::string savePath();
 
-void setMultipleSelectionAllowed( bool value );
-bool multipleSelectionAllowed();
+	class Image : public Widget {
+	public:
 
-//virtual void onEvent(std::string name, Event* event);
+		Image(std::string url);
 
-private:
-std::string _path;
-bool _multipleSelectionAllowed;
+		void setURL(std::string);
 
-};
+		std::string url();
+
+	};
+
+
+	class Input : public Widget {
+
+	public:
+
+		Input();
+
+		void setValue(std::string value);
+		std::string getValue();
+
+		void setEnable(bool on);
+		bool isEnable();
+
+		void setReadOnly(bool on);
+		bool isReadOnly();
+	};
+
+	class FileUploader : public Widget {
+	public:
+		static const std::string Event_OnSuccess;
+		static const std::string Event_OnFail;
+		static const std::string Event_OnData;
+		//static const std::string Event_OnProgress;
+
+	class FileUploaderOnSuccessListener { public: virtual void onSuccess(FileUploader*) = 0; };
+	FileUploaderOnSuccessListener* onSuccessListener;
+	class FileUploaderOnFailListener { public: virtual void onFail(FileUploader*) = 0; };
+	FileUploaderOnFailListener* onFailListener;
+	class FileUploaderOnDataListener { public: virtual void onData(FileUploader*, std::string fileName, const char* data, unsigned long long len) = 0; };
+	FileUploaderOnDataListener* onDataListener;
+
+	public:
+		FileUploader(std::string path = "./", bool multipleSelectionAllowed = true);
+
+		void setSavePath(std::string path);
+		std::string savePath();
+
+		void setMultipleSelectionAllowed(bool value);
+		bool multipleSelectionAllowed();
+
+		//virtual void onEvent(std::string name, Event* event);
+
+	private:
+		std::string _path;
+		bool _multipleSelectionAllowed;
+
+	};
 }
 
 #endif //CPORT_REMI_H

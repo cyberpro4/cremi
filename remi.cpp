@@ -15,44 +15,44 @@
 
 using namespace remi;
 
-long long int	remi_timestamp(){
+long long int	remi_timestamp() {
 #ifdef _WIN32
 
-	FILETIME ft = {0};
+	FILETIME ft = { 0 };
 
-    GetSystemTimeAsFileTime(&ft);
+	GetSystemTimeAsFileTime(&ft);
 
-    LARGE_INTEGER li = {0};
+	LARGE_INTEGER li = { 0 };
 
-    li.LowPart = ft.dwLowDateTime;
-    li.HighPart = ft.dwHighDateTime;
+	li.LowPart = ft.dwLowDateTime;
+	li.HighPart = ft.dwHighDateTime;
 
-    long long int hns = li.QuadPart;
+	long long int hns = li.QuadPart;
 
 	return (int)(hns / 1000 / 1000);
 #else
 
-	return time( NULL );
+	return time(NULL);
 
 #endif
 }
 
-remi_thread   remi_createThread( remi_thread_callback callback , remi_thread_param param ){
+remi_thread   remi_createThread(remi_thread_callback callback, remi_thread_param param) {
 
-	#ifdef _WIN32
-		return CreateThread( NULL , 0 , callback , param , 0 , 0 );
-	#endif
+#ifdef _WIN32
+	return CreateThread(NULL, 0, callback, param, 0, 0);
+#endif
 
-	#ifdef __unix__
-		pthread_t       th;
-		pthread_create( &th , NULL , callback , param );
-		return th;
-	#endif
+#ifdef __unix__
+	pthread_t       th;
+	pthread_create(&th, NULL, callback, param);
+	return th;
+#endif
 
 }
 
 
-std::string remi::utils::SHA1(std::string& val){
+std::string remi::utils::SHA1(std::string& val) {
 	sha1::SHA1 s;
 	s.processBytes(val.c_str(), val.size());
 	uint32_t digest[5];
@@ -89,25 +89,25 @@ std::string remi::utils::SHA1(std::string& val){
 	return std::string(sha1_data);
 }
 
-void remi::utils::open_browser( std::string url ){
+void remi::utils::open_browser(std::string url) {
 
 #ifdef _WIN32
 
-	ShellExecuteA( NULL , "open" , url.c_str() , NULL , NULL , 0 );
+	ShellExecuteA(NULL, "open", url.c_str(), NULL, NULL, 0);
 
 #endif
 
 #if defined(__unix__)
 
-    std::string cmd = "xdg-open " + url;
+	std::string cmd = "xdg-open " + url;
 
-    system( cmd.c_str() );
+	system(cmd.c_str());
 
 #endif
 
 }
 
-void remi::utils::url_decode(const char* from, unsigned long long len, char*& converted, unsigned long long* lenConverted ){
+void remi::utils::url_decode(const char* from, unsigned long long len, char*& converted, unsigned long long* lenConverted) {
 	std::smatch match;
 	std::string out = from;
 	char r[2] = { 0 };
@@ -123,24 +123,24 @@ void remi::utils::url_decode(const char* from, unsigned long long len, char*& co
 		out.replace( match.position(0) , match.length(0) , r );
 	}*/
 	converted = new char[len];
-	if (len < 3){
+	if (len < 3) {
 		//converted = new char[len];
 		memcpy(converted, from, len);
 		return;
 	}
-	
+
 	unsigned long long int __i = 0;
 	unsigned short val = 0;
 
 	char* original = converted;
-	for (__i = 0; __i < len-2; __i++){
+	for (__i = 0; __i < len - 2; __i++) {
 		converted[0] = from[__i];
-		if (converted[0] == '%'){
-			converted[1] = from[__i+1];
-			converted[2] = from[__i+2];
-			if ((converted[1] >= '0' && converted[1] <= '9') || (converted[1] >= 'A' && converted[1] <= 'F')){
-				if ((converted[2] >= '0' && converted[2] <= '9') || (converted[2] >= 'A' && converted[2] <= 'F')){
-					val = ((converted[1] - ((converted[1]>'9') ? (55) : '0')) * 16) + ((converted[2] - ((converted[2]>'9') ? (55) : '0')));
+		if (converted[0] == '%') {
+			converted[1] = from[__i + 1];
+			converted[2] = from[__i + 2];
+			if ((converted[1] >= '0' && converted[1] <= '9') || (converted[1] >= 'A' && converted[1] <= 'F')) {
+				if ((converted[2] >= '0' && converted[2] <= '9') || (converted[2] >= 'A' && converted[2] <= 'F')) {
+					val = ((converted[1] - ((converted[1] > '9') ? (55) : '0')) * 16) + ((converted[2] - ((converted[2] > '9') ? (55) : '0')));
 					converted[0] = val;
 					__i += 2;
 				}
@@ -155,33 +155,34 @@ void remi::utils::url_decode(const char* from, unsigned long long len, char*& co
 	converted = original;
 }
 
-std::string remi::utils::toPix( int v ){
-    std::ostringstream ss;
-    ss << v << "px";
-    return ss.str();
+std::string remi::utils::toPix(int v) {
+	std::ostringstream ss;
+	ss << v << "px";
+	return ss.str();
 }
 
-std::string remi::utils::operator "" _px(long double value){
+std::string remi::utils::operator "" _px(long double value) {
 	return remi::utils::sformat("%.2fpx", (float)value);
 }
 //pc stays for percent
-std::string remi::utils::operator "" _pc(long double value){
+std::string remi::utils::operator "" _pc(long double value) {
 	return remi::utils::sformat("%.2f%%", (float)value);
 }
 
-std::list<std::string> remi::utils::split( std::string subject , std::string delimiter ){
+std::list<std::string> remi::utils::split(std::string subject, std::string delimiter) {
 	std::list<std::string> list;
 
 	size_t found = 0;
 
-	while( true ){
+	while (true) {
 
-		size_t nf = subject.find( delimiter, found );
-		if( nf == std::string::npos ){
-			list.push_back( subject.substr( found , subject.length() - found ) );
+		size_t nf = subject.find(delimiter, found);
+		if (nf == std::string::npos) {
+			list.push_back(subject.substr(found, subject.length() - found));
 			break;
-		} else {
-			list.push_back( subject.substr( found , nf - found ) );
+		}
+		else {
+			list.push_back(subject.substr(found, nf - found));
 			found = nf + delimiter.length();
 		}
 	}
@@ -189,38 +190,38 @@ std::list<std::string> remi::utils::split( std::string subject , std::string del
 	return list;
 }
 
-std::string remi::utils::strip( std::string subject , char char_to_strip ){
+std::string remi::utils::strip(std::string subject, char char_to_strip) {
 	std::string result;
 	const char* cstr = subject.c_str();
-	
+
 	int length = subject.length();
-	while(((char)cstr[length-1]) == char_to_strip && length > 0){
+	while (((char)cstr[length - 1]) == char_to_strip && length > 0) {
 		length--;
 	}
-	
+
 	bool found_a_different_char = false;
-	for(int i = 0; i < length; i++){
-		if( ((char)cstr[i]) != char_to_strip ){
+	for (int i = 0; i < length; i++) {
+		if (((char)cstr[i]) != char_to_strip) {
 			found_a_different_char = true;
 		}
-		if( found_a_different_char ){
+		if (found_a_different_char) {
 			result += ((char)cstr[i]);
 		}
 	}
-	
+
 	return result;
 }
 
-int remi::utils::count( std::string subject, std::string pattern ){
+int remi::utils::count(std::string subject, std::string pattern) {
 	int result = 0;
 	int pos = -1;
-	while( (pos=subject.find(pattern, (pos+1))) < subject.length() ){
+	while ((pos = subject.find(pattern, (pos + 1))) < subject.length()) {
 		result++;
 	}
 	return result;
 }
 
-unsigned long long remi::utils::searchIndexOf(const char* buffer, char __char, unsigned long long len, unsigned long long start){
+unsigned long long remi::utils::searchIndexOf(const char* buffer, char __char, unsigned long long len, unsigned long long start) {
 	unsigned long long __i = start;
 	while (__i < len && buffer[__i++] != __char);
 	return __i;
@@ -245,21 +246,21 @@ unsigned long long remi::utils::searchIndexOf(const char* buffer, char __char, u
 	return ret;
 }*/
 
-std::string remi::utils::join(std::list<std::string> stringList , std::string glue ){
-    std::ostringstream ss;
+std::string remi::utils::join(std::list<std::string> stringList, std::string glue) {
+	std::ostringstream ss;
 
-    bool first = true;
-    for( std::string s : stringList ){
-        if( !first )
-            ss << glue;
-        ss << s;
-        first = false;
-    }
+	bool first = true;
+	for (std::string s : stringList) {
+		if (!first)
+			ss << glue;
+		ss << s;
+		first = false;
+	}
 
-    return ss.str();
+	return ss.str();
 }
 
-std::string remi::utils::string_encode(std::string text){
+std::string remi::utils::string_encode(std::string text) {
 	std::codecvt_utf8<wchar_t>* _cdcv = new std::codecvt_utf8<wchar_t>;
 	std::locale loc(std::locale(), _cdcv);
 	std::ostringstream o;
@@ -269,7 +270,7 @@ std::string remi::utils::string_encode(std::string text){
 	return o.str();
 }
 
-std::string remi::utils::escape_json(const std::string &s) {
+std::string remi::utils::escape_json(const std::string& s) {
 	std::ostringstream escaped;
 	escaped.fill('0');
 	escaped << std::hex;
@@ -292,77 +293,77 @@ std::string remi::utils::escape_json(const std::string &s) {
 	return escaped.str();
 }
 
-int remi::utils::sscan( std::string from , std::string format , ... ){
+int remi::utils::sscan(std::string from, std::string format, ...) {
 
 	va_list ap;
 
-	va_start( ap, format );
+	va_start(ap, format);
 
-	int r = vsscanf( from.c_str() , format.c_str() , ap );
+	int r = vsscanf(from.c_str(), format.c_str(), ap);
 
 	va_end(ap);
 
 	return r;
 }
 
-std::string remi::utils::sformat( std::string fmt_str , ... ){
+std::string remi::utils::sformat(std::string fmt_str, ...) {
 
 	// From http://stackoverflow.com/questions/2342162/stdstring-formatting-like-sprintf
 
 	int final_n, n = ((int)fmt_str.size()) * 2; /* Reserve two times as much as the length of the fmt_str */
-    std::string str;
-    std::unique_ptr<char[]> formatted;
-    va_list ap;
-    while(1) {
-        formatted.reset(new char[n]); /* Wrap the plain char array into the unique_ptr */
-        strcpy(&formatted[0], fmt_str.c_str());
-        va_start(ap, fmt_str);
-        final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
-        va_end(ap);
-        if (final_n < 0 || final_n >= n)
-            n += abs(final_n - n + 1);
-        else
-            break;
-    }
-    return std::string(formatted.get());
+	std::string str;
+	std::unique_ptr<char[]> formatted;
+	va_list ap;
+	while (1) {
+		formatted.reset(new char[n]); /* Wrap the plain char array into the unique_ptr */
+		strcpy(&formatted[0], fmt_str.c_str());
+		va_start(ap, fmt_str);
+		final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
+		va_end(ap);
+		if (final_n < 0 || final_n >= n)
+			n += abs(final_n - n + 1);
+		else
+			break;
+	}
+	return std::string(formatted.get());
 
 }
 
 
-utils::Timer::Timer( int millisecondsInterval, TimerListener* listener ){
-    _stopFlag = false;
+utils::Timer::Timer(int millisecondsInterval, TimerListener* listener) {
+	_stopFlag = false;
 
-    _millisecondsInterval = millisecondsInterval;
+	_millisecondsInterval = millisecondsInterval;
 
 	_listener = listener;
 
 	start();
 }
 
-utils::Timer::Timer(){
+utils::Timer::Timer() {
 	_stopFlag = false;
 
-    _millisecondsInterval = 0;
+	_millisecondsInterval = 0;
 
 	_listener = NULL;
 }
 
-void utils::Timer::setListener( TimerListener* listener ){
+void utils::Timer::setListener(TimerListener* listener) {
 	_listener = listener;
 }
 
-remi_thread_result utils::Timer::thread_entry( remi_thread_param instance ){
+remi_thread_result utils::Timer::thread_entry(remi_thread_param instance) {
 	((utils::Timer*)instance)->tick();
 	return 0;
 }
 /*
 double remi::utils::Timer::elapsed(){
 	double res = std::chrono::duration_cast<second_>
-            (clock_::now() - _start).count();
+			(clock_::now() - _start).count();
 	return res;
 }
 */
-void remi::utils::Timer::setInterval( int msecInterval ){
+void remi::utils::Timer::setInterval(int msecInterval) {
 	_millisecondsInterval = msecInterval;
 }
 /*
@@ -370,8 +371,8 @@ bool utils::Timer::has_passed(){
 	return elapsed() > (_millisecondsInterval/1000.f);
 }
 */
-void remi::utils::Timer::tick(){
-	while( !_stopFlag ){
+void remi::utils::Timer::tick() {
+	while (!_stopFlag) {
 		/*if( has_passed() ){
 			_passed = true;
 			if( _listener != NULL ){
@@ -384,89 +385,89 @@ void remi::utils::Timer::tick(){
 		Sleep( 2 );
 		*/
 
-		Sleep( _millisecondsInterval );
-		if( _listener != NULL ){
+		Sleep(_millisecondsInterval);
+		if (_listener != NULL) {
 			_listener->onTimer();
 		}
 	}
 
 }
 
-void remi::utils::Timer::start(){
+void remi::utils::Timer::start() {
 	//_start = clock_::now();
-    _stopFlag = false;
+	_stopFlag = false;
 	//_passed = false;
 
-	if( _listener != NULL ){
-		remi_createThread( (remi_thread_callback)&utils::Timer::thread_entry, this );
+	if (_listener != NULL) {
+		remi_createThread((remi_thread_callback)& utils::Timer::thread_entry, this);
 	}
 
 }
 
-void remi::utils::Timer::stop(){
-    _stopFlag = true;
+void remi::utils::Timer::stop() {
+	_stopFlag = true;
 }
 
 
-std::string remi::utils::join( Dictionary<std::string>& from , std::string nameValueGlue , std::string itemsGlue ){
-    std::ostringstream out;
+std::string remi::utils::join(Dictionary<std::string>& from, std::string nameValueGlue, std::string itemsGlue) {
+	std::ostringstream out;
 
-    bool first = true;
+	bool first = true;
 
-    for( std::string key : from.keys() ){
-        if( !first )
-            out << itemsGlue;
-        first = false;
-        out << key << nameValueGlue << from.get(key);
-    }
+	for (std::string key : from.keys()) {
+		if (!first)
+			out << itemsGlue;
+		first = false;
+		out << key << nameValueGlue << from.get(key);
+	}
 
-    return out.str();
+	return out.str();
 }
 
-std::string remi::utils::toCss( Dictionary<std::string>& values ){
-    return join( values , ": " , ";" );
-}
-
-
-StringRepresantable::StringRepresantable(std::string v ){
-    this->v = v;
-}
-
-std::string StringRepresantable::repr(Dictionary<Represantable*>* changedWidgets, bool forceUpdate){
-    return v;
+std::string remi::utils::toCss(Dictionary<std::string>& values) {
+	return join(values, ": ", ";");
 }
 
 
-Tag::Tag(){
-    this->attributes.event_onchange->_do(this, (EventListener::listener_class_member_type)&Tag::_needUpdate);
-	this->style.event_onchange->_do(this, (EventListener::listener_class_member_type)&Tag::_needUpdate);
-	this->children.event_onchange->_do(this, (EventListener::listener_class_member_type)&Tag::_needUpdate);
+StringRepresantable::StringRepresantable(std::string v) {
+	this->v = v;
+}
 
-    _parent = NULL;
+std::string StringRepresantable::repr(Dictionary<Represantable*>* changedWidgets, bool forceUpdate) {
+	return v;
+}
+
+
+Tag::Tag() {
+	LINK_CLASS_MEMBER(this->attributes.event_onchange, this, &Tag::_needUpdate);
+	LINK_CLASS_MEMBER(this->style.event_onchange, this, &Tag::_needUpdate);
+	LINK_CLASS_MEMBER(this->children.event_onchange, this, &Tag::_needUpdate);
+
+	_parent = NULL;
 
 	ignoreUpdate = false;
 
-    type = "div";
+	type = "div";
 	setIdentifier(utils::sformat("%llu", (unsigned long long)this));
 
-    int status = 0;
-	std::string _class = std::string( abi::__cxa_demangle(typeid(*this).name(),0,0,&status) );
+	int status = 0;
+	std::string _class = std::string(typeid(*this).name());
 	int pos = _class.rfind(":");
-	_class.erase(0, pos+1);
-    addClass( _class );
+	_class.erase(0, pos + 1);
+	addClass(_class);
 }
 
-Tag::Tag(VersionedDictionary<std::string> _attributes, std::string _type, std::string _class):Tag(){
+Tag::Tag(VersionedDictionary<std::string> _attributes, std::string _type, std::string _class) :Tag() {
 
-    type = _type;
+	type = _type;
 
 	attributes.update(_attributes);
 
-    setClass( _class );
+	setClass(_class);
 }
 
 void Tag::setClass(std::string name) {
-    _classes.clear();
+	_classes.clear();
 	_classes.push_front(name);
 }
 
@@ -492,7 +493,7 @@ void Tag::setIdentifier(std::string newIdentifier) {
 std::string Tag::innerHTML(Dictionary<Represantable*>* localChangedWidgets, bool forceUpdate) {
 	std::ostringstream ret;
 	for (std::string k : this->children.keys()) {
-        //cout << "representing: " << k << endl;
+		//cout << "representing: " << k << endl;
 		Represantable* s = children.get(k);
 		ret << s->repr(localChangedWidgets, forceUpdate);
 	}
@@ -505,7 +506,7 @@ std::string Tag::repr(Dictionary<Represantable*>* changedWidgets, bool forceUpda
 	std::ostringstream  _innerHtml;
 
 	_innerHtml << innerHTML(localChangedWidgets, forceUpdate);
-    //cout << "Tag::repr - representing: " << this->type << " localChangedWidgets->size() = " << localChangedWidgets->size() << endl;
+	//cout << "Tag::repr - representing: " << this->type << " localChangedWidgets->size() = " << localChangedWidgets->size() << endl;
 	if (this->isChanged() || (localChangedWidgets->size() > 0 || forceUpdate)) {
 		_backupRepr.str(std::string());
 		_backupRepr << "<" << type <<
@@ -517,11 +518,12 @@ std::string Tag::repr(Dictionary<Represantable*>* changedWidgets, bool forceUpda
 	if (this->isChanged()) {
 		changedWidgets->set(this->getIdentifier(), this);
 		this->setUpdated();
-	}else {
+	}
+	else {
 		changedWidgets->update(*localChangedWidgets);
 	}
 
-    delete localChangedWidgets;
+	delete localChangedWidgets;
 
 	return _backupRepr.str();
 }
@@ -535,15 +537,15 @@ void Tag::_notifyParentForUpdate() {
 }
 
 void Tag::_needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {
-    Dictionary<std::string> tmp;
-    tmp.update(this->attributes);
+	Dictionary<std::string> tmp;
+	tmp.update(this->attributes);
 
 	if (style.size() > 0)
 		tmp.set("style", utils::toCss(style));
 
 
-    this->_reprAttributes.str(std::string());
-    //cout << this->_reprAttributes.str() << endl<<endl;
+	this->_reprAttributes.str(std::string());
+	//cout << this->_reprAttributes.str() << endl<<endl;
 	for (std::string k : tmp.keys()) {
 		this->_reprAttributes << k << "=\"" << tmp[k].value << "\"";
 	}
@@ -551,42 +553,42 @@ void Tag::_needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata)
 	_notifyParentForUpdate();
 }
 
-void Tag::addChild( Represantable* child , std::string key ){
+void Tag::addChild(Represantable* child, std::string key) {
 
-    if( child == NULL )
-        return;
+	if (child == NULL)
+		return;
 
 	std::string _key = key;
-	if( _key.length() < 1 ){
-		_key = utils::sformat( "%llu" , (unsigned long long)(void*)child );
+	if (_key.length() < 1) {
+		_key = utils::sformat("%llu", (unsigned long long)(void*)child);
 	}
 
-	if( dynamic_cast<Tag*>(child) != 0 ){
+	if (dynamic_cast<Tag*>(child) != 0) {
 		Tag* _tag = dynamic_cast<Tag*>(child);
-		_tag->setParent( this );
+		_tag->setParent(this);
 	}
 
 
-    if( children.has( _key ) ){
-        _render_children_list.remove( children.get(_key) );
-    }
+	if (children.has(_key)) {
+		_render_children_list.remove(children.get(_key));
+	}
 
-    _render_children_list.push_back( child );
-    children.set( _key, child );
+	_render_children_list.push_back(child);
+	children.set(_key, child);
 }
 
-void Tag::addChild( std::string child, std::string key ){
-	addChild( new StringRepresantable( child ) , key );
+void Tag::addChild(std::string child, std::string key) {
+	addChild(new StringRepresantable(child), key);
 }
 
-Represantable * Tag::getChild(std::string key ){
-    return children[key];
+Represantable* Tag::getChild(std::string key) {
+	return children[key];
 }
 
-void Tag::setUpdated(){
+void Tag::setUpdated() {
 	attributes.alignVersion(); style.alignVersion(); children.alignVersion();
-	for (Represantable* represantable : _render_children_list){
-		if (dynamic_cast<Tag*>(represantable) != 0){
+	for (Represantable* represantable : _render_children_list) {
+		if (dynamic_cast<Tag*>(represantable) != 0) {
 			Tag* _tag = dynamic_cast<Tag*>(represantable);
 			_tag->setUpdated();
 		}
@@ -595,11 +597,11 @@ void Tag::setUpdated(){
 
 
 Widget::Widget() : Widget::Widget(CLASS_NAME(Widget)) {
-    
+
 }
 
 Widget::Widget(std::string _class) : Tag::Tag() {
-    this->event_onclick = new Widget::onclick(this);
+	this->event_onclick = new Widget::onclick(this);
 	this->event_onblur = new Widget::onblur(this);
 	this->event_onfocus = new Widget::onfocus(this);
 	this->event_ondblclick = new Widget::ondblclick(this);
@@ -619,66 +621,66 @@ Widget::Widget(std::string _class) : Tag::Tag() {
 	this->event_onkeyup = new Widget::onkeyup(this);
 	this->event_onkeydown = new Widget::onkeydown(this);
 	this->event_onqueryClientResult = new Widget::onqueryClientResult(this);
-	
-    style.set( "margin" , "0px auto" );
 
-    setClass(_class);
+	style.set("margin", "0px auto");
+
+	setClass(_class);
 }
 
-Widget::Widget(VersionedDictionary<std::string> _attributes, VersionedDictionary<std::string> _style, std::string _type, std::string _class):Widget(_class) {
-    this->attributes.update(_attributes);
-    this->style.update(_style);
-    this->type = _type;
+Widget::Widget(VersionedDictionary<std::string> _attributes, VersionedDictionary<std::string> _style, std::string _type, std::string _class) :Widget(_class) {
+	this->attributes.update(_attributes);
+	this->style.update(_style);
+	this->type = _type;
 }
 
-void Widget::setWidth( int width ){
-	style.set( "width" , utils::toPix( width ) );
+void Widget::setWidth(int width) {
+	style.set("width", utils::toPix(width));
 }
 
-void Widget::setHeight( int height ){
-	style.set( "height" , utils::toPix( height ) );
+void Widget::setHeight(int height) {
+	style.set("height", utils::toPix(height));
 }
 
-void Widget::setSize( int width, int height ){
-    style.set( "width" , utils::toPix( width ) );
-    style.set( "height" , utils::toPix( height ) );
+void Widget::setSize(int width, int height) {
+	style.set("width", utils::toPix(width));
+	style.set("height", utils::toPix(height));
 }
 
-void Widget::addChild( Represantable* child, std::string key ){
-    Tag::addChild( child , key );
-}
-
-
-Container::Container(Dictionary<Widget*>* children, Container::Layout layout_orientation):Widget(CLASS_NAME(Container)){
-    this->setLayoutOrientation(layout_orientation);
-    if(!(children==NULL)){
-        for( std::string k : children->keys() ){
-            this->append(children->get(k), k);
-        }
-    }
-}
-
-std::string Container::append(Widget* w, std::string key){
-    if(key.length()<1){
-        key = w->attributes["id"];
-    }
-    this->addChild(w, key);
-    return key;
-}
-
-std::string Container::append(Dictionary<Widget*>* _children){
-    for( std::string k : _children->keys() ){
-        this->append(_children->get(k), k);
-    }
-    return "";
-}
-
-void Container::setLayoutOrientation(Container::Layout orientation){
-    _layout_orientation = orientation;
+void Widget::addChild(Represantable* child, std::string key) {
+	Tag::addChild(child, key);
 }
 
 
-HBox::HBox() : Container(){
+Container::Container(Dictionary<Widget*>* children, Container::Layout layout_orientation) :Widget(CLASS_NAME(Container)) {
+	this->setLayoutOrientation(layout_orientation);
+	if (!(children == NULL)) {
+		for (std::string k : children->keys()) {
+			this->append(children->get(k), k);
+		}
+	}
+}
+
+std::string Container::append(Widget* w, std::string key) {
+	if (key.length() < 1) {
+		key = w->attributes["id"];
+	}
+	this->addChild(w, key);
+	return key;
+}
+
+std::string Container::append(Dictionary<Widget*>* _children) {
+	for (std::string k : _children->keys()) {
+		this->append(_children->get(k), k);
+	}
+	return "";
+}
+
+void Container::setLayoutOrientation(Container::Layout orientation) {
+	_layout_orientation = orientation;
+}
+
+
+HBox::HBox() : Container() {
 
 	style["display"] = "flex";
 
@@ -691,7 +693,7 @@ HBox::HBox() : Container(){
 	setClass(CLASS_NAME(HBox));
 }
 
-VBox::VBox() : Container(){
+VBox::VBox() : Container() {
 
 	style["display"] = "flex";
 
@@ -705,7 +707,7 @@ VBox::VBox() : Container(){
 
 }
 
-Button::Button( std::string text ) : TextWidget(){
+Button::Button(std::string text) : TextWidget() {
 
 	type = "button";
 
@@ -714,53 +716,54 @@ Button::Button( std::string text ) : TextWidget(){
 	setClass(CLASS_NAME(Button));
 }
 
-void Button::setEnabled( bool en ){
-	if( en ){
+void Button::setEnabled(bool en) {
+	if (en) {
 		attributes["disabled"] = "disabled";
-	} else {
+	}
+	else {
 		attributes.remove("disabled");
 	}
 }
 
-bool Button::enabled(){
+bool Button::enabled() {
 	return attributes.has("disabled");
 }
 
 
-void TextWidget::setText(std::string text){
+void TextWidget::setText(std::string text) {
 	((Tag*)this)->addChild(text, std::string("text"));
 }
 
-std::string TextWidget::text(){
+std::string TextWidget::text() {
 	Represantable* repr = getChild("text");
 	return ((StringRepresantable*)repr)->repr();
 }
 
-Label::Label( std::string text ){
+Label::Label(std::string text) {
 	type = "p";
-	setText( text );
+	setText(text);
 	setClass(CLASS_NAME(Label));
 }
 
-GenericDialog::GenericDialog( std::string title , std::string message ):Container::Container(){
+GenericDialog::GenericDialog(std::string title, std::string message) :Container::Container() {
 	setClass(CLASS_NAME(GenericDialog));
-	setLayoutOrientation( Container::Layout::Vertical );
+	setLayoutOrientation(Container::Layout::Vertical);
 	style["display"] = "block";
 	style["overflow"] = "auto";
 
 	this->event_onconfirm = new onconfirm(this);
 	this->event_oncancel = new oncancel(this);
 
-	if( title.length() > 0 ){
-		Label *l = new Label( title );
-		l->addClass( "DialogTitle" ); //FIXME: css class named "DialogTitle" should be "GenericDialogTitle"?
-		addChild( l );
+	if (title.length() > 0) {
+		Label* l = new Label(title);
+		l->addClass("DialogTitle"); //FIXME: css class named "DialogTitle" should be "GenericDialogTitle"?
+		addChild(l);
 	}
 
-	if( message.length() > 0 ){
-		Label *l = new Label( message );
+	if (message.length() > 0) {
+		Label* l = new Label(message);
 		l->style["margin"] = "5px";
-		addChild( l );
+		addChild(l);
 	}
 
 	_container = new Container();
@@ -772,18 +775,18 @@ GenericDialog::GenericDialog( std::string title , std::string message ):Containe
 	_confirmButton = new Button("Ok");
 	_confirmButton->setSize(100, 30);
 	_confirmButton->style["margin"] = "3px";
-	(*_confirmButton->event_onclick) >> (EventListener*)this->event_onconfirm >> (EventListener::listener_class_member_type)&GenericDialog::onconfirm::operator();
+	(*_confirmButton->event_onclick) >> (EventListener*)this->event_onconfirm >> (EventListener::listener_class_member_type) & GenericDialog::onconfirm::operator();
 
 	_cancelButton = new Button("Cancel");
 	_cancelButton->setSize(100, 30);
 	_cancelButton->style["margin"] = "3px";
-	(*_cancelButton->event_onclick) >> (EventListener*)this->event_oncancel >> (EventListener::listener_class_member_type)&GenericDialog::oncancel::operator();
+	(*_cancelButton->event_onclick) >> (EventListener*)this->event_oncancel >> (EventListener::listener_class_member_type) & GenericDialog::oncancel::operator();
 
 	_hLay = new HBox();
-	_hLay->setHeight( 35 );
+	_hLay->setHeight(35);
 	_hLay->style["display"] = "block";
 	_hLay->style["overflow"] = "visible";
-    _hLay->addChild(_confirmButton);
+	_hLay->addChild(_confirmButton);
 	_hLay->addChild(_cancelButton);
 
 	_confirmButton->style["float"] = "right";
@@ -794,7 +797,7 @@ GenericDialog::GenericDialog( std::string title , std::string message ):Containe
 
 }
 
-void GenericDialog::addFieldWithLabel(std::string key, std::string label_description, Widget* field){
+void GenericDialog::addFieldWithLabel(std::string key, std::string label_description, Widget* field) {
 	this->_inputs[key] = field;
 	Label* label = new Label(label_description);
 	label->style.set("margin", "0px 5px");
@@ -807,7 +810,7 @@ void GenericDialog::addFieldWithLabel(std::string key, std::string label_descrip
 	this->_container->addChild(container, key);
 }
 
-void GenericDialog::addField(std::string key, Widget* field){
+void GenericDialog::addField(std::string key, Widget* field) {
 	this->_inputs[key] = field;
 	Container* container = new Container();
 	container->style.set("display", "block");
@@ -818,73 +821,73 @@ void GenericDialog::addField(std::string key, Widget* field){
 	this->_container->addChild(container, key);
 }
 
-Widget* GenericDialog::getField(std::string key){
+Widget* GenericDialog::getField(std::string key) {
 	return this->_inputs[key];
 }
 
 
 
-Image::Image(std::string url){
+Image::Image(std::string url) {
 	type = "img";
-    setClass(CLASS_NAME(Image));
+	setClass(CLASS_NAME(Image));
 	setURL(url);
 }
 
-void Image::setURL(std::string url){
+void Image::setURL(std::string url) {
 	this->attributes["src"] = url;
 }
 
-std::string Image::url(){
+std::string Image::url() {
 	return this->attributes["src"];
 }
 
-Input::Input(){
+Input::Input() {
 	type = "input";
-    /*
+	/*
 	attributes[Event_OnClick] = "";
 	attributes[Event_OnChange] = utils::sformat( \
-            "var params={};params['value']=document.getElementById('%(id)s').value;" \
-            "sendCallbackParam('%s','%s',params);" , getIdentifier().c_str() , Event_OnChange.c_str() );
-    */
+			"var params={};params['value']=document.getElementById('%(id)s').value;" \
+			"sendCallbackParam('%s','%s',params);" , getIdentifier().c_str() , Event_OnChange.c_str() );
+	*/
 }
 
-void Input::setValue( std::string value ){
+void Input::setValue(std::string value) {
 	attributes["value"] = value;
 }
 
-std::string Input::getValue(){
+std::string Input::getValue() {
 	return attributes["value"];
 }
 
-void Input::setEnable( bool on ){
+void Input::setEnable(bool on) {
 
-	if( on )
+	if (on)
 		attributes.remove("disabled");
 	else
 		attributes["disabled"] = "disabled";
 
 }
 
-bool Input::isEnable(){
+bool Input::isEnable() {
 	return attributes.has("disabled");
 }
 
-void Input::setReadOnly( bool on ){
+void Input::setReadOnly(bool on) {
 
-	if( on )
+	if (on)
 		attributes.remove("readonly");
 	else
 		attributes["readonly"] = "readonly";
 
 }
 
-bool Input::isReadOnly(){
+bool Input::isReadOnly() {
 	return attributes.has("readonly");
 }
 
 
-FileUploader::FileUploader( std::string path, bool multipleSelectionAllowed ){
-    onSuccessListener = NULL;
+FileUploader::FileUploader(std::string path, bool multipleSelectionAllowed) {
+	onSuccessListener = NULL;
 	onFailListener = NULL;
 	onDataListener = NULL;
 
@@ -895,37 +898,38 @@ FileUploader::FileUploader( std::string path, bool multipleSelectionAllowed ){
 	setClass(CLASS_NAME(FileUploader));
 	this->attributes["type"] = "file";
 	this->attributes["accept"] = "*.*";
-/*
-	attributes[Widget::Event_OnChange] = utils::sformat(
-		"var files = this.files;" \
-		"for(var i=0; i<files.length; i++){" \
-		"uploadFile('%s','%s','%s','%s',files[i]);}",
-		getIdentifier().c_str(), FileUploader::Event_OnSuccess.c_str(), FileUploader::Event_OnFail.c_str(), FileUploader::Event_OnData.c_str()
-	);
+	/*
+		attributes[Widget::Event_OnChange] = utils::sformat(
+			"var files = this.files;" \
+			"for(var i=0; i<files.length; i++){" \
+			"uploadFile('%s','%s','%s','%s',files[i]);}",
+			getIdentifier().c_str(), FileUploader::Event_OnSuccess.c_str(), FileUploader::Event_OnFail.c_str(), FileUploader::Event_OnData.c_str()
+		);
 
-	this->attributes[Widget::Event_OnClick] = "event.stopPropagation();";
-	this->attributes[Widget::Event_OnDblClick] = "event.stopPropagation();";
-*/
+		this->attributes[Widget::Event_OnClick] = "event.stopPropagation();";
+		this->attributes[Widget::Event_OnDblClick] = "event.stopPropagation();";
+	*/
 }
 
-void FileUploader::setSavePath(std::string path){
+void FileUploader::setSavePath(std::string path) {
 	this->_path = path;
 }
-std::string FileUploader::savePath(){
+std::string FileUploader::savePath() {
 	return this->_path;
 }
 
-void FileUploader::setMultipleSelectionAllowed(bool value){
+void FileUploader::setMultipleSelectionAllowed(bool value) {
 	this->_multipleSelectionAllowed = value;
-	if ( this->_multipleSelectionAllowed ){
+	if (this->_multipleSelectionAllowed) {
 		this->attributes["multiple"] = "multiple";
-	}else{
-		if (this->attributes.has("multiple")){
+	}
+	else {
+		if (this->attributes.has("multiple")) {
 			this->attributes.remove("multiple");
 		}
 	}
 }
-bool FileUploader::multipleSelectionAllowed(){
+bool FileUploader::multipleSelectionAllowed() {
 	return this->_multipleSelectionAllowed;
 }
 /*

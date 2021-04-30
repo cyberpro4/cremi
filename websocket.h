@@ -15,7 +15,7 @@ namespace remi {
 
 	namespace server {
 
-		class WebsocketClientInterface{
+		class WebsocketClientInterface {
 
 		public:
 			WebsocketClientInterface(remi_socket clientSock, bool doHandshake);
@@ -23,25 +23,25 @@ namespace remi {
 
 			void stop();
 
-			bool isDead(){
-			    return _stopFlag;
+			bool isDead() {
+				return _stopFlag;
 			}
 
 			void handshake();
 
 			void on_message(const char* message, unsigned long long len);
 
-			void send_message( std::string message);
+			void send_message(std::string message);
 
 			bool readNextMessage();
 
 			static std::string packUpdateMessage(std::string tagToUpdateIdentifier, std::string htmlContent);
 
 			static std::string packExecuteJavascriptMessage(std::string command);
-			
+
 		private:
 
-			Dictionary<Buffer*>*		parseParams(const char* paramString, unsigned long len);
+			Dictionary<Buffer*>* parseParams(const char* paramString, unsigned long len);
 
 			remi_thread		_t;
 

@@ -14,6 +14,7 @@
 #include <map>
 #include <string>
 
+#pragma pointers_to_members(full_generality, virtual_inheritance)
 
 namespace remi {
 
@@ -25,85 +26,85 @@ namespace remi {
 		public:
 
 			ServerResponse();
-			ServerResponse( int code );
-			ServerResponse( std::string body );
+			ServerResponse(int code);
+			ServerResponse(std::string body);
 
 			~ServerResponse();
 
-			void setHeader( std::string name , std::string value );
+			void setHeader(std::string name, std::string value);
 
-			void appendToBody( std::string content );
+			void appendToBody(std::string content);
 
-			void appendToBody( const char* buffer , int buffer_size );
+			void appendToBody(const char* buffer, int buffer_size);
 
 			int		getCode();
-			void	setCode( int code );
+			void	setCode(int code);
 
-			const char*		getBodyBuffer();
+			const char* getBodyBuffer();
 			int				getBodyBufferSize();
 
 		private:
 
 			Dictionary<std::string>		_headers;
 
-			char*	_body_buffer;
+			char* _body_buffer;
 			int		_body_buffer_size;
 
 			int		_code;
 
-			int		prepareSize( int new_size );
+			int		prepareSize(int new_size);
 		};
 
 
 
-		class App:public EventListener, public CommonAppInterface, private utils::TimerListener {
+		class App :public EventListener, public CommonAppInterface, private utils::TimerListener {
 
 		public:
 
 			App();
 
-			~App(){
-                for(WebsocketClientInterface* wci : _webSocketClients){
-                    delete wci;
-                }
+			~App() {
+				for (WebsocketClientInterface* wci : _webSocketClients) {
+					delete wci;
+				}
 			}
 
-			virtual void idle(){
-                // Idle function is called before each update cycle
+			virtual void idle() {
+				// Idle function is called before each update cycle
 			};
 
 			void init(std::string host_address);
 
 			virtual Widget* main();
 
-			ServerResponse*	serve( std::string url );
+			ServerResponse* serve(std::string url);
 
 			void setRootWidget(Widget* widget);
 
-			void _notifyParentForUpdate(EventSource*, Dictionary<Buffer*>*, void* );
+			void _notifyParentForUpdate(EventSource*, Dictionary<Buffer*>*, void*);
 
-            std::string getStaticFile(std::string filename);
+			std::string getStaticFile(std::string filename);
 
-            /* these method must handle a mutex for the access to websocket list */
-            void addWebsocketClientInterface(WebsocketClientInterface* wci);
-            void sendMessageToAllClients(std::string message);
+			/* these method must handle a mutex for the access to websocket list */
+			void addWebsocketClientInterface(WebsocketClientInterface* wci);
+			void sendMessageToAllClients(std::string message);
 			void executeJavascript(std::string command);
-			
-            virtual void onpageerror(void* emitter, Dictionary<Buffer*>* params, void* user_data);
-            virtual void onload(void* emitter, Dictionary<Buffer*>* params, void* user_data);
-            virtual void ononline(void* emitter, Dictionary<Buffer*>* params, void* user_data);
-            virtual void onpagehide(void* emitter, Dictionary<Buffer*>* params, void* user_data);
-            virtual void onpageshow(void* emitter, Dictionary<Buffer*>* params, void* user_data);
-            virtual void onresize(void* emitter, Dictionary<Buffer*>* params, void* user_data);
 
-            void onTimer();
+			virtual void onpageerror(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+			virtual void onload(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+			virtual void ononline(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+			virtual void onpagehide(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+			virtual void onpageshow(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+			virtual void onresize(void* emitter, Dictionary<Buffer*>* params, void* user_data);
 
-            void update();
+			void onTimer();
+
+			void update();
 
 		private:
-		    utils::Timer	    _updateTimer;
+			utils::Timer	    _updateTimer;
 
-			Widget*             _rootWidget;
+			Widget* _rootWidget;
 
 			bool                _needUpdateFlag;
 
@@ -120,10 +121,10 @@ namespace remi {
 
 			std::map<std::string, std::string> _staticResourcesPaths;
 
-        public:
-			remi::HTML*      html;
-			remi::HEAD*      head;
-			remi::BODY*      body;
+		public:
+			remi::HTML* html;
+			remi::HEAD* head;
+			remi::BODY* body;
 
 		};
 
@@ -135,7 +136,7 @@ namespace remi {
 
 			void address();
 
-			void start( void* user_data = NULL );
+			void start(void* user_data = NULL);
 
 			void onTimer();
 
@@ -147,8 +148,8 @@ namespace remi {
 
 			utils::Timer	_updateTimer;
 
-        public:
-            Dictionary<App*> _guiInstances;
+		public:
+			Dictionary<App*> _guiInstances;
 
 		};
 
@@ -157,7 +158,7 @@ namespace remi {
 
 		public:
 
-			App* buildInstance(){
+			App* buildInstance() {
 				App* _app = (App*)(new AppClass());
 				return _app;
 			}
