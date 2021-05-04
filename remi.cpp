@@ -621,7 +621,7 @@ Widget::Widget(std::string _class) : Tag::Tag() {
 	this->event_onkeyup = new Widget::onkeyup(this);
 	this->event_onkeydown = new Widget::onkeydown(this);
 	this->event_onqueryClientResult = new Widget::onqueryClientResult(this);
-
+	
 	style.set("margin", "0px auto");
 
 	setClass(_class);

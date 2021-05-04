@@ -585,6 +585,60 @@ namespace remi {
 	};
 
 
+	//A generic property class that triggers an onchange event
+	template <class T>
+	class Property: public EventSource {
+	public:
+		EVENT(onchange);
+
+		Property() {
+			this->event_onchange = new onchange(this);
+		}
+
+		~Property() {
+			delete this->event_onchange;
+		}
+
+		void operator = (T value) {
+			this->_value = value;
+			this->event_onchange->operator()(NULL);
+		}
+
+		operator T(){
+			return this->_value;
+		}
+
+	private:
+		T _value;
+
+	};
+
+	
+	class TagProperty{
+	public:
+		TagProperty(std::string name, VersionedDictionary<std::string>* dictionary) {
+			this->_name = name;
+			this->_dictionary = dictionary;
+		}
+
+		~TagProperty() {
+			
+		}
+
+		void operator = (std::string value) {
+			this->_dictionary->set(this->_name, value);
+		}
+
+		operator std::string() {
+			return this->_dictionary->get(this->_name);
+		}
+
+	private:
+		VersionedDictionary<std::string>* _dictionary;
+		std::string	_name;
+	};
+
+
 	class Represantable {
 	public:
 		virtual std::string repr(Dictionary<Represantable*>* changedWidgets, bool forceUpdate = false) = 0;
@@ -739,12 +793,12 @@ namespace remi {
                             }* event_##NAME;
 
 	#define EVENT_JS_DO(NAME, JSCODE, DOFUNCTION)  class NAME : public EventJS{ \
-	                                    public: \
-	                                        NAME(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(NAME), utils::sformat( JSCODE, emitter->getIdentifier().c_str(), CLASS_NAME(NAME))){ \
-	                                            ((Tag*)emitter)->event_handlers.set(this->_eventName, this); \
-	                                        } \
-	                                        void operator()(Dictionary<Buffer*>* parameters=NULL)DOFUNCTION; \
-	                                }* event_##NAME;
+	                            public: \
+	                                NAME(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(NAME), utils::sformat( JSCODE, emitter->getIdentifier().c_str(), CLASS_NAME(NAME))){ \
+	                                    ((Tag*)emitter)->event_handlers.set(this->_eventName, this); \
+	                                } \
+	                                void operator()(Dictionary<Buffer*>* parameters=NULL)DOFUNCTION; \
+	                        }* event_##NAME;
 
 
 	class Widget : public Tag {
@@ -917,6 +971,50 @@ namespace remi {
 		void setSize(int width, int height);
 
 		void addChild(Represantable* child, std::string key = "");
+
+	public: //properties
+		TagProperty css_color = TagProperty("color", &style); //Text color
+		TagProperty css_float = TagProperty("float", &style);
+		TagProperty css_margin = TagProperty("margin", &style); //Margins allows to define spacing around element
+		TagProperty css_visibility = TagProperty("visibility", &style); //Specifies whether or not an element is visible
+		TagProperty css_width = TagProperty("width", &style); //Widget width
+		TagProperty css_height = TagProperty("height", &style); //Widget height
+		TagProperty css_left = TagProperty("left", &style); //Widget x position
+		TagProperty css_right = TagProperty("right", &style); //Widget x position
+		TagProperty css_top = TagProperty("top", &style); //Widget y position
+		TagProperty css_bottom = TagProperty("bottom", &style); //Widget y position
+		TagProperty css_position = TagProperty("position", &style); //The position property specifies the type of positioning method used for an element.''', 'DropDown', { 'possible_values': ('static', 'absolute', 'fixed', 'relative', 'initial', 'inherit') }
+		TagProperty css_overflow = TagProperty("overflow", &style); //Visibility behavior in case of content does not fit in size
+		TagProperty css_background_color = TagProperty("background-color", &style);
+		TagProperty css_background_image = TagProperty("background-image", &style); //An optional background image
+		TagProperty css_background_position = TagProperty("background-position", &style); //The position of an optional background in the form 0% 0%
+		TagProperty css_background_repeat = TagProperty("background-repeat", &style); //The repeat behaviour of an optional background image
+		TagProperty css_opacity = TagProperty("opacity", &style); //The opacity level describes the transparency , where 1 is not transparent at all, 0.5 is 50 % and 0 is completely transparent
+		TagProperty css_border_color = TagProperty("border-color", &style);
+		TagProperty css_border_width = TagProperty("border-width", &style); //Border thickness
+		TagProperty css_border_style = TagProperty("border-style", &style); //{ 'possible_values': ('none', 'solid', 'dotted', 'dashed') }
+		TagProperty css_border_radius = TagProperty("border-radius", &style); //Border rounding radius
+		TagProperty css_font_family = TagProperty("font-family", &style);
+		TagProperty css_font_size = TagProperty("font-size", &style);
+		TagProperty css_font_style = TagProperty("font-style", &style); //{ 'possible_values': ('normal', 'italic', 'oblique', 'inherit') }
+		TagProperty css_font_weight = TagProperty("font-weight", &style); //{ 'possible_values': ('normal', 'bold', 'bolder', 'lighter', '100', '200', '300', '400', '500', '600', '700', '800', '900', 'inherit') }
+		TagProperty css_line_height = TagProperty("line-height", &style); //The line height in pixels
+		TagProperty css_white_space = TagProperty("white-space", &style); //{ 'possible_values': ('normal', 'nowrap', 'pre', 'pre-line', 'pre-wrap', 'initial', 'inherit') }
+		TagProperty css_letter_spacing = TagProperty("letter-spacing", &style); //Increases or decreases the space between characters in a text
+
+		TagProperty css_flex_direction = TagProperty("flex-direction", &style); //The flex-direction property specifies the direction of the flexible items. Note: If the element is not a flexible item, the flex-direction property has no effect.''', 'DropDown', { 'possible_values': ('row', 'row-reverse', 'column', 'column-reverse', 'initial', 'inherit') }
+		TagProperty css_display = TagProperty("display", &style); //The display property specifies the type of box used for an HTML element { 'possible_values': ('inline', 'block', 'contents', 'flex', 'grid', 'inline-block', 'inline-flex', 'inline-grid', 'inline-table', 'list-item', 'run-in', 'table', 'none', 'inherit') }
+		TagProperty css_justify_content = TagProperty("justify-content", &style); //The justify-content property aligns the flexible container's items when the items do not use all available space on the main - axis(horizontally)''', 'DropDown', {'possible_values': ('flex - start', 'flex - end', 'center', 'space - between', 'space - around', 'initial', 'inherit')}
+		TagProperty css_align_items = TagProperty("align-items", &style); //The align-items property specifies the default alignment for items inside the flexible container''', 'DropDown', { 'possible_values': ('stretch', 'center', 'flex-start', 'flex-end', 'baseline', 'initial', 'inherit') }
+		TagProperty css_align_content = TagProperty("align-content", &style); //The align-content property modifies the behavior of the flex-wrap property. It is similar to align - items, but instead of aligning flex items, it aligns flex lines.Tip: Use the justify - content property to align the items on the main - axis(horizontally).Note : There must be multiple lines of items for this property to have any effect.''', 'DropDown', {'possible_values': ('stretch', 'center', 'flex - start', 'flex - end', 'space - between', 'space - around', 'initial', 'inherit')}
+		TagProperty css_flex_wrap = TagProperty("flex-wrap", &style); //The flex-wrap property specifies whether the flexible items should wrap or not. Note: If the elements are not flexible items, the flex-wrap property has no effect''', 'DropDown', { 'possible_values': ('nowrap', 'wrap', 'wrap-reverse', 'initial', 'inherit') }
+		TagProperty css_flex_flow = TagProperty("flex-flow", &style); //The flex-flow property is a shorthand property for the flex-direction and the flex-wrap properties. The flex-direction property specifies the direction of the flexible items.''', 'DropDown', { 'possible_values': ('flex-direction', 'flex-wrap', 'initial', 'inherit') }
+		TagProperty css_order = TagProperty("order", &style); //The order property specifies the order of a flexible item relative to the rest of the flexible items inside the same container. Note: If the element is not a flexible item, the order property has no effect
+		TagProperty css_align_self = TagProperty("align-self", &style); //The align-self property specifies the alignment for the selected item inside the flexible container. Note: The align-self property overrides the flexible container's align - items property''', 'DropDown', {'possible_values': ('auto', 'stretch', 'center', 'flex - start', 'flex - end', 'baseline', 'initial', 'inherit')}
+		TagProperty css_flex = TagProperty("flex", &style); //The flex property specifies the length of the item, relative to the rest of the flexible items inside the same container. The flex property is a shorthand for the flex-grow, flex-shrink, and the flex-basis properties. Note: If the element is not a flexible item, the flex property has no effect
+
+		TagProperty attr_class = TagProperty("class", &attributes); //The html class attribute, allows to assign a css style class. Multiple classes have to be separed by space.
+		TagProperty attr_title = TagProperty("title", &attributes); //Advisory information for the element
 
 	};
 

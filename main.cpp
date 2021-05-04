@@ -88,6 +88,7 @@ public:
 		//tag1->setOnClickListener(this);
 
 		label = new remi::Label("CRemi");
+		label->css_background_color = "yellow";
 		mainContainer->append(label, "label");
 
 		btn1 = new remi::Button("Show generic dialog");
@@ -122,7 +123,7 @@ public:
 	}
 
 	void onBt2Click(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
-		label->style["color"] = "red";
+		label->css_color = "red";
 	}
 
 	void dialogOnConfirm(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
@@ -139,7 +140,7 @@ public:
 
 	void onClick(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
 		std::cout << "Event onClick btn1" << endl;
-		this->btn1->style["background-color"] = "red";
+		this->btn1->css_background_color = "red";
 		this->setRootWidget(this->dialog);
 		this->executeJavascript("alert('hello');");
 		/*
