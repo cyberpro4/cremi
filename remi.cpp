@@ -680,6 +680,527 @@ void Container::setLayoutOrientation(Container::Layout orientation) {
 }
 
 
+AsciiContainer::AsciiContainer(std::string asciipattern, float gap_horizontal, float gap_vertical, Dictionary<Widget*> * children) :Container(children) {
+		this->style["position"] = "relative";
+		this->set_from_asciiart(asciipattern, gap_horizontal, gap_vertical);
+	}
+
+AsciiContainer::~AsciiContainer() {
+	for (std::string key : widget_layout_map.keys()) {
+		delete widget_layout_map.get(key);
+	}
+}
+
+void AsciiContainer::set_from_asciiart(std::string asciipattern, float gap_horizontal, float gap_vertical) {
+	/*
+		asciipattern (std::string): a multiline string representing the layout
+			| widget1               |
+			| widget1               |
+			| widget2 | widget3     |
+		gap_horizontal (float): a percent value (0..100)
+		gap_vertical (float): a percent value
+	*/
+
+	//deleting old map
+	for (std::string key : widget_layout_map.keys()) {
+		delete widget_layout_map.get(key);
+	}
+	widget_layout_map.clear();
+
+	std::list<std::string> pattern_rows = utils::split(asciipattern, "\n");
+	pattern_rows.remove_if([](std::string value) {
+		return (utils::strip(utils::strip(value, ' '), '\t').length() < 1);
+		}
+	);
+
+	int layout_height_in_chars = pattern_rows.size();
+
+	float row_index = 0.0;
+	for (std::string r : pattern_rows) {
+		std::string row = utils::strip(r, ' ');
+		row = utils::strip(row, '\t');
+
+		if (row.length() < 2)
+			continue;  //at least two pipes
+		int pipes_count = utils::count(row, "|");
+		float row_width = row.length() - pipes_count; //the row width is calculated without pipes
+		row = row.substr(1, row.length() - 2); //removing |pipes at beginning and end
+
+		std::list<std::string> columns = utils::split(row, "|");
+
+		float left_value = 0.0;
+		for (std::string c : columns) {
+			std::string widget_key = utils::strip(c, ' ');
+			float widget_width = (c).length();
+
+			if (!widget_layout_map.has(widget_key)) {
+				/*width is calculated in percent
+					height is instead initialized at 1 and incremented by 1 each row the key is present
+					at the end of algorithm the height will be converted in percent
+				*/
+				widget_layout_map[widget_key] = new std::map<std::string, float>{ {"width", widget_width / (row_width) * 100.0 - gap_horizontal},
+					{"height", 1},
+					{"top", (row_index / layout_height_in_chars) * 100.0 + (gap_vertical / 2.0)},
+					{"left", (left_value / row_width) * 100.0 + (gap_horizontal / 2.0)}
+				};
+			}
+			else {
+				(*(std::map<std::string, float>*)widget_layout_map.get(widget_key))["height"] += 1;
+			}
+			left_value += widget_width;
+		}
+		row_index++;
+	}
+
+	//converting height values in percent string
+	for (std::string key : widget_layout_map.keys()) {
+		std::map<std::string, float>* m = widget_layout_map.get(key);
+		(*m)["height"] = ((*m)["height"] / layout_height_in_chars) * 100.0 - gap_vertical;
+	}
+
+	for (std::string key : widget_layout_map.keys()) {
+		set_widget_layout(key);
+	}
+}
+
+std::string AsciiContainer::append(Widget* w, std::string key) {
+	Container* c = static_cast<Container*>(this);
+	c->append(w, key);
+	set_widget_layout(key);
+	return key;
+}
+
+void AsciiContainer::set_widget_layout(std::string key) {
+	if (children.has(key) == false || widget_layout_map.has(key) == false) {
+		return;
+	}
+	static_cast<Tag*>(children.get(key))->style.set("position", "absolute");
+
+	static_cast<Tag*>(children.get(key))->style.set("width", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["width"]));
+	static_cast<Tag*>(children.get(key))->style.set("height", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["height"]));
+	static_cast<Tag*>(children.get(key))->style.set("left", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["left"]));
+	static_cast<Tag*>(children.get(key))->style.set("top", utils::sformat("%.2f%%", (*(std::map<std::string, float>*)widget_layout_map.get(key))["top"]));
+}
+
+
+HTML::HTML() {
+	event_onrequiredupdate = new onrequiredupdate(this);
+	type = "html";
+}
+
+HTML::~HTML() {
+	//Event handlers are deleted by Tag destructor
+	//delete this->event_onrequiredupdate;
+}
+
+void HTML::_notifyParentForUpdate() {
+	//this condition prevents the event to be called in
+	//onrequiredupdate::onrequiredupdate(), where the .attributes dictionary gets
+	//changed
+	if (this->event_handlers.has("onrequiredupdate")) {
+		(*this->event_onrequiredupdate)();
+	}
+}
+
+std::string HTML::repr(Dictionary<Represantable*>* changed_widgets, bool forceUpdate) {
+	/*It is used to automatically represent the object to HTML format
+	packs all the attributes, children and so on.
+
+	Args:
+		changed_widgets (dict): A dictionary containing a collection of tags that have to be updated.
+			The tag that have to be updated is the key, and the value is its textual repr.
+	*/
+
+	Dictionary<Represantable*>* local_changed_widgets = new Dictionary<Represantable*>();
+
+	std::ostringstream  result;
+
+	result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets, forceUpdate) << "\n</" << type << ">";
+	this->setUpdated();
+	delete local_changed_widgets;
+	return result.str();
+}
+
+
+HEAD::HEAD(std::string title) {
+	type = "head";
+	this->addChild("<meta content='text/html;charset=utf-8' http-equiv='Content-Type'> \
+							<meta content='utf-8' http-equiv='encoding'> \
+							<meta name='viewport' content='width=device-width, initial-scale=1.0'>", "meta");
+
+	this->setTitle(title);
+	this->event_onerror = new onerror(this);
+}
+
+HEAD::~HEAD() {
+	//Event handlers are deleted by Tag destructor
+	//delete this->event_onerror;
+}
+
+void HEAD::setIconFile(std::string filename, std::string rel, std::string mimetype) {
+	/* Allows to define an icon for the App
+
+		Args:
+			filename (str): the resource file name (ie. "/res:myicon.png")
+			rel (str): leave it unchanged (standard "icon")
+	*/
+	//mimetype, encoding = mimetypes.guess_type(filename)
+	this->addChild("favicon", utils::sformat("<link rel='%s' href='%s' type='%s' />", rel.c_str(), filename.c_str(), mimetype.c_str()));
+}
+
+void HEAD::setIconData(std::string base64_data, std::string mimetype, std::string rel) {
+	/* Allows to define an icon for the App
+
+		Args:
+			base64_data (str): base64 encoded image data  (ie. "data:image/x-icon;base64,AAABAAEAEBA....")
+			mimetype (str): mimetype of the image ("image/png" or "image/x-icon"...)
+			rel (str): leave it unchanged (standard "icon")
+	*/
+	this->addChild("favicon", utils::sformat("<link rel='%s' href='%s' type='%s' />", rel.c_str(), base64_data.c_str(), mimetype.c_str()));
+}
+
+void HEAD::setInternalJs(std::string net_interface_ip, unsigned short pending_messages_queue_length, unsigned short websocket_timeout_timer_ms) {
+	/* NOTE here are used raw string literals
+		R"( ... )"
+	*/
+	this->addChild(utils::sformat(R"(
+	<script>
+	/*'use strict';*/
+
+	var Remi = function() {
+		this._pendingSendMessages = [];
+		this._ws = null;
+		this._comTimeout = null;
+		this._failedConnections = 0;
+		this._openSocket();
+	};
+
+	// from http://stackoverflow.com/questions/5515869/string-length-in-bytes-in-javascript
+	// using UTF8 strings I noticed that the javascript .length of a string returned less
+	// characters than they actually were
+	Remi.prototype._byteLength = function(str) {
+		// returns the byte length of an utf8 string
+		var s = str.length;
+		for (var i=str.length-1; i>=0; i--) {
+			var code = str.charCodeAt(i);
+			if (code > 0x7f && code <= 0x7ff) s++;
+			else if (code > 0x7ff && code <= 0xffff) s+=2;
+			if (code >= 0xDC00 && code <= 0xDFFF) i--; //trail surrogate
+		}
+		return s;
+	};
+
+	Remi.prototype._paramPacketize = function (ps){
+		var ret = '';
+		for (var pkey in ps) {
+			if( ret.length>0 )ret = ret + '|';
+			var pstring = pkey+'='+ps[pkey];
+			var pstring_length = this._byteLength(pstring);
+			pstring = pstring_length+'|'+pstring;
+			ret = ret + pstring;
+		}
+		return ret;
+	};
+
+	Remi.prototype._openSocket = function(){
+		var ws_wss = "ws";
+		try{
+			ws_wss = document.location.protocol.startsWith('https')?'wss':'ws';
+		}catch(ex){}
+
+		var self = this;
+		try{
+			this._ws = new WebSocket(ws_wss + '://%s/');
+			console.debug('opening websocket');
+
+			this._ws.onopen = function(evt){
+				if(self._ws.readyState == 1){
+					self._ws.send('connected');
+
+					try {
+						document.getElementById("loading").style.display = 'none';
+					} catch(err) {
+						console.log('Error hiding loading overlay ' + err.message);
+					}
+
+					self._failedConnections = 0;
+
+					while(self._pendingSendMessages.length>0){
+						self._ws.send(self._pendingSendMessages.shift()); /*without checking ack*/
+					}
+				}else{
+					console.debug('onopen fired but the socket readyState was not 1');
+				}
+			};
+
+			this._ws.onmessage = function(evt){
+				var received_msg = evt.data;
+
+				if( received_msg[0]=='0' ){ /*show_window*/
+					var index = received_msg.indexOf(',')+1;
+					/*var idRootNodeWidget = received_msg.substr(0,index-1);*/
+					var content = received_msg.substr(index,received_msg.length-index);
+
+					document.body.innerHTML = decodeURIComponent(content);
+				}else if( received_msg[0]=='1' ){ /*update_widget*/
+					var focusedElement=-1;
+					var caretStart=-1;
+					var caretEnd=-1;
+					if (document.activeElement){
+						focusedElement = document.activeElement.id;
+						try{
+							caretStart = document.activeElement.selectionStart;
+							caretEnd = document.activeElement.selectionEnd;
+						}catch(e){
+							console.debug(e.message);
+						}
+					}
+
+					var index = received_msg.indexOf(',')+1;
+					var idElem = received_msg.substr(1,index-2);
+					var content = received_msg.substr(index,received_msg.length-index);
+
+					var elem = document.getElementById(idElem);
+					try{
+						elem.insertAdjacentHTML('afterend',decodeURIComponent(content));
+						elem.parentElement.removeChild(elem);
+					}catch(e){
+						/*Microsoft EDGE doesn't support insertAdjacentHTML for SVGElement*/
+						var ns = document.createElementNS("http://www.w3.org/2000/svg",'tmp');
+						ns.innerHTML = decodeURIComponent(content);
+						elem.parentElement.replaceChild(ns.firstChild, elem);
+						console.debug(e.message);
+					}
+
+					var elemToFocus = document.getElementById(focusedElement);
+					if (elemToFocus != null) {
+						elemToFocus.focus();
+						try {
+							elemToFocus = document.getElementById(focusedElement);
+							if (caretStart>-1 && caretEnd>-1)
+								elemToFocus.setSelectionRange(caretStart, caretEnd);
+						} catch (e) {
+							console.debug(e.message);
+						}
+					}
+				}else if (received_msg[0]=='2') { /*javascript*/
+					var content = received_msg.substr(1,received_msg.length-1);
+					try {
+						eval(content);
+					} catch (e) {
+						console.debug(e.message);
+					};
+				} else if (received_msg[0]=='3') { /*ack*/
+					self._pendingSendMessages.shift() /*remove the oldest*/
+					if (self._comTimeout!==null)
+						clearTimeout(self._comTimeout);
+				}
+			};
+
+			this._ws.onclose = function(evt) {
+				/* websocket is closed. */
+				console.debug('Connection is closed... event code: ' + evt.code + ', reason: ' + evt.reason);
+				// Some explanation on this error: http://stackoverflow.com/questions/19304157/getting-the-reason-why-websockets-closed
+				// In practice, on a unstable network (wifi with a lot of traffic for example) this error appears
+				// Got it with Chrome saying:
+				// WebSocket connection to 'ws://x.x.x.x:y/' failed: Could not decode a text frame as UTF-8.
+				// WebSocket connection to 'ws://x.x.x.x:y/' failed: Invalid frame header
+
+				try {
+					document.getElementById("loading").style.display = '';
+				} catch (err) {
+					console.log('Error hiding loading overlay ' + err.message);
+				}
+
+				self._failedConnections += 1;
+
+				console.debug('failed connections=' + self._failedConnections + ' queued messages=' + self._pendingSendMessages.length);
+
+				if (self._failedConnections > 3) {
+
+					// check if the server has been restarted - which would give it a new websocket address,
+					// new state, and require a reload
+					console.debug('Checking if GUI still up ' + location.href);
+
+					var http = new XMLHttpRequest();
+					http.open('HEAD', location.href);
+					http.onreadystatechange = function() {
+						if (http.status == 200) {
+							// server is up but has a new websocket address, reload
+							location.reload();
+						}
+					};
+					http.send();
+
+					self._failedConnections = 0;
+				}
+
+				if (evt.code == 1006) {
+					self._renewConnection();
+				}
+			};
+
+			this._ws.onerror = function(evt) {
+				/* websocket is closed. */
+				/* alert('Websocket error...');*/
+				console.debug('Websocket error... event code: ' + evt.code + ', reason: ' + evt.reason);
+			};
+
+		} catch (ex) {
+			this._ws=false;
+			alert('websocketnot supported or server unreachable');
+		}
+	}
+
+
+	/*this uses websockets*/
+	Remi.prototype.sendCallbackParam = function(widgetID,functionName,params /*a dictionary of name:value*/) {
+		var paramStr = '';
+		if (params!==null)
+			paramStr=this._paramPacketize(params);
+		var message = encodeURIComponent(unescape('callback' + '/' + widgetID+'/'+functionName + '/' + paramStr));
+		this._pendingSendMessages.push(message);
+		if (this._pendingSendMessages.length < %d) {
+			if (this._ws !== null && this._ws.readyState == 1)
+				this._ws.send(message);
+			if (this._comTimeout===null)
+				this._comTimeout = setTimeout(this._checkTimeout, %d);
+		} else {
+			console.debug('Renewing connection, this._ws.readyState when trying to send was: ' + this._ws.readyState)
+			this._renewConnection();
+		}
+	};
+
+	/*this uses websockets*/
+	Remi.prototype.sendCallback = function(widgetID,functionName) {
+		this.sendCallbackParam(widgetID,functionName,null);
+	};
+
+	Remi.prototype._renewConnection = function() {
+		// ws.readyState:
+		//A value of 0 indicates that the connection has not yet been established.
+		//A value of 1 indicates that the connection is established and communication is possible.
+		//A value of 2 indicates that the connection is going through the closing handshake.
+		//A value of 3 indicates that the connection has been closed or could not be opened.
+		if (this._ws.readyState == 1) {
+			try {
+				this._ws.close();
+			} catch (err) {};
+		} else
+			if (this._ws.readyState == 0) {
+				// Don't do anything, just wait for the connection to be stablished
+			} else {
+				this._openSocket();
+			}
+	};
+
+	Remi.prototype._checkTimeout = function() {
+		if (this._pendingSendMessages.length > 0)
+			this._renewConnection();
+	};
+
+	Remi.prototype.uploadFile = function(widgetID, eventSuccess, eventFail, eventData, file) {
+		var url = '/';
+		var xhr = new XMLHttpRequest();
+		var fd = new FormData();
+		xhr.open('POST', url, true);
+		xhr.setRequestHeader('filename', file.name);
+		xhr.setRequestHeader('listener', widgetID);
+		xhr.setRequestHeader('listener_function', eventData);
+		xhr.onreadystatechange = function() {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				/* Every thing ok, file uploaded */
+				var params={};
+				params['filename']=file.name;
+				remi.sendCallbackParam(widgetID, eventSuccess,params);
+				console.log('upload success: ' + file.name);
+			} else
+				if (xhr.status == 400) {
+					var params={};
+					params['filename']=file.name;
+					remi.sendCallbackParam(widgetID,eventFail,params);
+					console.log('upload failed: ' + file.name);
+				}
+		};
+		fd.append('upload_file', file);
+		xhr.send(fd);
+	};
+
+	window.onerror = function(message, source, lineno, colno, error) {
+		var params={};
+		params['message']=message;
+		params['source']=source;
+		params['lineno']=lineno;
+		params['colno']=colno;
+		params['error']=JSON.stringify(error);
+		remi.sendCallbackParam('%s','%s',params);
+		return false;
+	};
+
+	window.remi = new Remi();
+
+	</script>)", net_interface_ip.c_str(), pending_messages_queue_length, websocket_timeout_timer_ms, this->getIdentifier().c_str(), "onerror"), "internal_js");
+}
+
+void HEAD::setTitle(std::string title) {
+	this->addChild(utils::sformat("<title>%s</title>", title.c_str()), "title");
+}
+
+std::string HEAD::repr(Dictionary<Represantable*>* changed_widgets, bool forceUpdate) {
+	/*It is used to automatically represent the object to HTML format
+	packs all the attributes, children and so on.
+
+	Args:
+	changed_widgets (dict): A dictionary containing a collection of tags that have to be updated.
+	The tag that have to be updated is the key, and the value is its textual repr.
+	*/
+
+	Dictionary<Represantable*>* local_changed_widgets = new Dictionary<Represantable*>();
+
+	std::ostringstream  result;
+
+	result << "<" << type << ">\n" << this->innerHTML(local_changed_widgets, forceUpdate) << "\n</" << type << ">";
+	this->setUpdated();
+	//delete changed_widgets;
+	delete local_changed_widgets;
+	return result.str();
+}
+
+
+BODY::BODY() :Container::Container() {
+	type = "body";
+	Widget* loading_anim = new Widget();
+	loading_anim->style.remove("margin");
+	loading_anim->setIdentifier("loading-animation");
+
+	Container* loading_container = new Container();
+	loading_container->append(loading_anim, "loading_animation");
+	loading_container->style.set("display", "none");
+	loading_container->style.remove("margin");
+	loading_container->setIdentifier("loading");
+
+	this->append(loading_container, "loading_container");
+
+	this->event_onload = new onload(this);
+	this->event_ononline = new ononline(this);
+	this->event_onpagehide = new onpagehide(this);
+	this->event_onpageshow = new onpageshow(this);
+	this->event_onresize = new onresize(this);
+}
+
+BODY::~BODY() {
+	//Event handlers are deleted by Tag destructor
+	/*delete this->event_onload;
+	delete this->event_ononline;
+	delete this->event_onpagehide;
+	delete this->event_onpageshow;
+	delete this->event_onresize;*/
+
+	//children are deleted by Tag destructor
+	delete this->children.get("loading_container");
+}
+
+
 HBox::HBox() : Container() {
 
 	style["display"] = "flex";
@@ -706,6 +1227,7 @@ VBox::VBox() : Container() {
 	setClass(CLASS_NAME(VBox));
 
 }
+
 
 Button::Button(std::string text) : TextWidget() {
 
