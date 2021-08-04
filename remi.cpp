@@ -981,15 +981,17 @@ void HEAD::setInternalJs(std::string net_interface_ip, unsigned short pending_me
 						console.debug(e.message);
 					}
 
-					var elemToFocus = document.getElementById(focusedElement);
-					if (elemToFocus != null) {
-						elemToFocus.focus();
-						try {
-							elemToFocus = document.getElementById(focusedElement);
-							if (caretStart>-1 && caretEnd>-1)
-								elemToFocus.setSelectionRange(caretStart, caretEnd);
-						} catch (e) {
-							console.debug(e.message);
+					if (idElem == focusedElement){
+						var elemToFocus = document.getElementById(focusedElement);
+						if (elemToFocus != null) {
+							elemToFocus.focus();
+							try {
+								elemToFocus = document.getElementById(focusedElement);
+								if (caretStart>-1 && caretEnd>-1)
+									elemToFocus.setSelectionRange(caretStart, caretEnd);
+							} catch (e) {
+								console.debug(e.message);
+							}
 						}
 					}
 				}else if (received_msg[0]=='2') { /*javascript*/
