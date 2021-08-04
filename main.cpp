@@ -18,26 +18,6 @@ using namespace std;
 using namespace remi;
 using namespace remi::utils;
 
-int run_test() {
-
-#ifdef _WIN32
-
-
-	MEMORYSTATUSEX memInfo;
-	memInfo.dwLength = sizeof(MEMORYSTATUSEX);
-	GlobalMemoryStatusEx(&memInfo);
-	DWORDLONG totalVirtualMem = memInfo.ullTotalPageFile;
-
-	return 0;
-
-#else
-
-	return 1;
-
-#endif
-
-}
-
 
 void funcOnclick(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
 	remi::Button* btn1 = (remi::Button*)userdata;
@@ -66,6 +46,7 @@ private:
 	remi::FileUploader* fileUploader;
 
 	remi::Progress*		progress;
+
 	int counter;
 
 public:
@@ -78,24 +59,28 @@ public:
 	Widget* main() {
 		counter = 0;
 
-		//mainContainer = new remi::HBox();
 		mainContainer = new remi::AsciiContainer(
 			R"(
+			|   |image  |   |
 			|label | button |
 			|button2 |bt3   |
 			|button2 |txt   |
 			|progress       |
-			)", 10.0, 10.0
+			)", 1.0, 1.0
 		);
 
-		//mainContainer->addClass("myclass2");
 		mainContainer->style.set("width", "500px");
 		mainContainer->style.set("height", "600px");
-		//mainContainer->style.set("background-color", "red");
-		//tag1->setOnClickListener(this);
+
+		this->_staticResourcesPaths["res"] = "./res/";
+		image = new Image("/res:/logo.png");
+		LINK_EVENT_TO_CLASS_MEMBER(image->event_onclick, this, &TestApp::onClickImage);
+		mainContainer->append(image, "image");
 
 		label = new remi::Label("CRemi");
 		label->css_background_color = "yellow";
+		label->css_text_align = "center";
+		label->css_font_size = "100px";
 		mainContainer->append(label, "label");
 
 		btn1 = new remi::Button("Show generic dialog");
@@ -113,7 +98,6 @@ public:
 		//btn1->event_onclick->link([this](EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){this->btn1->style.set("background-color", "purple");});
 
 		LINK_EVENT_TO_CLASS_MEMBER(btn1->event_onmousedown, this, &TestApp::onMouseDown);
-		//btn1->style.set("width", "100px");
 		mainContainer->append(btn1, "button");
 
 		btn2 = new remi::Button("bt2");
@@ -133,6 +117,12 @@ public:
 		
 		progress = new remi::Progress(0, 100);
 		mainContainer->append(progress, "progress");
+
+		fileUploader = new remi::FileUploader();
+		LINK_EVENT_TO_CLASS_MEMBER(fileUploader->event_ondata, this, &TestApp::onData);
+		LINK_EVENT_TO_CLASS_MEMBER(fileUploader->event_onsuccess, this, &TestApp::onSuccess);
+		LINK_EVENT_TO_CLASS_MEMBER(fileUploader->event_onfail, this, &TestApp::onFail);
+		mainContainer->append(fileUploader);
 
 		return mainContainer;
 	}
@@ -167,6 +157,10 @@ public:
 		for (std::string key : params->keys()) {
 			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
 		}
+	}
+
+	void onClickImage(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
+		std::cout << "Image clicked" << endl;
 	}
 
 	void onClick(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
@@ -208,6 +202,25 @@ public:
 		}
 	}
 
+	void onData(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {
+		std::cout << "Event onData - ";
+		for (std::string key : params->keys()) {
+			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+		}
+	}
+	void onSuccess(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {
+		std::cout << "Event onSuccess - ";
+		for (std::string key : params->keys()) {
+			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+		}
+	}
+	void onFail(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {
+		std::cout << "Event onFail - ";
+		for (std::string key : params->keys()) {
+			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+		}
+	}
+
 	/*void onData(FileUploader* w, std::string fileName, const char* data, unsigned long long len){
 		std::ostringstream filePathName;
 		filePathName << w->savePath() << "/" << fileName;
@@ -221,12 +234,6 @@ public:
 
 
 int main() {
-	/*int i = 0;
-	for(i=0;i<1000000;i++){
-		remi::server::ServerResponse* s = new remi::server::ServerResponse();
-		s->appendToBody("patatas fritas");
-		delete s;
-	}*/
 #ifdef _WIN32
 	SetConsoleOutputCP(65001);
 #endif

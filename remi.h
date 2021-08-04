@@ -1383,6 +1383,8 @@ Args:
 
 	class Image : public Widget {
 	public:
+		TagProperty attr_src = TagProperty("src", &attributes);
+	public:
 		Image(std::string url);
 		void setURL(std::string);
 		std::string url();
@@ -1406,18 +1408,10 @@ Args:
 
 	class FileUploader : public Widget {
 	public:
-		static const std::string Event_OnSuccess;
-		static const std::string Event_OnFail;
-		static const std::string Event_OnData;
-		//static const std::string Event_OnProgress;
-
-	class FileUploaderOnSuccessListener { public: virtual void onSuccess(FileUploader*) = 0; };
-	FileUploaderOnSuccessListener* onSuccessListener;
-	class FileUploaderOnFailListener { public: virtual void onFail(FileUploader*) = 0; };
-	FileUploaderOnFailListener* onFailListener;
-	class FileUploaderOnDataListener { public: virtual void onData(FileUploader*, std::string fileName, const char* data, unsigned long long len) = 0; };
-	FileUploaderOnDataListener* onDataListener;
-
+		EVENT(onsuccess);
+		EVENT(onfail);
+		EVENT(ondata);
+	
 	public:
 		FileUploader(std::string path = "./", bool multipleSelectionAllowed = true);
 
@@ -1426,8 +1420,6 @@ Args:
 
 		void setMultipleSelectionAllowed(bool value);
 		bool multipleSelectionAllowed();
-
-		//virtual void onEvent(std::string name, Event* event);
 
 	private:
 		std::string _path;

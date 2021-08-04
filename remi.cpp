@@ -1403,7 +1403,7 @@ Widget* GenericDialog::getField(std::string key) {
 
 
 
-Image::Image(std::string url) {
+Image::Image(std::string url){
 	type = "img";
 	setClass(CLASS_NAME(Image));
 	setURL(url);
@@ -1463,9 +1463,9 @@ bool Input::isReadOnly() {
 
 
 FileUploader::FileUploader(std::string path, bool multipleSelectionAllowed) {
-	onSuccessListener = NULL;
-	onFailListener = NULL;
-	onDataListener = NULL;
+	this->event_onsuccess = new FileUploader::onsuccess(this);
+	this->event_onfail = new FileUploader::onfail(this);
+	this->event_ondata = new FileUploader::ondata(this);
 
 	setSavePath(path);
 	setMultipleSelectionAllowed(multipleSelectionAllowed);
@@ -1474,17 +1474,23 @@ FileUploader::FileUploader(std::string path, bool multipleSelectionAllowed) {
 	setClass(CLASS_NAME(FileUploader));
 	this->attributes["type"] = "file";
 	this->attributes["accept"] = "*.*";
-	/*
-		attributes[Widget::Event_OnChange] = utils::sformat(
-			"var files = this.files;" \
-			"for(var i=0; i<files.length; i++){" \
-			"uploadFile('%s','%s','%s','%s',files[i]);}",
-			getIdentifier().c_str(), FileUploader::Event_OnSuccess.c_str(), FileUploader::Event_OnFail.c_str(), FileUploader::Event_OnData.c_str()
-		);
+	
+	attributes["onchange"] = utils::sformat(
+			R"(
+				var files = this.files;
+				for(var i=0; i<files.length; i++){
+					remi.uploadFile('%s','%s','%s','%s',files[i]);
+				}
+			)",
+			getIdentifier().c_str(), "onsuccess", "onfail", "ondata");
 
-		this->attributes[Widget::Event_OnClick] = "event.stopPropagation();";
-		this->attributes[Widget::Event_OnDblClick] = "event.stopPropagation();";
-	*/
+	//since that these are "fake" javascript events, I have to register the instance as handler for such events
+	this->event_handlers.set("onsuccess", this->event_onsuccess);
+	this->event_handlers.set("onfail", this->event_onfail);
+	this->event_handlers.set("ondata", this->event_ondata);
+
+	this->attributes["onclick"] = "event.stopPropagation();";
+	this->attributes["ondblclick"] = "event.stopPropagation();";
 }
 
 void FileUploader::setSavePath(std::string path) {

@@ -109,94 +109,121 @@ __remi_server_answer(void* cls, struct MHD_Connection* connection,
 	MHD_Result ret;
 
 	const char* sessionCookieValue = MHD_lookup_connection_value(connection, MHD_COOKIE_KIND, "remi_session");
-
-	if (cls != NULL) {
-		const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Connection");
-		//if(strcmp(value, "Upgrade")==0){
-		if (remi::utils::count(value, "Upgrade") > 0) {
-			const char* upgrade_kind = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Upgrade");
-			if (strcmp(upgrade_kind, "websocket") == 0) {
-
-				if (sessionCookieValue != NULL && ((AnonymousServer*)cls)->_guiInstances.has(sessionCookieValue)) {
-					response = MHD_create_response_for_upgrade(&__remi_server_connection_upgrade_handler, (void*)((AnonymousServer*)cls)->_guiInstances.get(sessionCookieValue));
-					if (!response) {
-						cout << "__remi_server_answer - failed to create upgrade response" << endl;
-					}
-
-					const char* websocket_key = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Sec-WebSocket-Key");
-					std::list<std::string> pieces = remi::utils::split(std::string(websocket_key), "\r\n");
-					std::string key = remi::utils::list_at(pieces, 0);
-					key.append("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
-
-					unsigned char key_sha1[64] = { 0 };
-
-					std::string sha1_1(remi::utils::SHA1(key));
-
-					std::string b64 = base64_encode((unsigned char*)sha1_1.c_str(), sha1_1.length());
-					cout << "b64:" << b64.c_str() << endl;
-
-					//headers from https://gitlab.univ-nantes.fr/milliat-a/Logger/blob/8a4cfcb90bee798fef2ef8576b618bc00f47514f/HTTP/Sources/HTTPHandler.cpp
-					ret = MHD_add_response_header(response, MHD_HTTP_HEADER_UPGRADE, "websocket");
-					ret = MHD_add_response_header(response, MHD_HTTP_HEADER_CONNECTION, MHD_HTTP_HEADER_UPGRADE);
-					ret = MHD_add_response_header(response, "Sec-WebSocket-Accept", b64.c_str());
-					ret = MHD_queue_response(connection, MHD_HTTP_SWITCHING_PROTOCOLS, response);
-					MHD_destroy_response(response);
-				}
-
-			}
-		}
-		else {
-
-			ostringstream session_key_value;
-			bool newSession = false;
-			char newSessionValue[80] = { 0 };
-			if (sessionCookieValue == NULL || ((AnonymousServer*)cls)->_guiInstances.has(sessionCookieValue) == false) {
-				//session is not valid
-				newSession = true;
-				time_t rawtime;
-				struct tm* timeinfo;
-				time(&rawtime);
-				timeinfo = localtime(&rawtime);
-
-				strftime(newSessionValue, 80, "%d%m%Y%H%M%S", timeinfo);
-
-				session_key_value << "remi_session=" << newSessionValue << "; SameSite=Lax";
-
-				App* _guiInstance = (App*)((AnonymousServer*)cls)->buildInstance();
-				const char* host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Host");
-				cout << ">>>>>> host:" << host << endl << endl;
-				_guiInstance->init(std::string(host));
-				((AnonymousServer*)cls)->_guiInstances.set(newSessionValue, _guiInstance);
-			}
-
-			ServerResponse* serverResponse;
-			App* _guiInstance = ((AnonymousServer*)cls)->_guiInstances.get(newSession ? newSessionValue : sessionCookieValue);
+	if (strcmp(method, "POST") == 0) {
+		//this is a POST request, in remi it is used normally for file upload requests
+		
+		ServerResponse* serverResponse;
+		
+		if (sessionCookieValue == NULL || ((AnonymousServer*)cls)->_guiInstances.has(sessionCookieValue) == false) {
+			//if the application has still not established a session, this is a strange situation, quit
+			serverResponse = new ServerResponse(401); //Unauthorized
+		} else {
+			App* _guiInstance = ((AnonymousServer*)cls)->_guiInstances.get(sessionCookieValue);
 			serverResponse = _guiInstance->serve(url);
 			serverResponse->setCode(200);
 
-			response = MHD_create_response_from_buffer(serverResponse->getBodyBufferSize(), (void*)serverResponse->getBodyBuffer(), MHD_RESPMEM_MUST_COPY);
+			const char* filename = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "filename");
+			const char* listener = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "listener");
+			const char* listener_function = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "listener_function");
 
-			//if this is a newly created session, set the cookie
-			if (newSession) {
-				/*
-				if(MHD_NO == MHD_set_connection_value (connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_SET_COOKIE, session.str().c_str())){
-					cout << "AnonymousServer::serve - ERROR unable to set session value." << endl;
-					return MHD_NO;
+			//https://www.gnu.org/software/libmicrohttpd/tutorial.html#Processing-POST-data
+		}
+
+		response = MHD_create_response_from_buffer(serverResponse->getBodyBufferSize(), (void*)serverResponse->getBodyBuffer(), MHD_RESPMEM_MUST_COPY);
+
+		ret = MHD_queue_response(connection, serverResponse->getCode(), response);
+
+		MHD_destroy_response(response);
+		delete serverResponse;
+
+	} else { //if the method is not a POST
+
+		if (cls != NULL) {
+			const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Connection");
+			//if(strcmp(value, "Upgrade")==0){
+			if (remi::utils::count(value, "Upgrade") > 0) {
+				const char* upgrade_kind = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Upgrade");
+				if (strcmp(upgrade_kind, "websocket") == 0) {
+
+					if (sessionCookieValue != NULL && ((AnonymousServer*)cls)->_guiInstances.has(sessionCookieValue)) {
+						response = MHD_create_response_for_upgrade(&__remi_server_connection_upgrade_handler, (void*)((AnonymousServer*)cls)->_guiInstances.get(sessionCookieValue));
+						if (!response) {
+							cout << "__remi_server_answer - failed to create upgrade response" << endl;
+						}
+
+						const char* websocket_key = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Sec-WebSocket-Key");
+						std::list<std::string> pieces = remi::utils::split(std::string(websocket_key), "\r\n");
+						std::string key = remi::utils::list_at(pieces, 0);
+						key.append("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+
+						unsigned char key_sha1[64] = { 0 };
+
+						std::string sha1_1(remi::utils::SHA1(key));
+
+						std::string b64 = base64_encode((unsigned char*)sha1_1.c_str(), sha1_1.length());
+						cout << "b64:" << b64.c_str() << endl;
+
+						//headers from https://gitlab.univ-nantes.fr/milliat-a/Logger/blob/8a4cfcb90bee798fef2ef8576b618bc00f47514f/HTTP/Sources/HTTPHandler.cpp
+						ret = MHD_add_response_header(response, MHD_HTTP_HEADER_UPGRADE, "websocket");
+						ret = MHD_add_response_header(response, MHD_HTTP_HEADER_CONNECTION, MHD_HTTP_HEADER_UPGRADE);
+						ret = MHD_add_response_header(response, "Sec-WebSocket-Accept", b64.c_str());
+						ret = MHD_queue_response(connection, MHD_HTTP_SWITCHING_PROTOCOLS, response);
+						MHD_destroy_response(response);
+					}
+
 				}
-				*/
-				cout << "SESSION COOKIE: " << session_key_value.str() << endl;
-				ret = MHD_add_response_header(response, "Set-Cookie", session_key_value.str().c_str());
-				//MHD_set_connection_value (connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_SET_COOKIE, "SameSite=Lax");
+			} else {
+
+				ostringstream session_key_value;
+				bool newSession = false;
+				char newSessionValue[80] = { 0 };
+				if (sessionCookieValue == NULL || ((AnonymousServer*)cls)->_guiInstances.has(sessionCookieValue) == false) {
+					//session is not valid
+					newSession = true;
+					time_t rawtime;
+					struct tm* timeinfo;
+					time(&rawtime);
+					timeinfo = localtime(&rawtime);
+
+					strftime(newSessionValue, 80, "%d%m%Y%H%M%S", timeinfo);
+
+					session_key_value << "remi_session=" << newSessionValue << "; SameSite=Lax";
+
+					App* _guiInstance = (App*)((AnonymousServer*)cls)->buildInstance();
+					const char* host = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Host");
+					cout << ">>>>>> host:" << host << endl << endl;
+					_guiInstance->init(std::string(host));
+					((AnonymousServer*)cls)->_guiInstances.set(newSessionValue, _guiInstance);
+				}
+
+				ServerResponse* serverResponse;
+				App* _guiInstance = ((AnonymousServer*)cls)->_guiInstances.get(newSession ? newSessionValue : sessionCookieValue);
+				serverResponse = _guiInstance->serve(url);
+				serverResponse->setCode(200);
+
+				response = MHD_create_response_from_buffer(serverResponse->getBodyBufferSize(), (void*)serverResponse->getBodyBuffer(), MHD_RESPMEM_MUST_COPY);
+
+				//if this is a newly created session, set the cookie
+				if (newSession) {
+					/*
+					if(MHD_NO == MHD_set_connection_value (connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_SET_COOKIE, session.str().c_str())){
+						cout << "AnonymousServer::serve - ERROR unable to set session value." << endl;
+						return MHD_NO;
+					}
+					*/
+					cout << "SESSION COOKIE: " << session_key_value.str() << endl;
+					ret = MHD_add_response_header(response, "Set-Cookie", session_key_value.str().c_str());
+					//MHD_set_connection_value (connection, MHD_HEADER_KIND, MHD_HTTP_HEADER_SET_COOKIE, "SameSite=Lax");
+				}
+
+				ret = MHD_queue_response(connection, serverResponse->getCode(), response);
+
+				MHD_destroy_response(response);
+				delete serverResponse;
+
 			}
-
-			ret = MHD_queue_response(connection, serverResponse->getCode(), response);
-
-			MHD_destroy_response(response);
-			delete serverResponse;
-
 		}
 	}
-
 	return ret;
 }
 
