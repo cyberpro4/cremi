@@ -277,9 +277,10 @@ std::string remi::utils::escape_json(const std::string& s) {
 
 	for (char i : s) {
 		std::string::value_type c = i;
-
+		
 		// Keep alphanumeric and other accepted characters intact
-		if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+		//if (isalnum((unsigned char)c) || c == '-' || c == '_' || c == '.' || c == '~') {
+		if (isalnum((unsigned char)c) || c == '-' || c == '_' || c == '.' || c == '~') {
 			escaped << c;
 			continue;
 		}
@@ -534,6 +535,14 @@ void Tag::_notifyParentForUpdate() {
 			this->_parent->_notifyParentForUpdate();
 		}
 	}
+}
+
+void Tag::disableUpdate(){
+	ignoreUpdate = true;
+}
+
+void Tag::enableUpdate(){
+	ignoreUpdate = false;
 }
 
 void Tag::_needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {

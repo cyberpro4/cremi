@@ -56,6 +56,8 @@ private:
 
 	remi::GenericDialog* dialog;
 	remi::Label* label;
+	
+	remi::TextInput* txtInput;
 
 	remi::Image* image;
 
@@ -77,7 +79,7 @@ public:
 			R"(
 			|label | button |
 			|button2 |bt3   |
-			|button2 |bt3   |
+			|button2 |txt   |
 			)", 10.0, 10.0
 		);
 
@@ -118,8 +120,27 @@ public:
 
 		dialog = new remi::GenericDialog("POTATO", "Chips");
 		LINK_EVENT_TO_CLASS_MEMBER( dialog->event_onconfirm, this, &TestApp::dialogOnConfirm);
-
+		
+		txtInput = new remi::TextInput();
+		mainContainer->append(txtInput, "txt");
+		LINK_EVENT_TO_CLASS_MEMBER(txtInput->event_onkeyup, this, &TestApp::txtInputOnkeyup);
+		LINK_EVENT_TO_CLASS_MEMBER(txtInput->event_onchange, this, &TestApp::txtInputOnchange);
+		
 		return mainContainer;
+	}
+
+	void txtInputOnkeyup(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
+		std::cout << "event onkeyup" << endl;
+		for (std::string key : params->keys()) {
+			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+		}
+	}
+	
+	void txtInputOnchange(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
+		std::cout << "event onchange" << endl;
+		for (std::string key : params->keys()) {
+			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+		}
 	}
 
 	void onBt2Click(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
@@ -196,7 +217,7 @@ int main() {
 		s->appendToBody("patatas fritas");
 		delete s;
 	}*/
-
+	
 	remi::server::Server<TestApp>* srv = new remi::server::Server<TestApp>();
 	srv->start();
 

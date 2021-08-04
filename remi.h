@@ -717,6 +717,9 @@ namespace remi {
 
 		//EventListener::listener_type _needUpdate;
 		void _needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata);
+		
+		void disableUpdate();
+		void enableUpdate();
 
 	public:
 
@@ -1197,6 +1200,11 @@ namespace remi {
 
 	class TextWidget : public Widget {
 	public:
+		TagProperty css_writing_mode = TagProperty("writing-mode", &style); //'none', 'horizontal-tb', 'vertical-rl', 'vertical-lr'
+		TagProperty css_text_align = TagProperty("text-align", &style); //'none', 'center', 'left', 'right', 'justify'
+		TagProperty css_direction = TagProperty("direction", &style); //'none', 'ltr', 'rtl'
+			
+	public:
 		void setText(std::string text);
 		std::string text();
 	};
@@ -1215,7 +1223,116 @@ namespace remi {
 	public:
 		Label(std::string text = "");
 	};
+	
+	
+	class TextInput : public TextWidget {
+	    /*Editable multiline/single_line text area widget. You can set the content by means of the function set_text or
+	     retrieve its content with get_text.
+	    */
+	public:
+		/*Called when the user changes the TextInput content.
+With single_line=True it fires in case of focus lost and Enter key pressed.
+With single_line=False it fires at each key released.
 
+Args:
+	new_value (str): the new string content of the TextInput.
+*/
+		EVENT_JS_DO(onchange, R"(var params={};
+			params['new_value']=this.value;
+			remi.sendCallbackParam('%s','%s',params);)", {
+				static_cast<TextInput*>(_eventSource)->disableUpdate();
+				static_cast<TextInput*>(_eventSource)->setValue(parameters->get("new_value")->str());
+				static_cast<TextInput*>(_eventSource)->enableUpdate();
+				Event::operator()(parameters);
+			});
+
+		/*Called when user types and releases a key into the TextInput
+
+		Note: This event can't be registered together with Widget.onchange.
+
+		Args:
+			new_value (str): the new string content of the TextInput
+			keycode (str): the numeric char code
+		*/
+		EVENT_JS(onkeyup, R"(var elem=this;
+            var params={};params['new_value']=elem.value;params['keycode']=(event.which||event.keyCode);
+			remi.sendCallbackParam('%s','%s',params);)");
+
+		/*Called when the user types a key into the TextInput.
+
+		Note: This event can't be registered together with Widget.onchange.
+
+		Args:
+			new_value (str): the new string content of the TextInput.
+			keycode (str): the numeric char code
+		*/
+		EVENT_JS(onkeydown, R"(var elem=this;
+            var params={};params['new_value']=elem.value;params['keycode']=(event.which||event.keyCode);
+			remi.sendCallbackParam('%s','%s',params);)");
+	public:
+		TagProperty attr_maxlength = TagProperty("maxlength", &attributes);
+		TagProperty attr_placeholder = TagProperty("placeholder", &attributes);
+		TagProperty attr_rows = TagProperty("rows", &attributes);
+		TagProperty attr_autocomplete = TagProperty("autocomplete", &attributes);
+		TagProperty css_resize = TagProperty("resize", &style);
+		
+	public:
+    	TextInput(bool singleLine=true, std::string hint=""):TextWidget(){
+	        /*Args:
+	            single_line (bool): Determines if the TextInput have to be single_line. A multiline TextInput have a gripper
+	                                that allows the resize.
+	            hint (str): Sets a hint using the html placeholder attribute.*/
+			this->event_onchange = new TextInput::onchange(this);
+			this->event_onkeyup = new TextInput::onkeyup(this);
+			this->event_onkeydown = new TextInput::onkeydown(this);
+
+        	type = "textarea";
+			//setText(text);
+			setClass(CLASS_NAME(TextInput));
+			
+        	if(singleLine){
+	            this->css_resize = "none";
+	            this->attr_rows = "1";
+	            this->attributes["oninput"] = utils::sformat(R"(
+	                var elem = this;
+	                var enter_pressed = (elem.value.indexOf('\\n') > -1);
+	                if(enter_pressed){
+	                    elem.value = elem.value.split('\\n').join('');
+	                    var params={};params['new_value']=elem.value;
+	                    remi.sendCallback('%s', '%s');event.stopPropagation();event.preventDefault();
+	                })",this->getIdentifier().c_str(), "onchange");
+        	}else{
+	            this->attributes["oninput"] = utils::sformat(R"(
+	                var elem = this;
+                    elem.value = elem.value.split('\\n').join('');
+                    var params={};params['new_value']=elem.value;
+                    remi.sendCallback('%s', '%s');event.stopPropagation();event.preventDefault();
+	                )",this->getIdentifier().c_str(), "onchange");
+        	}
+
+        
+        	this->attr_placeholder = hint;
+
+	        this->attr_autocomplete = "off";
+    	}
+
+    	void setValue(std::string text){
+	        /*Sets the text content.
+	
+	        Args:
+	            text (str): The string content that have to be appended as standard child identified by the key 'text'
+	        */
+	        this->setText(text);
+    	}
+    	
+    	std::string getValue(){
+	        /*Returns:
+	            str: The text content of the TextInput. You can set the text content with set_text(text).
+	        */
+	        return this->text();
+    	}
+    	
+    };
 
 	class GenericDialog : public Container {
 	public:
