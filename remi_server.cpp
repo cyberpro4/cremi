@@ -91,6 +91,25 @@ int ServerResponse::prepareSize(int new_size) {
 	return old_size;
 }
 
+
+struct POST_Handler_Connection_Info_Struct {
+	std::string filename;
+	std::string listenerFuncName;
+	remi::FileUploader* fu;
+	struct MHD_PostProcessor* postprocessor;
+};
+
+static int __remi_server_connection_post_handler(void* coninfo_cls, enum MHD_ValueKind kind, const char* key,
+	const char* filename, const char* content_type,
+	const char* transfer_encoding, const char* data,
+	uint64_t off, size_t size) {
+	struct POST_Handler_Connection_Info_Struct* ci = (POST_Handler_Connection_Info_Struct*)coninfo_cls;
+
+	if (ci->fu->event_handlers.has(ci->listenerFuncName)) {
+		reinterpret_cast<Event*>(ci->fu->event_handlers[ci->listenerFuncName].value)->operator()(params);
+	}
+}
+
 void /* *MHD_UpgradeHandler*/ __remi_server_connection_upgrade_handler(void* remi_application, struct MHD_Connection* connection,
 	void* param, const char* extra_in, size_t extra_in_size,
 	MHD_socket sock, struct MHD_UpgradeResponseHandle* urh) {
@@ -118,13 +137,33 @@ __remi_server_answer(void* cls, struct MHD_Connection* connection,
 			//if the application has still not established a session, this is a strange situation, quit
 			serverResponse = new ServerResponse(401); //Unauthorized
 		} else {
+			//if this is a new POST request
+			if(*con_cls == NULL){
+				const char* filename = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "filename");
+				const char* listener = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "listener");
+				const char* listener_function = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "listener_function");
+				*con_cls = new POST_Handler_Connection_Info_Struct;
+				((POST_Handler_Connection_Info_Struct*)*con_cls)->filename = filename;
+				((POST_Handler_Connection_Info_Struct*)*con_cls)->listenerFuncName = listener_function;
+				((POST_Handler_Connection_Info_Struct*)*con_cls)->fu = (remi::FileUploader*)((void*)atoi(listener));
+				((POST_Handler_Connection_Info_Struct*)*con_cls)->postprocessor = MHD_create_post_processor(connection, POSTBUFFERSIZE, __remi_server_connection_post_handler, *con_cls);
+			}
+
+			//if there are data to handle
+			if (*upload_data_size != 0){
+				struct MHD_PostProcessor* postprocessor = ((POST_Handler_Connection_Info_Struct*)*con_cls)->postprocessor;
+
+				MHD_post_process(postprocessor, upload_data, *upload_data_size);
+				*upload_data_size = 0;
+
+				return MHD_YES;
+			}
+			
+			MHD_destroy_post_processor(((AnonymousServer*)cls)->_guiInstances.get(sessionCookieValue)->_postprocessor);
+			
 			App* _guiInstance = ((AnonymousServer*)cls)->_guiInstances.get(sessionCookieValue);
 			serverResponse = _guiInstance->serve(url);
 			serverResponse->setCode(200);
-
-			const char* filename = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "filename");
-			const char* listener = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "listener");
-			const char* listener_function = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "listener_function");
 
 			//https://www.gnu.org/software/libmicrohttpd/tutorial.html#Processing-POST-data
 		}
@@ -136,7 +175,7 @@ __remi_server_answer(void* cls, struct MHD_Connection* connection,
 		MHD_destroy_response(response);
 		delete serverResponse;
 
-	} else { //if the method is not a POST
+	} else if(strcmp(method, "GET") == 0) {
 
 		if (cls != NULL) {
 			const char* value = MHD_lookup_connection_value(connection, MHD_HEADER_KIND, "Connection");

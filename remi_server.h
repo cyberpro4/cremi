@@ -58,7 +58,6 @@ namespace remi {
 
 
 		class App :public EventListener, public CommonAppInterface, private utils::TimerListener {
-
 		public:
 
 			App();
@@ -125,7 +124,6 @@ namespace remi {
 			remi::HTML* html;
 			remi::HEAD* head;
 			remi::BODY* body;
-
 		};
 
 		class AnonymousServer : private utils::TimerListener {
