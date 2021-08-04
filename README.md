@@ -1,2 +1,2 @@
 # cremi
-C++ port of remi project
+C++ port of [remi](https://github.com/dddomodossola/remi) GUI project
