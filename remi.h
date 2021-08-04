@@ -1301,6 +1301,43 @@ Args:
 	    
     };
 
+
+	class Progress : public Widget {
+		/* Progress bar widget. */
+	public:
+		TagProperty attr_value = TagProperty("value", &attributes);
+		TagProperty attr_max = TagProperty("max", &attributes);
+
+	public:
+		Progress(int value = 0, int max = 100) {
+			/*
+			Args :
+				value(int) : The actual progress value.
+				max(int) : The maximum progress value.
+			*/
+			type = "progress";
+			setValue(value);
+			this->attr_max = std::to_string(max);
+		}
+
+		void setValue(int value) {
+			this->attr_value = std::to_string(value);
+		}
+
+		int getValue() {
+			return std::atoi(((std::string)this->attr_value).c_str());
+		}
+
+		void setMax(int value) {
+			this->attr_max = std::to_string(value);
+		}
+
+		int getMax() {
+			return std::atoi(((std::string)this->attr_max).c_str());
+		}
+	};
+
+
 	class GenericDialog : public Container {
 	public:
 		class onconfirm :public Event, EventListener {

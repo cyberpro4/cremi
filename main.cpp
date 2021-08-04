@@ -50,27 +50,28 @@ void funcOnclick(EventSource* emitter, Dictionary<Buffer*>* params, void* userda
 
 class TestApp : public remi::server::App {
 private:
-	//remi::Widget*			mainContainer;
 	remi::AsciiContainer* mainContainer;
 
-	remi::Button* btn1;
-	remi::Button* btn2;
-	remi::Button* btn3;
+	remi::Button*		btn1;
+	remi::Button*		btn2;
+	remi::Button*		btn3;
 
 	remi::GenericDialog* dialog;
-	remi::Label* label;
+	remi::Label*		label;
 	
-	remi::TextInput* txtInput;
+	remi::TextInput*	txtInput;
 
-	remi::Image* image;
+	remi::Image*		image;
 
 	remi::FileUploader* fileUploader;
 
+	remi::Progress*		progress;
 	int counter;
 
 public:
 	void idle() {
 		label->setText(utils::sformat("%d", counter));
+		progress->setValue(counter % 100);
 		counter++;
 	}
 
@@ -83,6 +84,7 @@ public:
 			|label | button |
 			|button2 |bt3   |
 			|button2 |txt   |
+			|progress       |
 			)", 10.0, 10.0
 		);
 
@@ -129,6 +131,9 @@ public:
 		LINK_EVENT_TO_CLASS_MEMBER(txtInput->event_onkeyup, this, &TestApp::txtInputOnkeyup);
 		LINK_EVENT_TO_CLASS_MEMBER(txtInput->event_onchange, this, &TestApp::txtInputOnchange);
 		
+		progress = new remi::Progress(0, 100);
+		mainContainer->append(progress, "progress");
+
 		return mainContainer;
 	}
 
