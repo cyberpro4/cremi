@@ -6,10 +6,13 @@
 #include <sys/socket.h>
 #else
 #include <sys\types.h>
+#include <windows.h>
 //#include <winsock2.h>
 #endif
 #include <string.h>
 #include <fstream>
+
+#pragma execution_character_set( "utf-8" )
 
 using namespace std;
 using namespace remi;
@@ -121,7 +124,7 @@ public:
 		dialog = new remi::GenericDialog("POTATO", "Chips");
 		LINK_EVENT_TO_CLASS_MEMBER( dialog->event_onconfirm, this, &TestApp::dialogOnConfirm);
 		
-		txtInput = new remi::TextInput();
+		txtInput = new remi::TextInput(true, "type here");
 		mainContainer->append(txtInput, "txt");
 		LINK_EVENT_TO_CLASS_MEMBER(txtInput->event_onkeyup, this, &TestApp::txtInputOnkeyup);
 		LINK_EVENT_TO_CLASS_MEMBER(txtInput->event_onchange, this, &TestApp::txtInputOnchange);
@@ -132,14 +135,16 @@ public:
 	void txtInputOnkeyup(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
 		std::cout << "event onkeyup" << endl;
 		for (std::string key : params->keys()) {
-			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+			std::cout << "param_name: " << key << "  value: ";
+			std::cout << params->get(key)->str() << endl;
 		}
 	}
 	
 	void txtInputOnchange(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
 		std::cout << "event onchange" << endl;
 		for (std::string key : params->keys()) {
-			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
+			std::cout << "param_name: " << key << "  value: ";
+			std::cout << params->get(key)->str() << endl;
 		}
 	}
 
@@ -217,13 +222,15 @@ int main() {
 		s->appendToBody("patatas fritas");
 		delete s;
 	}*/
-	
+#ifdef _WIN32
+	SetConsoleOutputCP(65001);
+#endif
 	remi::server::Server<TestApp>* srv = new remi::server::Server<TestApp>();
 	srv->start();
 
 	//remi::utils::open_browser( "http://localhost:91" );
 
-	(void)getchar();
+	getchar();
 
 	return 0;
 }

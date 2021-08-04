@@ -1276,6 +1276,49 @@ Label::Label(std::string text) {
 	setClass(CLASS_NAME(Label));
 }
 
+TextInput::TextInput(bool singleLine, std::string hint) :TextWidget() {
+	this->event_onchange = new TextInput::onchange(this);
+	this->event_onkeyup = new TextInput::onkeyup(this);
+	this->event_onkeydown = new TextInput::onkeydown(this);
+
+	type = "textarea";
+	setClass(CLASS_NAME(TextInput));
+
+	if (singleLine) {
+		this->css_resize = "none";
+		this->attr_rows = "1";
+		this->attributes["oninput"] = utils::sformat(R"(
+	                var elem = document.getElementById('%s');
+	                var enter_pressed = (elem.value.indexOf('\n') > -1);
+	                if(enter_pressed){
+	                    elem.value = elem.value.split('\n').join('');
+	                    var params={};params['new_value']=elem.value;
+	                    remi.sendCallbackParam('%s', '%s', params);event.stopPropagation();event.preventDefault();
+	                })", this->getIdentifier().c_str(), this->getIdentifier().c_str(), "onchange");
+	} else {
+		this->attributes["oninput"] = utils::sformat(R"(
+	                var elem = document.getElementById('%s');
+                    elem.value = elem.value.split('\n').join('');
+                    var params={};params['new_value']=elem.value;
+                    remi.sendCallbackParam('%s', '%s', params);event.stopPropagation();event.preventDefault();
+	                )", this->getIdentifier().c_str(), this->getIdentifier().c_str(), "onchange");
+	}
+
+
+	this->attr_placeholder = hint;
+
+	this->attr_autocomplete = "off";
+}
+
+void TextInput::setValue(std::string text) {
+	this->setText(text);
+}
+
+std::string TextInput::getValue() {
+	return this->text();
+}
+
+
 GenericDialog::GenericDialog(std::string title, std::string message) :Container::Container() {
 	setClass(CLASS_NAME(GenericDialog));
 	setLayoutOrientation(Container::Layout::Vertical);

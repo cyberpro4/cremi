@@ -363,6 +363,10 @@ namespace remi {
 			_s.assign(data, len);
 			return _s;
 		}
+		/*std::wstring wstr() {
+			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			return converter.from_bytes(data,&data[len]);
+		}*/
 	};
 
 
@@ -1277,61 +1281,24 @@ Args:
 		TagProperty css_resize = TagProperty("resize", &style);
 		
 	public:
-    	TextInput(bool singleLine=true, std::string hint=""):TextWidget(){
-	        /*Args:
-	            single_line (bool): Determines if the TextInput have to be single_line. A multiline TextInput have a gripper
-	                                that allows the resize.
-	            hint (str): Sets a hint using the html placeholder attribute.*/
-			this->event_onchange = new TextInput::onchange(this);
-			this->event_onkeyup = new TextInput::onkeyup(this);
-			this->event_onkeydown = new TextInput::onkeydown(this);
+		/*Args:
+			single_line (bool): Determines if the TextInput have to be single_line. A multiline TextInput have a gripper
+								that allows the resize.
+			hint (str): Sets a hint using the html placeholder attribute.*/
+		TextInput(bool singleLine = true, std::string hint = "");
 
-        	type = "textarea";
-			//setText(text);
-			setClass(CLASS_NAME(TextInput));
-			
-        	if(singleLine){
-	            this->css_resize = "none";
-	            this->attr_rows = "1";
-	            this->attributes["oninput"] = utils::sformat(R"(
-	                var elem = this;
-	                var enter_pressed = (elem.value.indexOf('\\n') > -1);
-	                if(enter_pressed){
-	                    elem.value = elem.value.split('\\n').join('');
-	                    var params={};params['new_value']=elem.value;
-	                    remi.sendCallback('%s', '%s');event.stopPropagation();event.preventDefault();
-	                })",this->getIdentifier().c_str(), "onchange");
-        	}else{
-	            this->attributes["oninput"] = utils::sformat(R"(
-	                var elem = this;
-                    elem.value = elem.value.split('\\n').join('');
-                    var params={};params['new_value']=elem.value;
-                    remi.sendCallback('%s', '%s');event.stopPropagation();event.preventDefault();
-	                )",this->getIdentifier().c_str(), "onchange");
-        	}
+		/*Sets the text content.
 
-        
-        	this->attr_placeholder = hint;
-
-	        this->attr_autocomplete = "off";
-    	}
-
-    	void setValue(std::string text){
-	        /*Sets the text content.
-	
-	        Args:
-	            text (str): The string content that have to be appended as standard child identified by the key 'text'
-	        */
-	        this->setText(text);
-    	}
+		Args:
+			text (str): The string content that have to be appended as standard child identified by the key 'text'
+		*/
+		void setValue(std::string text);
     	
-    	std::string getValue(){
-	        /*Returns:
-	            str: The text content of the TextInput. You can set the text content with set_text(text).
-	        */
-	        return this->text();
-    	}
-    	
+		/*Returns:
+				str: The text content of the TextInput. You can set the text content with set_text(text).
+		*/
+		std::string getValue();
+	    
     };
 
 	class GenericDialog : public Container {
