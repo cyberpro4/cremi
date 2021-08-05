@@ -202,11 +202,23 @@ public:
 		}
 	}
 
-	void onData(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {
+	void onData(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
+		/*
 		std::cout << "Event onData - ";
 		for (std::string key : params->keys()) {
 			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
 		}
+		*/
+		const char* data = params->get("data")->str().c_str();
+		std::string filename = params->get("filename")->str();
+		if (params->has("content_type"));
+		if (params->has("transfer_encoding"));
+
+		remi::FileUploader* fu = static_cast<remi::FileUploader*>(emitter);
+		FILE* f = fopen((fu->savePath() + "/" + filename).c_str(), "w+b");
+		fwrite(data, sizeof(char), params->get("data")->len, f);
+		fclose(f);
+
 	}
 	void onSuccess(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {
 		std::cout << "Event onSuccess - ";

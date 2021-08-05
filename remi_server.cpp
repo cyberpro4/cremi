@@ -99,15 +99,47 @@ struct POST_Handler_Connection_Info_Struct {
 	struct MHD_PostProcessor* postprocessor;
 };
 
-static int __remi_server_connection_post_handler(void* coninfo_cls, enum MHD_ValueKind kind, const char* key,
+static int __remi_server_connection_post_handler(void* cls,
+	enum MHD_ValueKind kind,
+	const char* key,
+	const char* filename,
+	const char* content_type,
+	const char* transfer_encoding,
+	const char* data,
+	uint64_t off,
+	size_t size
+	/*void* coninfo_cls, enum MHD_ValueKind kind, const char* key,
 	const char* filename, const char* content_type,
 	const char* transfer_encoding, const char* data,
-	uint64_t off, size_t size) {
-	struct POST_Handler_Connection_Info_Struct* ci = (POST_Handler_Connection_Info_Struct*)coninfo_cls;
+	uint64_t off, size_t size*/) {
+	struct POST_Handler_Connection_Info_Struct* ci = (POST_Handler_Connection_Info_Struct*)cls;
 
 	if (ci->fu->event_handlers.has(ci->listenerFuncName)) {
-		reinterpret_cast<Event*>(ci->fu->event_handlers[ci->listenerFuncName].value)->operator()(params);
+		Dictionary<Buffer*> dict;
+		Buffer* param = new Buffer((char*)filename, strlen(filename));
+		dict.set("filename", param);
+
+		param = new Buffer((char*)data, size);
+		dict.set("data", param);
+
+		if (!(content_type == NULL)) {
+			param = new Buffer((char*)content_type, strlen(content_type));
+			dict.set("content_type", param);
+		}
+
+		if (!(transfer_encoding == NULL)) {
+			param = new Buffer((char*)transfer_encoding, strlen(transfer_encoding));
+			dict.set("transfer_encoding", param);
+		}
+		reinterpret_cast<Event*>(ci->fu->event_handlers[ci->listenerFuncName].value)->operator()(&dict);
+
+		//dict.clear();
+		/*for (std::string key : dict.keys()) {
+			delete (dict.get(key));
+		}*/
+		return MHD_YES;
 	}
+	return MHD_NO;
 }
 
 void /* *MHD_UpgradeHandler*/ __remi_server_connection_upgrade_handler(void* remi_application, struct MHD_Connection* connection,
@@ -146,20 +178,24 @@ __remi_server_answer(void* cls, struct MHD_Connection* connection,
 				((POST_Handler_Connection_Info_Struct*)*con_cls)->filename = filename;
 				((POST_Handler_Connection_Info_Struct*)*con_cls)->listenerFuncName = listener_function;
 				((POST_Handler_Connection_Info_Struct*)*con_cls)->fu = (remi::FileUploader*)((void*)atoi(listener));
-				((POST_Handler_Connection_Info_Struct*)*con_cls)->postprocessor = MHD_create_post_processor(connection, POSTBUFFERSIZE, __remi_server_connection_post_handler, *con_cls);
+				((POST_Handler_Connection_Info_Struct*)*con_cls)->postprocessor = MHD_create_post_processor(connection, 2048, (MHD_PostDataIterator)__remi_server_connection_post_handler, *con_cls);
+
+				MHD_post_process(((POST_Handler_Connection_Info_Struct*)*con_cls)->postprocessor, upload_data, *upload_data_size);
+				*upload_data_size = 0;
+
+				return MHD_YES;
 			}
 
 			//if there are data to handle
 			if (*upload_data_size != 0){
-				struct MHD_PostProcessor* postprocessor = ((POST_Handler_Connection_Info_Struct*)*con_cls)->postprocessor;
-
-				MHD_post_process(postprocessor, upload_data, *upload_data_size);
+				MHD_post_process(((POST_Handler_Connection_Info_Struct*)*con_cls)->postprocessor, upload_data, *upload_data_size);
 				*upload_data_size = 0;
 
 				return MHD_YES;
 			}
 			
-			MHD_destroy_post_processor(((AnonymousServer*)cls)->_guiInstances.get(sessionCookieValue)->_postprocessor);
+			//Data upload terminated
+			MHD_destroy_post_processor(((POST_Handler_Connection_Info_Struct*)*con_cls)->postprocessor);
 			
 			App* _guiInstance = ((AnonymousServer*)cls)->_guiInstances.get(sessionCookieValue);
 			serverResponse = _guiInstance->serve(url);
