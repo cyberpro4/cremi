@@ -250,7 +250,7 @@ int main() {
 	SetConsoleOutputCP(65001);
 #endif
 	remi::server::Server<TestApp>* srv = new remi::server::Server<TestApp>();
-	srv->start();
+	srv->start("127.0.0.1");
 
 	//remi::utils::open_browser( "http://localhost:91" );
 

@@ -134,7 +134,7 @@ namespace remi {
 
 			void address();
 
-			void start(void* user_data = NULL);
+			void start(const char* address, int port = 91);
 
 			void onTimer();
 

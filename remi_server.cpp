@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string>
 
+
 using namespace remi::server;
 using namespace remi;
 
@@ -315,11 +316,16 @@ void AnonymousServer::onTimer() {
 	/* here maybe we can delete expired App instances */
 }
 
-void AnonymousServer::start(void* user_data) {
+void AnonymousServer::start(const char* address, int port) {
 
 	struct MHD_Daemon* daemon;
 
-	int		port = 91;
+	struct sockaddr_in daemon_ip_addr;
+	memset(&daemon_ip_addr, 0, sizeof(struct sockaddr_in));
+	daemon_ip_addr.sin_family = AF_INET;
+	daemon_ip_addr.sin_port = htons(port);
+	//daemon_ip_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	daemon_ip_addr.sin_addr.s_addr = inet_addr(address);
 
 	std::cout << "cRemi Http server listening on port " << port << std::endl;
 	/*unsigned int flags,
@@ -330,6 +336,7 @@ void AnonymousServer::start(void* user_data) {
 		(uint16_t)port,
 		(MHD_AcceptPolicyCallback)NULL, (void*)NULL,
 		(MHD_AccessHandlerCallback)& __remi_server_answer, this,
+		MHD_OPTION_SOCK_ADDR, &daemon_ip_addr,
 		MHD_OPTION_END);
 
 	_serverInfo = (void*)daemon;
