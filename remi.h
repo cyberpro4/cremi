@@ -383,13 +383,6 @@ namespace remi {
 		Dictionary<JavascriptEventHandler*> event_handlers;
 	};
 
-
-	class EventListener : public JavascriptEventHandler {
-	public:
-		typedef void (EventListener::* listener_class_member_type)(EventSource*, Dictionary<Buffer*>*, void*);
-	};
-
-
 	template <typename... T>
 	class Event {
 	public:
@@ -686,7 +679,7 @@ namespace remi {
 	};
 
 
-	class Tag : public Represantable, public EventSource, public EventListener {
+	class Tag : public Represantable, public EventSource, public Event<>::EventListener {
 
 	public:
 
@@ -1976,10 +1969,13 @@ Args:
 
 	class GenericDialog : public Container {
 	public:
-		class onconfirm :public Event<> {
+		class onconfirm :public Event<>, public Button::onclick::EventListener {
 		public:
 			onconfirm(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(onconfirm)) {
 				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
+			}
+			void onclick(EventSource* source, void* params) {
+				operator()();
 			}
 			void operator()() {
 				if (this->_listener_function != NULL) {
@@ -1996,10 +1992,13 @@ Args:
 			}
 		}*event_onconfirm;
 
-		class oncancel :public Event<> {
+		class oncancel :public Event<>, public Button::onclick::EventListener {
 		public:
 			oncancel(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(oncancel)) {
 				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
+			}
+			void onclick(EventSource* source, void* params) {
+				operator()();
 			}
 			void operator()() {
 				if (this->_listener_function != NULL) {
@@ -2111,25 +2110,27 @@ Args:
 			}
 		}*event_onfail;
 
-		class ondata :public Event<std::string>, public JavascriptEventHandler {
+		class ondata :public Event<std::string, Buffer*, std::string>, public JavascriptEventHandler {
 		public:
 			ondata(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(ondata)) {
 				eventSource->event_handlers.set(this->_eventName, this);
 			}
 			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
 				std::string filename = parameters->get("filename")->str();
-				operator()(filename);
+				Buffer* data = parameters->get("data");
+				std::string content_type = parameters->get("content_type")->str();
+				operator()(filename, data, content_type);
 			}
-			void operator()(std::string filename) {
+			void operator()(std::string filename, Buffer* data, std::string content_type) {
 				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, filename, this->_userData);
+					this->_listener_function(_eventSource, filename, data, content_type, this->_userData);
 					return;
 				}
 				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, filename, this->_userData);
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, filename, data, content_type, this->_userData);
 				}
 				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, filename, this->_userData);
+					this->_listener_context_lambda(_eventSource, filename, data, content_type, this->_userData);
 					return;
 				}
 			}

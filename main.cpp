@@ -184,21 +184,17 @@ public:
 		}
 	}
 
-	void onData(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
+	void onData(EventSource* emitter, std::string filename, Buffer* data, std::string content_type, void* userdata) {
 		/*
 		std::cout << "Event onData - ";
 		for (std::string key : params->keys()) {
 			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
 		}
 		*/
-		
-		std::string filename = params->get("filename")->str();
-		if (params->has("content_type"));
-		if (params->has("transfer_encoding"));
 
 		remi::FileUploader* fu = static_cast<remi::FileUploader*>(emitter);
 		FILE* f = fopen((fu->savePath() + "/" + filename).c_str(), "a+b");
-		fwrite(params->get("data")->data, sizeof(char), params->get("data")->len, f);
+		fwrite(data->data, sizeof(char), data->len, f);
 		fclose(f);
 
 	}

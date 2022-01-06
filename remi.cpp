@@ -1352,12 +1352,12 @@ GenericDialog::GenericDialog(std::string title, std::string message) :Container:
 	_confirmButton = new Button("Ok");
 	_confirmButton->setSize(100, 30);
 	_confirmButton->style["margin"] = "3px";
-	(*_confirmButton->event_onclick) >> (Event<>::EventListener*)this->event_onconfirm >> (Event<>::EventListener::listener_class_member_type) & GenericDialog::onconfirm::operator();
+	(*_confirmButton->event_onclick) >> (remi::Button::onclick::EventListener*)this->event_onconfirm >> (remi::Button::onclick::EventListener::listener_class_member_type) & GenericDialog::onconfirm::onclick;
 
 	_cancelButton = new Button("Cancel");
 	_cancelButton->setSize(100, 30);
 	_cancelButton->style["margin"] = "3px";
-	(*_cancelButton->event_onclick) >> (Event<>::EventListener*)this->event_oncancel >> (Event<>::EventListener::listener_class_member_type) & GenericDialog::oncancel::operator();
+	(*_cancelButton->event_onclick) >> (remi::Button::onclick::EventListener*)this->event_oncancel >> (remi::Button::onclick::EventListener::listener_class_member_type) & GenericDialog::oncancel::onclick;
 
 	_hLay = new HBox();
 	_hLay->setHeight(35);

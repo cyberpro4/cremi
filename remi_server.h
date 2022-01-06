@@ -57,7 +57,10 @@ namespace remi {
 
 
 
-		class App :public EventListener, public CommonAppInterface, private utils::TimerListener {
+		class App :public remi::Event<>::EventListener,
+			public remi::Event<float,float>::EventListener,
+			public CommonAppInterface, 
+			private utils::TimerListener {
 		public:
 
 			App();
