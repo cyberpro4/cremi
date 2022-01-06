@@ -370,35 +370,47 @@ namespace remi {
 	};
 
 
-	class Event;
 
+	class JavascriptEventHandler {
+	public:
+		JavascriptEventHandler() {}
+		virtual void handle_websocket_event(Dictionary<Buffer*>* params) {
+		}
+	};
 
 	class EventSource {
 	public:
-		Dictionary<Event*> event_handlers;
+		Dictionary<JavascriptEventHandler*> event_handlers;
 	};
 
 
-	class EventListener {
+	class EventListener : public JavascriptEventHandler {
 	public:
 		typedef void (EventListener::* listener_class_member_type)(EventSource*, Dictionary<Buffer*>*, void*);
 	};
 
 
+	template <typename... T>
 	class Event {
 	public:
+
+		class EventListener {
+		public:
+			typedef void (EventListener::* listener_class_member_type)(EventSource*, T..., void*);
+		};
+
 		const char* _eventName; //this is used for comparison, when a js event occurs and have to be dispatched to widgets
 
 		EventSource* _eventSource; //the event owner, that calls the listener
 
 	public:
-		typedef void (*listener_function_type)(EventSource*, Dictionary<Buffer*>*, void*);
+		typedef void (*listener_function_type)(EventSource*, T..., void*);
 		listener_function_type _listener_function;
 
-		EventListener::listener_class_member_type _listener_member;
+		typename EventListener::listener_class_member_type _listener_member;
 		EventListener* _listener_instance;
 
-		typedef std::function<void(EventSource*, Dictionary<Buffer*>*, void*)> listener_contextualized_lambda_type;
+		typedef std::function<void(EventSource*, T..., void*)> listener_contextualized_lambda_type;
 		listener_contextualized_lambda_type _listener_context_lambda;
 
 		void* _userData;
@@ -411,7 +423,7 @@ namespace remi {
 			_listener_context_lambda = NULL;
 		}
 
-		virtual void link(EventListener* instance, EventListener::listener_class_member_type listener, void* userData = 0) {
+		virtual void link(EventListener* instance, typename EventListener::listener_class_member_type listener, void* userData = 0) {
 			(*this) >> instance >> listener >> userData;
 		}
 
@@ -447,7 +459,7 @@ namespace remi {
 			this->_listener_instance = instance;
 			return *this;
 		}
-		virtual Event& operator>> (EventListener::listener_class_member_type listener) {
+		virtual Event& operator>> (typename EventListener::listener_class_member_type listener) {
 			_listener_function = NULL;
 			_listener_context_lambda = NULL;
 
@@ -459,7 +471,10 @@ namespace remi {
 			return *this;
 		}
 
-		virtual void operator()(Dictionary<Buffer*>* params) {
+		virtual void handle_websocket_event(Dictionary<Buffer*>* params) {
+		}
+
+		virtual void operator()(T... params) = 0; /* {
 			if (this->_listener_function != NULL) {
 				this->_listener_function(_eventSource, params, this->_userData);
 				return;
@@ -473,13 +488,13 @@ namespace remi {
 				this->_listener_context_lambda(_eventSource, params, this->_userData);
 				return;
 			}
-		}
+		}*/
 	};
 
-	#define LINK_EVENT_TO_CLASS_MEMBER(event, pointerToObject, pointerToMember, pointerVoidPtrUserdata) event->link(reinterpret_cast<remi::EventListener*>(pointerToObject), reinterpret_cast<EventListener::listener_class_member_type>(pointerToMember), pointerVoidPtrUserdata);
-	#define LINK_EVENT_TO_CLASS_MEMBER(event, pointerToObject, pointerToMember) event->link(reinterpret_cast<remi::EventListener*>(pointerToObject), reinterpret_cast<EventListener::listener_class_member_type>(pointerToMember));
-	#define LINK_EVENT_TO_FUNCTION(event, pointerToFunction, pointerVoidPtrUserdata) event->link(reinterpret_cast<Event::listener_function_type(pointerToFunction), pointerVoidPtrUserdata);
-	#define LINK_EVENT_TO_LAMBDA(event, lambdaExpression) event->link(lambdaExpression);
+	#define LINK_EVENT_TO_CLASS_MEMBER(event_type, event, pointerToObject, pointerToMember, pointerVoidPtrUserdata) event->link(reinterpret_cast<event_type::EventListener*>(pointerToObject), reinterpret_cast<event_type::EventListener::listener_class_member_type>(pointerToMember), reinterpret_cast<void*>(pointerVoidPtrUserdata);
+	#define LINK_EVENT_TO_CLASS_MEMBER(event_type, event, pointerToObject, pointerToMember) event->link(reinterpret_cast<event_type::EventListener*>(pointerToObject), reinterpret_cast<event_type::EventListener::listener_class_member_type>(pointerToMember), NULL);
+	#define LINK_EVENT_TO_FUNCTION(event_type, event, pointerToFunction, pointerVoidPtrUserdata) event->link(reinterpret_cast<event_type::listener_function_type>(pointerToFunction), reinterpret_cast<void*>(pointerVoidPtrUserdata));
+	#define LINK_EVENT_TO_LAMBDA(event_type, event, lambdaExpression) event->link(reinterpret_cast<event_type::listener_contextualized_lambda_type>(lambdaExpression));
 
 	#define EVENT(NAME) class NAME:public Event{ \
 							public: \
@@ -748,7 +763,8 @@ namespace remi {
 	};
 
 
-	class EventJS :public Event {
+	template <typename... T>
+	class EventJS :public Event<T...>, public JavascriptEventHandler {
 		/* This class is used to set event widget attributes only when connected to a listener */
 	public:
 		std::string js_code;
@@ -769,12 +785,12 @@ namespace remi {
 			emitter->attributes[this->_eventName] = utils::sformat(this->js_code, emitter->getIdentifier().c_str(), this->_eventName);
 			return Event::operator>>(listener);
 		}
-		Event& operator>> (EventListener* instance) {
+		Event& operator>> (Event<T...>::EventListener* instance) {
 			Tag* emitter = static_cast<Tag*>(_eventSource);
 			emitter->attributes[this->_eventName] = utils::sformat(this->js_code, emitter->getIdentifier().c_str(), this->_eventName);
 			return Event::operator>>(instance);
 		}
-		Event& operator>> (EventListener::listener_class_member_type listener) {
+		Event& operator>> (typename Event<T...>::EventListener::listener_class_member_type listener) {
 			//not required to set attribute js code, because it will be in
 			//operator>>(EventListener* instance)
 			//_eventSource->attributes[this->_eventName] = utils::sformat( this->js_code, this->_eventSource->getIdentifier().c_str(), this->_eventName);
@@ -811,112 +827,540 @@ namespace remi {
 	class Widget : public Tag {
 	public:
 
-		/*class onclick:public EventJS{
-			public:
-				onclick(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(onclick), utils::sformat( "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), this->_eventName)){
-					((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+		class onclick : public EventJS<> {
+		public:
+			onclick(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onclick), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onclick))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				//Event::operator()(parameters);
+				operator()();
+			}
+			virtual void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
 				}
-				void operator()(Dictionary<Buffer*>* parameters=NULL){
-					Event::operator()(parameters);
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
 				}
-		}* event_onclick;*/
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
+			}
+		}*event_onclick;
+		//EVENT_JS(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
-
-		EVENT_JS(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
 		/*EVENT_JS_DO(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",{
 			std::cout << "do some code here, maybe parse parameters" << std::endl;
 			Event::operator()(parameters);
 		})*/
 
-		EVENT_JS(onblur, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-		EVENT_JS(onfocus, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-		EVENT_JS(ondblclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-		EVENT_JS(oncontextmenu, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-		EVENT_JS_DO(onmousedown, R"(var params={};
+		class onblur : public EventJS<> {
+		public:
+			onblur(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onblur), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onblur))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				operator()();
+			}
+			virtual void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
+			}
+		}*event_onblur;
+		//EVENT_JS(onblur, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+
+		class onfocus : public EventJS<> {
+		public:
+			onfocus(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onfocus), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onfocus))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				operator()();
+			}
+			virtual void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
+			}
+		}*event_onfocus;
+		//EVENT_JS(onfocus, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+
+		class ondblclick : public EventJS<> {
+		public:
+			ondblclick(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(ondblclick), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(ondblclick))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				operator()();
+			}
+			virtual void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
+			}
+		}*event_ondblclick;
+		//EVENT_JS(ondblclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+		
+		class oncontextmenu : public EventJS<> {
+		public:
+			oncontextmenu(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(oncontextmenu), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(oncontextmenu))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				operator()();
+			}
+			virtual void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
+			}
+		}*event_oncontextmenu;
+		//EVENT_JS(oncontextmenu, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+
+		class onmousedown : public EventJS<float, float> {
+		public:
+			onmousedown(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onmousedown), utils::sformat(R"(var params={};
 			var boundingBox = this.getBoundingClientRect();
 			params['x']=event.clientX-boundingBox.left;
 			params['y']=event.clientY-boundingBox.top;
-			remi.sendCallbackParam('%s','%s',params);)", {
-				/*std::string x = parameters->get("x");
-				std::string y = parameters->get("y");
+			remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(onmousedown))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string x = parameters->get("x")->str();
+				std::string y = parameters->get("y")->str();
 				float xf = std::stof(x);
-				float yf = std::stof(y);*/
-				Event::operator()(parameters);
-			})
-		EVENT_JS_DO(onmouseup, R"(var params={};
+				float yf = std::stof(y);
+				operator()(xf, yf);
+			}
+			virtual void operator()(float x, float y) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, x, y, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					//(*this->_listener_instance).*(this->_listener_member)(eventSource, params, this->_userData);
+					//invoke(this->_listener_member, this->_listener_instance, eventSource, params, this->_userData);
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, x, y, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, x, y, this->_userData);
+					return;
+				}
+			}
+		}*event_onmousedown;
+
+		class onmouseup : public EventJS<float, float> {
+		public:
+			onmouseup(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onmouseup), utils::sformat(R"(var params={};
 			var boundingBox = this.getBoundingClientRect();
 			params['x']=event.clientX-boundingBox.left;
 			params['y']=event.clientY-boundingBox.top;
-			remi.sendCallbackParam('%s','%s',params);)", {
-				/*std::string x = parameters->get("x");
-				std::string y = parameters->get("y");
+			remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(onmouseup))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string x = parameters->get("x")->str();
+				std::string y = parameters->get("y")->str();
 				float xf = std::stof(x);
-				float yf = std::stof(y);*/
-				Event::operator()(parameters);
-			})
-		EVENT_JS(onmouseout, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-		EVENT_JS(onmouseover, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-		EVENT_JS(onmouseleave, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-		EVENT_JS_DO(onmousemove, R"(var params={};
+				float yf = std::stof(y);
+				operator()(xf, yf);
+			}
+			virtual void operator()(float x, float y) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, x, y, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					//(*this->_listener_instance).*(this->_listener_member)(eventSource, params, this->_userData);
+					//invoke(this->_listener_member, this->_listener_instance, eventSource, params, this->_userData);
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, x, y, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, x, y, this->_userData);
+					return;
+				}
+			}
+		}*event_onmouseup;
+
+		class onmouseout : public EventJS<> {
+		public:
+			onmouseout(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onmouseout), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onmouseout))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				operator()();
+			}
+			virtual void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
+			}
+		}*event_onmouseout;
+
+		class onmouseover : public EventJS<> {
+		public:
+			onmouseover(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onmouseover), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onmouseover))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				operator()();
+			}
+			virtual void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
+			}
+		}*event_onmouseover;
+
+		class onmouseleave : public EventJS<> {
+		public:
+			onmouseleave(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onmouseleave), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onmouseleave))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				operator()();
+			}
+			virtual void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
+			}
+		}*event_onmouseleave;
+		
+		class onmousemove : public EventJS<float, float> {
+		public:
+			onmousemove(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onmousemove), utils::sformat(R"(var params={};
 			var boundingBox = this.getBoundingClientRect();
 			params['x']=event.clientX-boundingBox.left;
 			params['y']=event.clientY-boundingBox.top;
-			remi.sendCallbackParam('%s','%s',params);)", {
-				Event::operator()(parameters);
-			})
-		EVENT_JS_DO(ontouchmove, R"(var params={};" \
+			remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(onmousemove))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string x = parameters->get("x")->str();
+				std::string y = parameters->get("y")->str();
+				float xf = std::stof(x);
+				float yf = std::stof(y);
+				operator()(xf, yf);
+			}
+			virtual void operator()(float x, float y) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, x, y, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, x, y, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, x, y, this->_userData);
+					return;
+				}
+			}
+		}*event_onmousemove;
+
+		class ontouchmove : public EventJS<float, float> {
+		public:
+			ontouchmove(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(ontouchmove), utils::sformat(R"(var params={};" \
 			"var boundingBox = this.getBoundingClientRect();" \
 			"params['x']=parseInt(event.changedTouches[0].clientX)-boundingBox.left;" \
 			"params['y']=parseInt(event.changedTouches[0].clientY)-boundingBox.top;" \
-			"remi.sendCallbackParam('%s','%s',params);)", {
-				Event::operator()(parameters);
-			})
-		EVENT_JS_DO(ontouchstart, R"(var params={};" \
+			"remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(ontouchmove))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string x = parameters->get("x")->str();
+				std::string y = parameters->get("y")->str();
+				float xf = std::stof(x);
+				float yf = std::stof(y);
+				operator()(xf, yf);
+			}
+			virtual void operator()(float x, float y) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, x, y, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, x, y, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, x, y, this->_userData);
+					return;
+				}
+			}
+		}*event_ontouchmove;
+
+		class ontouchstart : public EventJS<float, float> {
+		public:
+			ontouchstart(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(ontouchstart), utils::sformat(R"(var params={};" \
 			"var boundingBox = this.getBoundingClientRect();" \
 			"params['x']=parseInt(event.changedTouches[0].clientX)-boundingBox.left;" \
 			"params['y']=parseInt(event.changedTouches[0].clientY)-boundingBox.top;" \
-			"remi.sendCallbackParam('%s','%s',params);)", {
-				Event::operator()(parameters);
-			})
-		EVENT_JS_DO(ontouchend, R"(var params={};" \
+			"remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(ontouchstart))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string x = parameters->get("x")->str();
+				std::string y = parameters->get("y")->str();
+				float xf = std::stof(x);
+				float yf = std::stof(y);
+				operator()(xf, yf);
+			}
+			virtual void operator()(float x, float y) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, x, y, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, x, y, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, x, y, this->_userData);
+					return;
+				}
+			}
+		}*event_ontouchstart;
+
+		class ontouchend : public EventJS<float, float> {
+		public:
+			ontouchend(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(ontouchend), utils::sformat(R"(var params={};" \
 			"var boundingBox = this.getBoundingClientRect();" \
 			"params['x']=parseInt(event.changedTouches[0].clientX)-boundingBox.left;" \
 			"params['y']=parseInt(event.changedTouches[0].clientY)-boundingBox.top;" \
-			"remi.sendCallbackParam('%s','%s',params);)", {
-				Event::operator()(parameters);
-			})
-		EVENT_JS_DO(ontouchenter, R"(var params={};" \
+			"remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(ontouchend))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string x = parameters->get("x")->str();
+				std::string y = parameters->get("y")->str();
+				float xf = std::stof(x);
+				float yf = std::stof(y);
+				operator()(xf, yf);
+			}
+			virtual void operator()(float x, float y) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, x, y, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, x, y, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, x, y, this->_userData);
+					return;
+				}
+			}
+		}*event_ontouchend;
+
+		class ontouchenter : public EventJS<float, float> {
+		public:
+			ontouchenter(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(ontouchenter), utils::sformat(R"(var params={};" \
 			"var boundingBox = this.getBoundingClientRect();" \
 			"params['x']=parseInt(event.changedTouches[0].clientX)-boundingBox.left;" \
 			"params['y']=parseInt(event.changedTouches[0].clientY)-boundingBox.top;" \
-			"remi.sendCallbackParam('%s','%s',params);)", {
-				Event::operator()(parameters);
-			})
-		EVENT_JS(ontouchleave, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-		EVENT_JS(ontouchcancel, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
-		EVENT_JS_DO(onkeyup, R"(var params={};params['key']=event.key;
+			"remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(ontouchenter))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string x = parameters->get("x")->str();
+				std::string y = parameters->get("y")->str();
+				float xf = std::stof(x);
+				float yf = std::stof(y);
+				operator()(xf, yf);
+			}
+			virtual void operator()(float x, float y) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, x, y, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, x, y, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, x, y, this->_userData);
+					return;
+				}
+			}
+		}*event_ontouchenter;
+
+		class ontouchleave : public EventJS<> {
+		public:
+			ontouchleave(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(ontouchleave), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(ontouchleave))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				operator()();
+			}
+			virtual void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
+			}
+		}*event_ontouchleave;
+
+		class ontouchcancel : public EventJS<> {
+		public:
+			ontouchcancel(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(ontouchcancel), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(ontouchcancel))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				operator()();
+			}
+			virtual void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
+			}
+		}*event_ontouchcancel;
+
+		class onkeyup : public EventJS<int, bool, bool, bool> {
+		public:
+			onkeyup(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onkeyup), utils::sformat(R"(var params={};params['key']=event.key;
 			params['keycode']=(event.which||event.keyCode);
 			params['ctrl']=event.ctrlKey;
 			params['shift']=event.shiftKey;
 			params['alt']=event.altKey;
-			remi.sendCallbackParam('%s','%s',params);)", {
-				/*  key (str): the character value
-					keycode (str): the numeric char code
-				*/
-				Event::operator()(parameters);
-			})
-		EVENT_JS_DO(onkeydown, R"(var params={};params['key']=event.key;
+			remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(onkeyup))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string keycode = parameters->get("keycode")->str();
+				std::string ctrl = parameters->get("ctrl")->str();
+				std::string shift = parameters->get("shift")->str();
+				std::string alt = parameters->get("alt")->str();
+				int ikeycode = std::stoi(keycode);
+				float bctrl = false;
+				float bshift = false;
+				float balt = false;
+				operator()(ikeycode, bctrl, bshift, balt);
+			}
+			virtual void operator()(int keycode, bool ctrl, bool shift, bool alt) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, keycode, ctrl, shift, alt, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, keycode, ctrl, shift, alt, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, keycode, ctrl, shift, alt, this->_userData);
+					return;
+				}
+			}
+		}*event_onkeyup;
+
+		class onkeydown : public EventJS<int, bool, bool, bool> {
+		public:
+			onkeydown(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onkeydown), utils::sformat(R"(var params={};params['key']=event.key;
 			params['keycode']=(event.which||event.keyCode);
 			params['ctrl']=event.ctrlKey;
 			params['shift']=event.shiftKey;
 			params['alt']=event.altKey;
-			remi.sendCallbackParam('%s','%s',params);)", {
-				/*  key (str): the character value
-					keycode (str): the numeric char code
-				*/
-				Event::operator()(parameters);
-			})
+			remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(onkeydown))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string keycode = parameters->get("keycode")->str();
+				std::string ctrl = parameters->get("ctrl")->str();
+				std::string shift = parameters->get("shift")->str();
+				std::string alt = parameters->get("alt")->str();
+				int ikeycode = std::stoi(keycode);
+				float bctrl = false;
+				float bshift = false;
+				float balt = false;
+				operator()(ikeycode, bctrl, bshift, balt);
+			}
+			virtual void operator()(int keycode, bool ctrl, bool shift, bool alt) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, keycode, ctrl, shift, alt, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, keycode, ctrl, shift, alt, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, keycode, ctrl, shift, alt, this->_userData);
+					return;
+				}
+			}
+		}*event_onkeydown;
 
 		void queryClient(CommonAppInterface* appInstance, std::list<std::string>& attributes_list, std::list<std::string>& style_properties_list) {
 			std::string attributes_string = "";
