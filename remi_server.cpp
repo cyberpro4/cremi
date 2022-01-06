@@ -528,11 +528,9 @@ void App::update() {
 	}
 }
 
-void App::onpageerror(void* emitter, remi::Dictionary<remi::Buffer*>* params, void* user_data) {
+void App::onpageerror(void* emitter, std::string message, std::string source, std::string lineno, std::string colno, std::string error, void* user_data) {
 	std::cout << "Event onPageError - ";
-	for (std::string key : params->keys()) {
-		std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
-	}
+	std::cout << "message: " << message << " source: " << source << " lineno: " << lineno << " colno: " << colno << " error: " << error << endl;
 }
 void App::onload(void* emitter, void* user_data) {
 }

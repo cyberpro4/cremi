@@ -679,7 +679,7 @@ namespace remi {
 	};
 
 
-	class Tag : public Represantable, public EventSource, public Event<>::EventListener {
+	class Tag : public Represantable, public EventSource, public Event<>::EventListener{
 
 	public:
 

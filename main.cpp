@@ -28,7 +28,10 @@ void funcOnclick(EventSource* emitter, void* userdata) {
 }
 
 
-class TestApp : public remi::server::App {
+class TestApp : public remi::server::App, 
+	public FileUploader::ondata::EventListener, 
+	public Event<string, string>::EventListener, 
+	public Event<string>::EventListener {
 private:
 	remi::AsciiContainer* mainContainer;
 

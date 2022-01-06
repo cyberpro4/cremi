@@ -59,6 +59,7 @@ namespace remi {
 
 		class App :public remi::Event<>::EventListener,
 			public remi::Event<float,float>::EventListener,
+			public remi::HEAD::onerror::EventListener,
 			public CommonAppInterface, 
 			private utils::TimerListener {
 		public:
@@ -92,7 +93,7 @@ namespace remi {
 			void sendMessageToAllClients(std::string message);
 			void executeJavascript(std::string command);
 
-			virtual void onpageerror(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+			virtual void onpageerror(void* emitter, std::string message, std::string source, std::string lineno, std::string colno, std::string error, void* user_data);
 			virtual void onload(void* emitter, void* user_data);
 			virtual void ononline(void* emitter, void* user_data);
 			virtual void onpagehide(void* emitter, void* user_data);
