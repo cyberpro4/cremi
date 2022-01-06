@@ -558,7 +558,7 @@ void App::setRootWidget(Widget* widget) {
 
 }
 
-void App::_notifyParentForUpdate(EventSource* source, Dictionary<Buffer*>* params, void* user_data) {
+void App::_notifyParentForUpdate(EventSource* source, void* user_data) {
 	this->_needUpdateFlag = true;
 }
 

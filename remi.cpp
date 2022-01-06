@@ -806,7 +806,8 @@ void HTML::_notifyParentForUpdate() {
 	//this condition prevents the event to be called in
 	//onrequiredupdate::onrequiredupdate(), where the .attributes dictionary gets
 	//changed
-	if (this->event_handlers.has("onrequiredupdate")) {
+	//if (this->event_handlers.has("onrequiredupdate")) {
+	if(dynamic_cast<HTML*>(this) != NULL){
 		(*this->event_onrequiredupdate)();
 	}
 }

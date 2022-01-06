@@ -80,7 +80,7 @@ namespace remi {
 
 			void setRootWidget(Widget* widget);
 
-			void _notifyParentForUpdate(EventSource*, Dictionary<Buffer*>*, void*);
+			void _notifyParentForUpdate(EventSource*, void*);
 
 			std::string getStaticFile(std::string filename);
 
