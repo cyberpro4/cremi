@@ -132,7 +132,8 @@ static int __remi_server_connection_post_handler(void* cls,
 			param = new Buffer((char*)transfer_encoding, strlen(transfer_encoding));
 			dict.set("transfer_encoding", param);
 		}
-		reinterpret_cast<Event*>(ci->fu->event_handlers[ci->listenerFuncName].value)->operator()(&dict);
+		//reinterpret_cast<Event*>(ci->fu->event_handlers[ci->listenerFuncName].value)->operator()(&dict);
+		reinterpret_cast<JavascriptEventHandler*>(ci->fu->event_handlers[ci->listenerFuncName].value)->handle_websocket_event(&dict);
 
 		//dict.clear();
 		/*for (std::string key : dict.keys()) {
@@ -360,19 +361,19 @@ void App::init(std::string host_address) {
 
 	//head->setInternalJs(utils::sformat("%d", (int)this), host_address, 20, 3000);
 	head->setInternalJs("127.0.0.1:91", 20, 3000);
-	LINK_EVENT_TO_CLASS_MEMBER(head->event_onerror, this, &App::onpageerror);
+	LINK_EVENT_TO_CLASS_MEMBER(remi::HEAD::onerror, head->event_onerror, this, &App::onpageerror);
 
 	body = new remi::BODY();
 	body->addClass("remi-main");
-	LINK_EVENT_TO_CLASS_MEMBER(body->event_onload, this, &App::onload);
-	LINK_EVENT_TO_CLASS_MEMBER(body->event_ononline, this, &App::ononline);
-	LINK_EVENT_TO_CLASS_MEMBER(body->event_onpagehide, this, &App::onpagehide);
-	LINK_EVENT_TO_CLASS_MEMBER(body->event_onpageshow, this, &App::onpageshow);
-	LINK_EVENT_TO_CLASS_MEMBER(body->event_onresize, this, &App::onresize);
+	LINK_EVENT_TO_CLASS_MEMBER(remi::BODY::onload, body->event_onload, this, &App::onload);
+	LINK_EVENT_TO_CLASS_MEMBER(remi::BODY::ononline, body->event_ononline, this, &App::ononline);
+	LINK_EVENT_TO_CLASS_MEMBER(remi::BODY::onpagehide, body->event_onpagehide, this, &App::onpagehide);
+	LINK_EVENT_TO_CLASS_MEMBER(remi::BODY::onpageshow, body->event_onpageshow, this, &App::onpageshow);
+	LINK_EVENT_TO_CLASS_MEMBER(remi::BODY::onresize, body->event_onresize, this, &App::onresize);
 
 	html->addChild(head, "head");
 	html->addChild(body, "body");
-	LINK_EVENT_TO_CLASS_MEMBER(html->event_onrequiredupdate, this, &App::_notifyParentForUpdate);
+	LINK_EVENT_TO_CLASS_MEMBER(remi::HTML::onrequiredupdate, html->event_onrequiredupdate, this, &App::_notifyParentForUpdate);
 
 	setRootWidget(this->main());
 
@@ -533,24 +534,17 @@ void App::onpageerror(void* emitter, remi::Dictionary<remi::Buffer*>* params, vo
 		std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
 	}
 }
-void App::onload(void* emitter, Dictionary<Buffer*>* params, void* user_data) {
+void App::onload(void* emitter, void* user_data) {
 }
-void App::ononline(void* emitter, Dictionary<Buffer*>* params, void* user_data) {
+void App::ononline(void* emitter, void* user_data) {
 }
-void App::onpagehide(void* emitter, Dictionary<Buffer*>* params, void* user_data) {
+void App::onpagehide(void* emitter, void* user_data) {
 }
-void App::onpageshow(void* emitter, Dictionary<Buffer*>* params, void* user_data) {
+void App::onpageshow(void* emitter, float width, float height, void* user_data) {
 	std::cout << "Event onPageShow - ";
-	for (std::string key : params->keys()) {
-		std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
-	}
-	int width = 0;
-	int height = 0;
-	sscanf(params->get("width")->str().c_str(), "%d", &width);
-	sscanf(params->get("height")->str().c_str(), "%d", &height);
 	cout << width << " - " << height << endl;
 }
-void App::onresize(void* emitter, Dictionary<Buffer*>* params, void* user_data) {
+void App::onresize(void* emitter, float width, float height, void* user_data) {
 }
 
 void App::setRootWidget(Widget* widget) {

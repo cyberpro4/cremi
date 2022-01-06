@@ -19,7 +19,7 @@ using namespace remi;
 using namespace remi::utils;
 
 
-void funcOnclick(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
+void funcOnclick(EventSource* emitter, void* userdata) {
 	remi::Button* btn1 = (remi::Button*)userdata;
 	std::cout << "Event onClick btn1" << endl;
 	remi::Button* btn1_cast = static_cast<remi::Button*>(emitter);
@@ -74,7 +74,7 @@ public:
 
 		this->_staticResourcesPaths["res"] = "./res/";
 		image = new Image("/res:/logo.png");
-		LINK_EVENT_TO_CLASS_MEMBER(image->event_onclick, this, &TestApp::onClickImage);
+		LINK_EVENT_TO_CLASS_MEMBER(remi::Image::onclick, image->event_onclick, this, &TestApp::onClickImage);
 		mainContainer->append(image, "image");
 
 		label = new remi::Label("CRemi");
@@ -86,7 +86,7 @@ public:
 		btn1 = new remi::Button("Show generic dialog");
 		
 		/* registering a class member listener */
-		LINK_EVENT_TO_CLASS_MEMBER(btn1->event_onclick, this, &TestApp::onClick);
+		LINK_EVENT_TO_CLASS_MEMBER(remi::Button::onclick, btn1->event_onclick, this, &TestApp::onClick);
 
 		/* registering a function listener */
 		//btn1->event_onclick->link(&funcOnclick, btn1);
@@ -97,57 +97,49 @@ public:
 		/* registering a context capturing lambda expression listener */
 		//btn1->event_onclick->link([this](EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){this->btn1->style.set("background-color", "purple");});
 
-		LINK_EVENT_TO_CLASS_MEMBER(btn1->event_onmousedown, this, &TestApp::onMouseDown);
+		LINK_EVENT_TO_CLASS_MEMBER(remi::Button::onmousedown, btn1->event_onmousedown, this, &TestApp::onMouseDown);
 		mainContainer->append(btn1, "button");
 
 		btn2 = new remi::Button("bt2");
-		LINK_EVENT_TO_CLASS_MEMBER(btn2->event_onclick, this, &TestApp::onBt2Click);
+		LINK_EVENT_TO_CLASS_MEMBER(remi::Button::onclick, btn2->event_onclick, this, &TestApp::onBt2Click);
 
 		btn3 = new remi::Button("bt3");
 		mainContainer->append(btn2, "button2");
 		mainContainer->append(btn3, "bt3");
 
 		dialog = new remi::GenericDialog("POTATO", "Chips");
-		LINK_EVENT_TO_CLASS_MEMBER( dialog->event_onconfirm, this, &TestApp::dialogOnConfirm);
+		LINK_EVENT_TO_CLASS_MEMBER(remi::GenericDialog::onconfirm, dialog->event_onconfirm, this, &TestApp::dialogOnConfirm);
 		
 		txtInput = new remi::TextInput(true, "type here");
 		mainContainer->append(txtInput, "txt");
-		LINK_EVENT_TO_CLASS_MEMBER(txtInput->event_onkeyup, this, &TestApp::txtInputOnkeyup);
-		LINK_EVENT_TO_CLASS_MEMBER(txtInput->event_onchange, this, &TestApp::txtInputOnchange);
+		LINK_EVENT_TO_CLASS_MEMBER(remi::TextInput::onkeyup, txtInput->event_onkeyup, this, &TestApp::txtInputOnkeyup);
+		LINK_EVENT_TO_CLASS_MEMBER(remi::TextInput::onchange, txtInput->event_onchange, this, &TestApp::txtInputOnchange);
 		
 		progress = new remi::Progress(0, 100);
 		mainContainer->append(progress, "progress");
 
 		fileUploader = new remi::FileUploader();
-		LINK_EVENT_TO_CLASS_MEMBER(fileUploader->event_ondata, this, &TestApp::onData);
-		LINK_EVENT_TO_CLASS_MEMBER(fileUploader->event_onsuccess, this, &TestApp::onSuccess);
-		LINK_EVENT_TO_CLASS_MEMBER(fileUploader->event_onfail, this, &TestApp::onFail);
+		LINK_EVENT_TO_CLASS_MEMBER(remi::FileUploader::ondata, fileUploader->event_ondata, this, &TestApp::onData);
+		LINK_EVENT_TO_CLASS_MEMBER(remi::FileUploader::onsuccess, fileUploader->event_onsuccess, this, &TestApp::onSuccess);
+		LINK_EVENT_TO_CLASS_MEMBER(remi::FileUploader::onfail, fileUploader->event_onfail, this, &TestApp::onFail);
 		mainContainer->append(fileUploader);
 
 		return mainContainer;
 	}
 
-	void txtInputOnkeyup(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
-		std::cout << "event onkeyup" << endl;
-		for (std::string key : params->keys()) {
-			std::cout << "param_name: " << key << "  value: ";
-			std::cout << params->get(key)->str() << endl;
-		}
+	void txtInputOnkeyup(EventSource* emitter, std::string newValue, std::string keycode, void* userdata){
+		std::cout << "event onkeyup new value:" << newValue << " keycode:" << keycode << endl;
 	}
 	
-	void txtInputOnchange(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){
-		std::cout << "event onchange" << endl;
-		for (std::string key : params->keys()) {
-			std::cout << "param_name: " << key << "  value: ";
-			std::cout << params->get(key)->str() << endl;
-		}
+	void txtInputOnchange(EventSource* emitter, std::string newValue, void* userdata){
+		std::cout << "event onchange new value:" << newValue << endl;
 	}
 
-	void onBt2Click(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
+	void onBt2Click(EventSource* emitter, void* userdata) {
 		label->css_color = "red";
 	}
 
-	void dialogOnConfirm(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
+	void dialogOnConfirm(EventSource* emitter, void* userdata) {
 		std::cout << "Dialog Confirmed" << endl;
 		this->setRootWidget(this->mainContainer);
 	}
@@ -159,11 +151,11 @@ public:
 		}
 	}
 
-	void onClickImage(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
+	void onClickImage(EventSource* emitter, void* userdata) {
 		std::cout << "Image clicked" << endl;
 	}
 
-	void onClick(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
+	void onClick(EventSource* emitter, void* userdata) {
 		std::cout << "Event onClick btn1" << endl;
 		this->btn1->css_background_color = "red";
 		this->setRootWidget(this->dialog);
@@ -176,22 +168,12 @@ public:
 		*/
 	}
 
-	void onMouseDown(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
-		std::cout << "Event onMouseDown btn1" << endl;
-		for (std::string key : params->keys()) {
-			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
-		}
+	void onMouseDown(EventSource* emitter, float x, float y, void* userdata) {
+		std::cout << "Event onMouseDown btn1 x:" << x << " y:" << y << endl;
 	}
 
-	void onpageshow(void* emitter, Dictionary<Buffer*>* params, void* user_data) {
+	void onpageshow(void* emitter, float width, float height, void* user_data) {
 		std::cout << "Event onPageShow - ";
-		for (std::string key : params->keys()) {
-			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
-		}
-		int width = 0;
-		int height = 0;
-		sscanf(params->get("width")->str().c_str(), "%d", &width);
-		sscanf(params->get("height")->str().c_str(), "%d", &height);
 		cout << width << " - " << height << endl;
 	}
 
@@ -220,17 +202,11 @@ public:
 		fclose(f);
 
 	}
-	void onSuccess(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {
-		std::cout << "Event onSuccess - ";
-		for (std::string key : params->keys()) {
-			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
-		}
+	void onSuccess(Tag* emitter, std::string filename, void* userdata) {
+		std::cout << "Event onSuccess - filename:" << filename << endl;
 	}
-	void onFail(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {
-		std::cout << "Event onFail - ";
-		for (std::string key : params->keys()) {
-			std::cout << "param_name: " << key << "  value: " << params->get(key)->str() << endl;
-		}
+	void onFail(Tag* emitter, std::string filename, void* userdata) {
+		std::cout << "Event onFail - filename:" << filename << endl;
 	}
 
 	/*void onData(FileUploader* w, std::string fileName, const char* data, unsigned long long len){

@@ -440,9 +440,9 @@ std::string StringRepresantable::repr(Dictionary<Represantable*>* changedWidgets
 
 
 Tag::Tag() {
-	LINK_EVENT_TO_CLASS_MEMBER(this->attributes.event_onchange, this, &Tag::_needUpdate);
-	LINK_EVENT_TO_CLASS_MEMBER(this->style.event_onchange, this, &Tag::_needUpdate);
-	LINK_EVENT_TO_CLASS_MEMBER(this->children.event_onchange, this, &Tag::_needUpdate);
+	LINK_EVENT_TO_CLASS_MEMBER(remi::VersionedDictionary<std::string>::onchange, this->attributes.event_onchange, this, &Tag::_needUpdate);
+	LINK_EVENT_TO_CLASS_MEMBER(remi::VersionedDictionary<std::string>::onchange, this->style.event_onchange, this, &Tag::_needUpdate);
+	LINK_EVENT_TO_CLASS_MEMBER(remi::VersionedDictionary<remi::Represantable*>::onchange, this->children.event_onchange, this, &Tag::_needUpdate);
 
 	_parent = NULL;
 
@@ -545,7 +545,7 @@ void Tag::enableUpdate(){
 	ignoreUpdate = false;
 }
 
-void Tag::_needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata) {
+void Tag::_needUpdate(Tag* emitter, void* userdata) {
 	Dictionary<std::string> tmp;
 	tmp.update(this->attributes);
 
@@ -1351,12 +1351,12 @@ GenericDialog::GenericDialog(std::string title, std::string message) :Container:
 	_confirmButton = new Button("Ok");
 	_confirmButton->setSize(100, 30);
 	_confirmButton->style["margin"] = "3px";
-	(*_confirmButton->event_onclick) >> (EventListener*)this->event_onconfirm >> (EventListener::listener_class_member_type) & GenericDialog::onconfirm::operator();
+	(*_confirmButton->event_onclick) >> (Event<>::EventListener*)this->event_onconfirm >> (Event<>::EventListener::listener_class_member_type) & GenericDialog::onconfirm::operator();
 
 	_cancelButton = new Button("Cancel");
 	_cancelButton->setSize(100, 30);
 	_cancelButton->style["margin"] = "3px";
-	(*_cancelButton->event_onclick) >> (EventListener*)this->event_oncancel >> (EventListener::listener_class_member_type) & GenericDialog::oncancel::operator();
+	(*_cancelButton->event_onclick) >> (Event<>::EventListener*)this->event_oncancel >> (Event<>::EventListener::listener_class_member_type) & GenericDialog::oncancel::operator();
 
 	_hLay = new HBox();
 	_hLay->setHeight(35);

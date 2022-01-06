@@ -90,11 +90,11 @@ namespace remi {
 			void executeJavascript(std::string command);
 
 			virtual void onpageerror(void* emitter, Dictionary<Buffer*>* params, void* user_data);
-			virtual void onload(void* emitter, Dictionary<Buffer*>* params, void* user_data);
-			virtual void ononline(void* emitter, Dictionary<Buffer*>* params, void* user_data);
-			virtual void onpagehide(void* emitter, Dictionary<Buffer*>* params, void* user_data);
-			virtual void onpageshow(void* emitter, Dictionary<Buffer*>* params, void* user_data);
-			virtual void onresize(void* emitter, Dictionary<Buffer*>* params, void* user_data);
+			virtual void onload(void* emitter, void* user_data);
+			virtual void ononline(void* emitter, void* user_data);
+			virtual void onpagehide(void* emitter, void* user_data);
+			virtual void onpageshow(void* emitter, float width, float height, void* user_data);
+			virtual void onresize(void* emitter, float width, float height, void* user_data);
 
 			void onTimer();
 

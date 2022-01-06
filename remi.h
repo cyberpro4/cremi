@@ -499,7 +499,6 @@ namespace remi {
 	#define EVENT_VOID(NAME) class NAME:public Event<>{ \
 							public: \
 								NAME(EventSource* eventSource):Event::Event(eventSource, CLASS_NAME(NAME)){ \
-									eventSource->event_handlers.set(this->_eventName, this); \
 								} \
 								void operator()(){ \
 									if (this->_listener_function != NULL) { \
@@ -554,13 +553,13 @@ namespace remi {
 		void update(const Dictionary<T>& d) {
 			_version++;
 			Dictionary<T>::update(d);
-			this->event_onchange->operator()(NULL);
+			this->event_onchange->operator()();
 		}
 
 		void remove(std::string name) {
 			_version++;
 			Dictionary<T>::remove(name);
-			this->event_onchange->operator()(NULL);
+			this->event_onchange->operator()();
 		}
 
 		void set(std::string name, T value) {
@@ -572,13 +571,13 @@ namespace remi {
 			_version++;
 
 			Dictionary<T>::set(name, value);
-			this->event_onchange->operator()(NULL);
+			this->event_onchange->operator()();
 		}
 
 		void clear() {
 			_version++;
 			Dictionary<T>::clear();
-			this->event_onchange->operator()(NULL);
+			this->event_onchange->operator()();
 		}
 
 		long getVersion() {
@@ -604,7 +603,7 @@ namespace remi {
 				}
 		}* event_onchange;
 		*/
-		EVENT(onchange)
+		EVENT_VOID(onchange)
 
 	private:
 
@@ -618,7 +617,7 @@ namespace remi {
 	template <class T>
 	class Property: public EventSource {
 	public:
-		EVENT(onchange);
+		EVENT_VOID(onchange);
 
 		Property() {
 			this->event_onchange = new onchange(this);
@@ -630,7 +629,7 @@ namespace remi {
 
 		void operator = (T value) {
 			this->_value = value;
-			this->event_onchange->operator()(NULL);
+			this->event_onchange->operator()();
 		}
 
 		operator T(){
@@ -745,7 +744,7 @@ namespace remi {
 		virtual void _notifyParentForUpdate();
 
 		//EventListener::listener_type _needUpdate;
-		void _needUpdate(Tag* emitter, Dictionary<Buffer*>* params, void* userdata);
+		void _needUpdate(Tag* emitter, void* userdata);
 		
 		void disableUpdate();
 		void enableUpdate();
@@ -1574,15 +1573,32 @@ namespace remi {
 
 	class HEAD :public Tag {
 	public:
-		class onerror :public Event {
+		class onerror :public Event<std::string, std::string, std::string, std::string, std::string>, public JavascriptEventHandler {
 		public:
-			onerror(Tag* emitter) :Event::Event(emitter, CLASS_NAME(onerror)) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-				/* It is not required to set the attribute[onerror] because it is already present int the page javascript*/
+			onerror(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(onerror)) {
+				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
 			}
-			void operator()(Dictionary<Buffer*>* parameters = NULL) {
-				Event::operator()(parameters);
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string message = parameters->get("message")->str();
+				std::string source = parameters->get("source")->str();
+				std::string lineno = parameters->get("lineno")->str();
+				std::string colno = parameters->get("colno")->str();
+				std::string error = parameters->get("error")->str();
+				operator()(message, source, lineno, colno, error);
 			}
+			void operator()(std::string message, std::string source, std::string lineno, std::string colno, std::string error) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, message, source, lineno, colno, error, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, message, source, lineno, colno, error, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, message, source, lineno, colno, error, this->_userData);
+					return;
+				}
+			} 
 		}*event_onerror;
 
 	public:
@@ -1795,14 +1811,33 @@ With single_line=False it fires at each key released.
 Args:
 	new_value (str): the new string content of the TextInput.
 */
-		EVENT_JS_DO(onchange, R"(var params={};
+		class onchange : public EventJS<std::string> {
+		public:
+			onchange(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onchange), utils::sformat(R"(var params={};
 			params['new_value']=this.value;
-			remi.sendCallbackParam('%s','%s',params);)", {
+			remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(onchange))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
 				static_cast<TextInput*>(_eventSource)->disableUpdate();
 				static_cast<TextInput*>(_eventSource)->setValue(parameters->get("new_value")->str());
 				static_cast<TextInput*>(_eventSource)->enableUpdate();
-				Event::operator()(parameters);
-			});
+				operator()(parameters->get("new_value")->str());
+			}
+			virtual void operator()(std::string newValue) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, newValue, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, newValue, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, newValue, this->_userData);
+					return;
+				}
+			}
+		}*event_onchange;
 
 		/*Called when user types and releases a key into the TextInput
 
@@ -1812,9 +1847,32 @@ Args:
 			new_value (str): the new string content of the TextInput
 			keycode (str): the numeric char code
 		*/
-		EVENT_JS(onkeyup, R"(var elem=this;
+		class onkeyup : public EventJS<std::string, std::string> {
+		public:
+			onkeyup(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onkeyup), utils::sformat(R"(var elem=this;
             var params={};params['new_value']=elem.value;params['keycode']=(event.which||event.keyCode);
-			remi.sendCallbackParam('%s','%s',params);)");
+			remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(onkeyup))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string newValue = parameters->get("new_value")->str();
+				std::string keycode = parameters->get("keycode")->str();
+				operator()(newValue, keycode);
+			}
+			virtual void operator()(std::string newValue, std::string keycode) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, newValue, keycode, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, newValue, keycode, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, newValue, keycode, this->_userData);
+					return;
+				}
+			}
+		}*event_onkeyup;
 
 		/*Called when the user types a key into the TextInput.
 
@@ -1824,9 +1882,33 @@ Args:
 			new_value (str): the new string content of the TextInput.
 			keycode (str): the numeric char code
 		*/
-		EVENT_JS(onkeydown, R"(var elem=this;
+		class onkeydown : public EventJS<std::string, std::string> {
+		public:
+			onkeydown(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onkeydown), utils::sformat(R"(var elem=this;
             var params={};params['new_value']=elem.value;params['keycode']=(event.which||event.keyCode);
-			remi.sendCallbackParam('%s','%s',params);)");
+			remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(onkeydown))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string newValue = parameters->get("new_value")->str();
+				std::string keycode = parameters->get("keycode")->str();
+				operator()(newValue, keycode);
+			}
+			virtual void operator()(std::string newValue, std::string keycode) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, newValue, keycode, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, newValue, keycode, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, newValue, keycode, this->_userData);
+					return;
+				}
+			}
+		}*event_onkeydown;
+
 	public:
 		TagProperty attr_maxlength = TagProperty("maxlength", &attributes);
 		TagProperty attr_placeholder = TagProperty("placeholder", &attributes);
@@ -1894,27 +1976,46 @@ Args:
 
 	class GenericDialog : public Container {
 	public:
-		class onconfirm :public Event, EventListener {
+		class onconfirm :public Event<> {
 		public:
-			onconfirm(Tag* emitter) :Event::Event(emitter, CLASS_NAME(onconfirm)) {}
-
-			//this will get called by another event (the button click) so it must conform
-			//  listener prototype
-			void operator()(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
-				Event::operator()(params);
+			onconfirm(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(onconfirm)) {
+				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
+			}
+			void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
 			}
 		}*event_onconfirm;
 
-		class oncancel :public Event, EventListener {
+		class oncancel :public Event<> {
 		public:
-			oncancel(Tag* emitter) :Event::Event(emitter, CLASS_NAME(oncancel)) {}
-			/*void operator()(Dictionary<Buffer*>* parameters=NULL){
-			Event::operator()(parameters);
-			}*/
-			void operator()(EventSource* emitter, Dictionary<Buffer*>* params, void* userdata) {
-				Event::operator()(params);
+			oncancel(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(oncancel)) {
+				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
+			}
+			void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
 			}
 		}*event_oncancel;
+
 	public:
 
 		GenericDialog(std::string title = "", std::string message = "");
@@ -1962,9 +2063,77 @@ Args:
 
 	class FileUploader : public Widget {
 	public:
-		EVENT(onsuccess);
-		EVENT(onfail);
-		EVENT(ondata);
+		class onsuccess :public Event<std::string>, public JavascriptEventHandler {
+		public:
+			onsuccess(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(onsuccess)) {
+				eventSource->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string filename = parameters->get("filename")->str();
+				operator()(filename);
+			}
+			void operator()(std::string filename) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, filename, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, filename, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, filename, this->_userData);
+					return;
+				}
+			}
+		}*event_onsuccess;
+
+		class onfail :public Event<std::string>, public JavascriptEventHandler {
+		public:
+			onfail(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(onfail)) {
+				eventSource->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string filename = parameters->get("filename")->str();
+				operator()(filename);
+			}
+			void operator()(std::string filename) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, filename, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, filename, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, filename, this->_userData);
+					return;
+				}
+			}
+		}*event_onfail;
+
+		class ondata :public Event<std::string>, public JavascriptEventHandler {
+		public:
+			ondata(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(ondata)) {
+				eventSource->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				std::string filename = parameters->get("filename")->str();
+				operator()(filename);
+			}
+			void operator()(std::string filename) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, filename, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, filename, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, filename, this->_userData);
+					return;
+				}
+			}
+		}*event_ondata;
 	
 	public:
 		FileUploader(std::string path = "./", bool multipleSelectionAllowed = true);

@@ -330,7 +330,7 @@ void WebsocketClientInterface::on_message(const char* message, unsigned long lon
 				params = parseParams(&message[_slashOffset3], len - _slashOffset3);
 			}
 			if (widget->event_handlers.has(function_name)) {
-				reinterpret_cast<Event*>(widget->event_handlers[function_name].value)->operator()(params);
+				reinterpret_cast<JavascriptEventHandler*>(widget->event_handlers[function_name].value)->handle_websocket_event(params);
 			}
 			else {
 				cout << "WebsocketClientInterface::on_message - ERROR listener function not implemented" << endl;
