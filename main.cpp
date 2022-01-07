@@ -95,10 +95,10 @@ public:
 		//btn1->event_onclick->link(&funcOnclick, btn1);
 
 		/* registering a lambda expression listener */
-		//btn1->event_onclick->link((Event::listener_function_type)[](EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){static_cast<remi::Button*>(emitter)->style.set("background-color", "green");});
+		//btn1->event_onclick->link((Event::listener_function_type)[](EventSource* emitter, void* userdata){static_cast<remi::Button*>(emitter)->style.set("background-color", "green");});
 
 		/* registering a context capturing lambda expression listener */
-		//btn1->event_onclick->link([this](EventSource* emitter, Dictionary<Buffer*>* params, void* userdata){this->btn1->style.set("background-color", "purple");});
+		//btn1->event_onclick->link([this](EventSource* emitter, void* userdata){this->btn1->style.set("background-color", "purple");});
 
 		LINK_EVENT_TO_CLASS_MEMBER(remi::Button::onmousedown, btn1->event_onmousedown, this, &TestApp::onMouseDown);
 		mainContainer->append(btn1, "button");
@@ -208,15 +208,6 @@ public:
 		std::cout << "Event onFail - filename:" << filename << endl;
 	}
 
-	/*void onData(FileUploader* w, std::string fileName, const char* data, unsigned long long len){
-		std::ostringstream filePathName;
-		filePathName << w->savePath() << "/" << fileName;
-		label->setText("File: " + filePathName.str());
-		FILE* myFile = fopen(filePathName.str().c_str(), "wb");
-		fwrite(data, sizeof(char), len, myFile);
-		fclose(myFile);
-		//label->setText(data);
-	}*/
 };
 
 

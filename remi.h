@@ -679,7 +679,11 @@ namespace remi {
 	};
 
 
-	class Tag : public Represantable, public EventSource, public Event<>::EventListener{
+	class Tag : public Represantable, 
+		public EventSource, 
+		public Event<>::EventListener, 
+		public Event<std::string>::EventListener,
+		public Event<Represantable*>::EventListener {
 
 	public:
 
@@ -807,17 +811,30 @@ namespace remi {
 	};
 
 
-	#define EVENT_JS(NAME, JSCODE) class NAME : public EventJS{ \
+	#define EVENT_JS_VOID(NAME, JSCODE) class NAME : public EventJS<>{ \
                                 public: \
                                     NAME(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(NAME), utils::sformat( JSCODE, emitter->getIdentifier().c_str(), CLASS_NAME(NAME))){ \
                                         ((Tag*)emitter)->event_handlers.set(this->_eventName, this); \
                                     } \
-                                    void operator()(Dictionary<Buffer*>* parameters=NULL){ \
-                                        Event::operator()(parameters); \
-                                    } \
+									void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) { \
+										operator()(); \
+									} \
+									virtual void operator()() { \
+										if (this->_listener_function != NULL) { \
+											this->_listener_function(_eventSource, this->_userData); \
+											return; \
+										} \
+										if (this->_listener_member != NULL) { \
+											CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData); \
+										} \
+										if (this->_listener_context_lambda != NULL) { \
+											this->_listener_context_lambda(_eventSource, this->_userData); \
+											return; \
+										} \
+									} \
                             }* event_##NAME;
 
-	#define EVENT_JS_DO(NAME, JSCODE, DOFUNCTION)  class NAME : public EventJS{ \
+	#define EVENT_JS_DO(NAME, JSCODE, DOFUNCTION)  class NAME : public EventJS<>{ \
 	                            public: \
 	                                NAME(Tag* emitter):EventJS::EventJS(emitter, CLASS_NAME(NAME), utils::sformat( JSCODE, emitter->getIdentifier().c_str(), CLASS_NAME(NAME))){ \
 	                                    ((Tag*)emitter)->event_handlers.set(this->_eventName, this); \
@@ -828,7 +845,7 @@ namespace remi {
 
 	class Widget : public Tag {
 	public:
-
+		/*
 		class onclick : public EventJS<> {
 		public:
 			onclick(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onclick), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onclick))) {
@@ -852,7 +869,8 @@ namespace remi {
 				}
 			}
 		}*event_onclick;
-		//EVENT_JS(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+		*/
+		EVENT_JS_VOID(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
 
 		/*EVENT_JS_DO(onclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();",{
@@ -860,101 +878,13 @@ namespace remi {
 			Event::operator()(parameters);
 		})*/
 
-		class onblur : public EventJS<> {
-		public:
-			onblur(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onblur), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onblur))) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			}
-			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
-				operator()();
-			}
-			virtual void operator()() {
-				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
-					return;
-				}
-				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
-				}
-				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
-					return;
-				}
-			}
-		}*event_onblur;
-		//EVENT_JS(onblur, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+		EVENT_JS_VOID(onblur, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
-		class onfocus : public EventJS<> {
-		public:
-			onfocus(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onfocus), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onfocus))) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			}
-			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
-				operator()();
-			}
-			virtual void operator()() {
-				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
-					return;
-				}
-				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
-				}
-				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
-					return;
-				}
-			}
-		}*event_onfocus;
-		//EVENT_JS(onfocus, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+		EVENT_JS_VOID(onfocus, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
-		class ondblclick : public EventJS<> {
-		public:
-			ondblclick(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(ondblclick), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(ondblclick))) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			}
-			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
-				operator()();
-			}
-			virtual void operator()() {
-				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
-					return;
-				}
-				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
-				}
-				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
-					return;
-				}
-			}
-		}*event_ondblclick;
-		//EVENT_JS(ondblclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+		EVENT_JS_VOID(ondblclick, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 		
-		class oncontextmenu : public EventJS<> {
-		public:
-			oncontextmenu(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(oncontextmenu), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(oncontextmenu))) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			}
-			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
-				operator()();
-			}
-			virtual void operator()() {
-				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
-					return;
-				}
-				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
-				}
-				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
-					return;
-				}
-			}
-		}*event_oncontextmenu;
-		//EVENT_JS(oncontextmenu, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
+		EVENT_JS_VOID(oncontextmenu, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
 		class onmousedown : public EventJS<float, float> {
 		public:
@@ -1022,74 +952,11 @@ namespace remi {
 			}
 		}*event_onmouseup;
 
-		class onmouseout : public EventJS<> {
-		public:
-			onmouseout(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onmouseout), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onmouseout))) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			}
-			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
-				operator()();
-			}
-			virtual void operator()() {
-				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
-					return;
-				}
-				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
-				}
-				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
-					return;
-				}
-			}
-		}*event_onmouseout;
+		EVENT_JS_VOID(onmouseout, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
-		class onmouseover : public EventJS<> {
-		public:
-			onmouseover(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onmouseover), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onmouseover))) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			}
-			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
-				operator()();
-			}
-			virtual void operator()() {
-				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
-					return;
-				}
-				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
-				}
-				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
-					return;
-				}
-			}
-		}*event_onmouseover;
+		EVENT_JS_VOID(onmouseover, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
-		class onmouseleave : public EventJS<> {
-		public:
-			onmouseleave(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onmouseleave), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onmouseleave))) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			}
-			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
-				operator()();
-			}
-			virtual void operator()() {
-				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
-					return;
-				}
-				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
-				}
-				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
-					return;
-				}
-			}
-		}*event_onmouseleave;
+		EVENT_JS_VOID(onmouseleave, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 		
 		class onmousemove : public EventJS<float, float> {
 		public:
@@ -1246,51 +1113,9 @@ namespace remi {
 			}
 		}*event_ontouchenter;
 
-		class ontouchleave : public EventJS<> {
-		public:
-			ontouchleave(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(ontouchleave), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(ontouchleave))) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			}
-			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
-				operator()();
-			}
-			virtual void operator()() {
-				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
-					return;
-				}
-				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
-				}
-				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
-					return;
-				}
-			}
-		}*event_ontouchleave;
+		EVENT_JS_VOID(ontouchleave, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
-		class ontouchcancel : public EventJS<> {
-		public:
-			ontouchcancel(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(ontouchcancel), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(ontouchcancel))) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			}
-			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
-				operator()();
-			}
-			virtual void operator()() {
-				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
-					return;
-				}
-				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
-				}
-				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
-					return;
-				}
-			}
-		}*event_ontouchcancel;
+		EVENT_JS_VOID(ontouchcancel, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
 		class onkeyup : public EventJS<int, bool, bool, bool> {
 		public:
@@ -1613,75 +1438,11 @@ namespace remi {
 
 	class BODY :public Container {
 	public:
-		class onload : public EventJS<> {
-		public:
-			onload(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onload), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onload))) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			}
-			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
-				operator()();
-			}
-			virtual void operator()() {
-				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
-					return;
-				}
-				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
-				}
-				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
-					return;
-				}
-			}
-		}*event_onload;
+		EVENT_JS_VOID(onload, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
+		EVENT_JS_VOID(ononline, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
-		class ononline : public EventJS<> {
-		public:
-			ononline(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(ononline), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(ononline))) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			}
-			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
-				operator()();
-			}
-			virtual void operator()() {
-				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
-					return;
-				}
-				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
-				}
-				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
-					return;
-				}
-			}
-		}*event_ononline;
-
-		class onpagehide : public EventJS<> {
-		public:
-			onpagehide(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onpagehide), utils::sformat("remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();", emitter->getIdentifier().c_str(), CLASS_NAME(onpagehide))) {
-				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
-			}
-			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
-				operator()();
-			}
-			virtual void operator()() {
-				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
-					return;
-				}
-				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
-				}
-				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
-					return;
-				}
-			}
-		}*event_onpagehide;
+		EVENT_JS_VOID(onpagehide, "remi.sendCallback( '%s', '%s' );event.stopPropagation();event.preventDefault();")
 
 		class onpageshow : public EventJS<float, float> {
 		public:
