@@ -21,7 +21,6 @@ A basic application appears like this:
 ```c++
 #include "remi_server.h"
 #include <string.h>
-#include <fstream>
 
 #pragma execution_character_set( "utf-8" )
 
@@ -32,7 +31,6 @@ using namespace remi::utils;
 class HelloWorld : public remi::server::App {
 private:
 	remi::AsciiContainer* mainContainer;
-
 	remi::Button* btn1;
 	remi::Label* label;
 
@@ -67,7 +65,6 @@ public:
 	void onClick(EventSource* emitter, void* userdata) {
 		this->label->setText("Hello World!");
 	}
-
 
 };
 
