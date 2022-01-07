@@ -86,9 +86,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="base64.h" />
     <ClInclude Include="remi.h" />
     <ClInclude Include="remi_server.h" />
@@ -103,6 +100,9 @@
     <ClCompile Include="remi_server.cpp" />
     <ClCompile Include="test.cpp" />
     <ClCompile Include="websocket.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
