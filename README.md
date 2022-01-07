@@ -1,9 +1,19 @@
 # cREMI
 C++ port of [remi](https://github.com/dddomodossola/remi) GUI project
 
-GUI library for your C++ applications
-===
-cRemi is a GUI library for C++ applications that gets rendered in web browsers. This allows you to access your interface locally and remotely.
+
+<p align="center">
+    <img src="https://raw.githubusercontent.com/dddomodossola/remi/master/remi/res/logo.png" width="430">
+</p>
+
+<h2 align="center" style="font-weight:bolder">
+    GUI library for your C++ applications
+</h2>
+
+<p align="center" style="white-space:pre">
+cRemi is a GUI library for C++ applications that gets rendered in web browsers. 
+This allows you to access your interface locally and remotely.
+</p>
 
 Remi enables developers to create platform independent GUI with C++. The entire GUI is rendered in your browser. **No HTML** is required, Remi automatically translates your code into HTML at runtime. When your app starts, it starts a web server that will be accessible on your network.
 
