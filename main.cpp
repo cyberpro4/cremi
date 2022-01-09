@@ -31,7 +31,8 @@ void funcOnclick(EventSource* emitter, void* userdata) {
 class TestApp : public remi::server::App, 
 	public FileUploader::ondata::EventListener, 
 	public Event<string, string>::EventListener, 
-	public Event<string>::EventListener {
+	public Event<string>::EventListener,
+	public Event<ListItem*>::EventListener {
 private:
 	remi::AsciiContainer* mainContainer;
 
@@ -132,9 +133,14 @@ public:
 
 		listView = ListView::newFromVectorOfStrings(vector<std::string>{ "item1", "item2", "item3", "item4" });
 		mainContainer->append(listView, "listView");
-
+		LINK_EVENT_TO_CLASS_MEMBER(Event<ListItem*>, listView->event_onselection, this, &TestApp::onListItemSelected);
 
 		return mainContainer;
+	}
+
+	void onListItemSelected(EventSource* listView, ListItem* item, void* userdata) {
+		std::cout << "event onselection " << item->text() << endl;
+		item->setText(item->text() + "!");
 	}
 
 	void txtInputOnkeyup(EventSource* emitter, std::string newValue, std::string keycode, void* userdata){

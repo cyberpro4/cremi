@@ -1949,7 +1949,7 @@ Args:
 
 		static ListView* newFromVectorOfStrings(std::vector<std::string> values);
 
-		class onselection :public Event<>, public Button::onclick::EventListener {
+		class onselection :public Event<ListItem*>, public Button::onclick::EventListener {
 		public:
 			onselection(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(onselection)) {
 				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
@@ -1962,18 +1962,18 @@ Args:
 						break;
 					}
 				}
-				operator()();
+				operator()(listView->selectedItem);
 			}
-			void operator()() {
+			void operator()(ListItem* item) {
 				if (this->_listener_function != NULL) {
-					this->_listener_function(_eventSource, this->_userData);
+					this->_listener_function(_eventSource, item, this->_userData);
 					return;
 				}
 				if (this->_listener_member != NULL) {
-					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, item, this->_userData);
 				}
 				if (this->_listener_context_lambda != NULL) {
-					this->_listener_context_lambda(_eventSource, this->_userData);
+					this->_listener_context_lambda(_eventSource, item, this->_userData);
 					return;
 				}
 			}
