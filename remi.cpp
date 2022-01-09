@@ -590,6 +590,16 @@ void Tag::addChild(std::string child, std::string key) {
 	addChild(new StringRepresantable(child), key);
 }
 
+Represantable* Tag::removeChild(std::string key) {
+	Represantable* result = NULL;
+	if (this->children.has(key)) {
+		_render_children_list.remove(children.get(key));
+		result = this->children[key];
+		this->children.remove(key);
+	}
+	return result;
+}
+
 Represantable* Tag::getChild(std::string key) {
 	return children[key];
 }
@@ -682,6 +692,12 @@ std::string Container::append(Dictionary<Widget*>* _children) {
 		this->append(_children->get(k), k);
 	}
 	return "";
+}
+
+void Container::empty() {
+	for (std::string key : this->children.keys()) {
+		this->removeChild(key);
+	}
 }
 
 void Container::setLayoutOrientation(Container::Layout orientation) {
@@ -1321,7 +1337,6 @@ std::string TextInput::getValue() {
 	return this->text();
 }
 
-
 GenericDialog::GenericDialog(std::string title, std::string message) :Container::Container() {
 	setClass(CLASS_NAME(GenericDialog));
 	setLayoutOrientation(Container::Layout::Vertical);
@@ -1401,8 +1416,6 @@ void GenericDialog::addField(std::string key, Widget* field) {
 Widget* GenericDialog::getField(std::string key) {
 	return this->_inputs[key];
 }
-
-
 
 Image::Image(std::string url){
 	type = "img";
@@ -1528,3 +1541,26 @@ void FileUploader::onEvent(std::string name, Event* event){
 	Widget::onEvent(name, event);
 }
 */
+
+ListItem::ListItem(std::string text) :TextWidget() {
+	type = "li";
+	setText(text);
+	setClass(CLASS_NAME(ListItem));
+}
+
+ListView::ListView(bool selectable) : Container() {
+	type = "ul";
+	setClass(CLASS_NAME(ListView));
+	this->selectedItem = NULL;
+	this->selectedKey = "";
+	this->event_onselection = new ListView::onselection(this);
+}
+
+ListView* ListView::newFromVectorOfStrings(std::vector<std::string> values) {
+	ListView* result = new ListView();
+
+	for (std::string value : values) {
+		result->append(new ListItem(value));
+	}
+	return result;
+}

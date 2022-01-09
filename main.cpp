@@ -50,6 +50,8 @@ private:
 
 	remi::Progress*		progress;
 
+	remi::ListView*		listView;
+
 	int counter;
 
 public:
@@ -64,11 +66,12 @@ public:
 
 		mainContainer = new remi::AsciiContainer(
 			R"(
-			|   |image  |   |
-			|label | button |
-			|button2 |bt3   |
-			|button2 |txt   |
-			|progress       |
+			|   |image  |   | listView |
+			|label | button | listView |
+			|button2 |bt3   | listView |
+			|button2 |txt   | listView |
+			|progress       | listView |
+		    |file_uploader  | listView |
 			)", 1.0, 1.0
 		);
 
@@ -125,7 +128,11 @@ public:
 		LINK_EVENT_TO_CLASS_MEMBER(remi::FileUploader::ondata, fileUploader->event_ondata, this, &TestApp::onData);
 		LINK_EVENT_TO_CLASS_MEMBER(remi::FileUploader::onsuccess, fileUploader->event_onsuccess, this, &TestApp::onSuccess);
 		LINK_EVENT_TO_CLASS_MEMBER(remi::FileUploader::onfail, fileUploader->event_onfail, this, &TestApp::onFail);
-		mainContainer->append(fileUploader);
+		mainContainer->append(fileUploader, "file_uploader");
+
+		listView = ListView::newFromVectorOfStrings(vector<std::string>{ "item1", "item2", "item3", "item4" });
+		mainContainer->append(listView, "listView");
+
 
 		return mainContainer;
 	}

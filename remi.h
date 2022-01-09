@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <functional>
+#include <vector>
 
 //#include <thread>       //std::this_thread::sleep_for std::thread
 #include <chrono>
@@ -730,6 +731,8 @@ namespace remi {
 
 		void addChild(std::string child, std::string key = "");
 
+		Represantable* removeChild(std::string key);
+
 		Represantable* getChild(std::string key);
 
 		void setUpdated();
@@ -1335,6 +1338,8 @@ namespace remi {
 		std::string append(Widget* w, std::string key = std::string(""));
 		virtual std::string append(Dictionary<Widget*>* w);
 
+		void empty();
+
 		void setLayoutOrientation(Container::Layout orientation);
 	};
 
@@ -1821,6 +1826,7 @@ Args:
 		bool isReadOnly();
 	};
 
+
 	class FileUploader : public Widget {
 	public:
 		class onsuccess :public Event<std::string>, public JavascriptEventHandler {
@@ -1909,6 +1915,127 @@ Args:
 	private:
 		std::string _path;
 		bool _multipleSelectionAllowed;
+
+	};
+
+
+	class ListItem : public TextWidget {
+		/*
+		List item widget for the ListView.
+
+		ListItems are characterized by a textual content.They can be selected from
+		the ListView.Do NOT manage directly its selection by registering set_on_click_listener, use instead the events of
+		the ListView.
+		*/
+	public:
+		TagProperty attr_selected = TagProperty("selected", &attributes); //Selection status
+	public:
+		ListItem(std::string text = "");
+
+	};
+
+	class ListView : public Container {
+		/*
+		List widget it can contain ListItems.Add items to it by using the standard append(item, key) function or
+		generate a filled list from a string list by means of the function new_from_list.Use the list in conjunction of
+		its onselection event.Register a listener with ListView.onselection.connect.
+		*/
+	private:
+		bool		selectable;
+		ListItem* selectedItem;
+		std::string selectedKey;
+	public:
+		ListView(bool selectable = true);
+
+		static ListView* newFromVectorOfStrings(std::vector<std::string> values);
+
+		class onselection :public Event<>, public Button::onclick::EventListener {
+		public:
+			onselection(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(onselection)) {
+				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
+			}
+			void onItemSelected(EventSource* source, void* params) {
+				ListView* listView = static_cast<ListView*>(this->_eventSource);
+				for (std::string key : listView->children.keys()) {
+					if (static_cast<ListItem*>(source) == listView->children[key]) {
+						listView->selectByKey(key);
+						break;
+					}
+				}
+				operator()();
+			}
+			void operator()() {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, this->_userData);
+					return;
+				}
+			}
+		}*event_onselection;
+
+		std::string append(ListItem* w, std::string key = std::string("")) {
+			LINK_EVENT_TO_CLASS_MEMBER(ListItem::onclick, w->event_onclick, this->event_onselection, &ListView::onselection::onItemSelected);
+			w->attr_selected = "false";
+			return Container::append(w, key);
+		}
+
+		void empty() {
+			/*
+			* Removes all children from the list
+			*/
+			this->resetSelection();
+			Container::empty();
+		}
+
+		void resetSelection() {
+			if (this->selectedItem != NULL) {
+				this->selectedItem->attr_selected = "false";
+			}
+			this->selectedItem = NULL;
+			this->selectedKey = "";
+		}
+
+		bool selectByKey(std::string key) {
+			this->resetSelection();
+			if (!this->children.has(key))return false;
+			this->selectedItem = reinterpret_cast<ListItem*>(this->getChild(key));
+			this->selectedKey = key;
+			if (this->selectable) {
+				this->selectedItem->attr_selected = "true";
+			}
+			return true;
+		}
+
+		ListItem* get_item() {
+			/*
+				Returns :
+				ListItem* : The selected item or NULL
+			*/
+			return this->selectedItem;
+		}
+
+		std::string get_value() {
+			/*
+				Returns :
+				std::string : The value of the selected item or None
+			*/
+			if (this->selectedItem == NULL)return "";
+			return this->selectedItem->text();
+		}
+
+		std::string get_key() {
+			/*
+				Returns :
+				std::string : The key of the selected item or "" if no item is selected.
+			*/
+			return this->selectedKey;
+		}
 
 	};
 }
