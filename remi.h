@@ -655,6 +655,12 @@ namespace remi {
 			return this->_dictionary->get(this->_name);
 		}
 
+		void remove() {
+			//if (this->_dictionary->has(this->_name)) { //redundant
+				this->_dictionary->remove(this->_name);
+			//}
+		}
+
 	private:
 		VersionedDictionary<std::string>* _dictionary;
 		std::string	_name;
@@ -1564,12 +1570,12 @@ namespace remi {
 	    */
 	public:
 		/*Called when the user changes the TextInput content.
-With single_line=True it fires in case of focus lost and Enter key pressed.
-With single_line=False it fires at each key released.
+		With single_line=True it fires in case of focus lost and Enter key pressed.
+		With single_line=False it fires at each key released.
 
-Args:
-	new_value (str): the new string content of the TextInput.
-*/
+		Args:
+			new_value (str): the new string content of the TextInput.
+		*/
 		class onchange : public EventJS<std::string> {
 		public:
 			onchange(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onchange), utils::sformat(R"(var params={};
@@ -1947,7 +1953,7 @@ Args:
 	public:
 		ListView(bool selectable = true);
 
-		static ListView* newFromVectorOfStrings(std::vector<std::string> values);
+		ListView(std::vector<std::string> values, bool selectable = true);
 
 		void onItemSelected(EventSource* source, void* params) {
 			for (std::string key : this->children.keys()) {
@@ -2036,6 +2042,142 @@ Args:
 			return this->selectedKey;
 		}
 
+	};
+
+	class DropDownItem : public TextWidget {
+		/*
+		Item widget for the DropDown.
+
+		DropDownItems are characterized by a textual content.
+		*/
+	public:
+		TagProperty attr_selected = TagProperty("selected", &attributes); //Selection status
+	public:
+		DropDownItem(std::string text = "");
+
+	};
+
+	class DropDown : public Container {
+		/* 
+		Drop down selection widget.Implements the onchange(value) event.
+		*/
+	private:
+		bool			selectable;
+		DropDownItem*	selectedItem;
+		std::string		selectedKey;
+
+	public:
+		class onchange : public EventJS<std::string> {
+		public:
+			onchange(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onchange), utils::sformat(R"(var params={};
+				params['value']=this.value;
+				remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(onchange))) {
+					((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				static_cast<DropDown*>(_eventSource)->disableUpdate();
+				static_cast<DropDown*>(_eventSource)->selectByValue(parameters->get("value")->str());
+				static_cast<DropDown*>(_eventSource)->enableUpdate();
+				operator()(parameters->get("value")->str());
+			}
+			virtual void operator()(std::string value) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, value, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, value, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, value, this->_userData);
+					return;
+				}
+			}
+		}*event_onchange;
+
+		DropDown(){
+			type = "select";
+			setClass(CLASS_NAME(DropDown));
+			this->selectedItem = NULL;
+			this->selectedKey = "";
+			this->event_onchange = new DropDown::onchange(this);
+		}
+
+		DropDown(std::vector<std::string> values):DropDown(){
+			for (std::string value : values) {
+				this->append(new DropDownItem(value));
+			}
+		}
+
+		DropDownItem* get_item() {
+			/*
+				Returns :
+				DropDownItem* : The selected item or NULL
+			*/
+			return this->selectedItem;
+		}
+
+		std::string get_value() {
+			/*
+				Returns :
+				std::string : The value of the selected item or None
+			*/
+			if (this->selectedItem == NULL)return "";
+			return this->selectedItem->text();
+		}
+
+		std::string get_key() {
+			/*
+				Returns :
+				std::string : The key of the selected item or "" if no item is selected.
+			*/
+			return this->selectedKey;
+		}
+
+		std::string append(DropDownItem* w, std::string key = std::string("")) {
+			key = Container::append(w, key);
+			if (this->children.size() == 1) {
+				this->selectByKey(key);
+			}
+			return key;
+		}
+
+		void empty() {
+			/*
+			* Removes all children from the list
+			*/
+			this->resetSelection();
+			Container::empty();
+		}
+
+		void resetSelection() {
+			if (this->selectedItem != NULL) {
+				this->selectedItem->attr_selected.remove();
+			}
+			this->selectedItem = NULL;
+			this->selectedKey = "";
+		}
+
+		bool selectByKey(std::string key) {
+			this->resetSelection();
+			if (!this->children.has(key))return false;
+			this->selectedItem = reinterpret_cast<DropDownItem*>(this->getChild(key));
+			this->selectedKey = key;
+			if (this->selectable) {
+				this->selectedItem->attr_selected = "true";
+			}
+			return true;
+		}
+
+		bool selectByValue(std::string value) {
+			this->resetSelection();
+			for (std::string key : this->children.keys()) {
+				if (reinterpret_cast<DropDownItem*>(this->getChild(key))->text() == value) {
+					this->selectByKey(key);
+				}
+			}
+			return (this->selectedItem != NULL);
+		}
 	};
 }
 

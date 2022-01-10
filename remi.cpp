@@ -1556,11 +1556,14 @@ ListView::ListView(bool selectable) : Container() {
 	this->event_onselection = new ListView::onselection(this);
 }
 
-ListView* ListView::newFromVectorOfStrings(std::vector<std::string> values) {
-	ListView* result = new ListView();
-
+ListView::ListView(std::vector<std::string> values, bool selectable) : ListView(selectable){
 	for (std::string value : values) {
-		result->append(new ListItem(value));
+		this->append(new ListItem(value));
 	}
-	return result;
+}
+
+DropDownItem::DropDownItem(std::string text) :TextWidget() {
+	type = "option";
+	setText(text);
+	setClass(CLASS_NAME(ListItem));
 }
