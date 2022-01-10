@@ -2179,6 +2179,123 @@ namespace remi {
 			return (this->selectedItem != NULL);
 		}
 	};
+
+	class TableItem : public TextWidget {
+	public:
+		TableItem(std::string text = "");
+	};
+
+	class TableTitle : public TableItem {
+	public:
+		TableTitle(std::string text = "");
+	};
+
+	class TableRow : public Container, public TableItem::onclick::EventListener {
+	public:
+		void onTableItemClick(EventSource* source, void* userdata) {
+			std::string key = "";
+			for (std::string _key : this->children.keys()) {
+				if (reinterpret_cast<TableItem*>(source) == this->children[_key]) {
+					key = _key;
+					break;
+				}
+			}
+			this->event_onrowitemclick->operator()(static_cast<TableItem*>(source));
+		}
+		class onrowitemclick :public Event<TableItem*> {
+		public:
+			onrowitemclick(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(onrowitemclick)) {
+				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
+			}
+			void operator()(TableItem* item) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, item, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, item, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, item, this->_userData);
+					return;
+				}
+			}
+		}*event_onrowitemclick;
+	public:
+		TableRow();
+
+		std::string append(TableItem* w, std::string key = std::string("")) {
+			LINK_EVENT_TO_CLASS_MEMBER(TableItem::onclick, w->event_onclick, this, &TableRow::onTableItemClick);
+			
+			return Container::append(w, key);
+		}
+
+	};
+
+	class Table : public Container, public TableRow::onrowitemclick::EventListener {
+		/*
+			table widget - it will contains TableRow
+		*/
+	public:
+		void onRowItemClick(EventSource* source, TableItem* item, void* userdata) {
+			std::string key = "";
+			for (std::string _key : this->children.keys()) {
+				if (static_cast<TableRow*>(source) == this->children[_key]) {
+					key = _key;
+					break;
+				}
+			}
+			this->event_ontablerowclick->operator()(static_cast<TableRow*>(source), item);
+		}
+		class ontablerowclick :public Event<TableRow*, TableItem*> {
+		public:
+			ontablerowclick(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(ontablerowclick)) {
+				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
+			}
+			void operator()(TableRow* row, TableItem* item) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, row, item, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, row, item, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, row, item, this->_userData);
+					return;
+				}
+			}
+		}*event_ontablerowclick;
+	public:
+		Table();
+			
+		void appendFromVectorOfVectorOfStrings(std::vector<std::vector<std::string>> data, bool fillTitle = false) {
+			unsigned int row_index = 0;
+			for (std::vector<std::string> row : data) {
+				unsigned int col_index = 0;
+				TableRow* tr = new TableRow();
+				for (std::string item : row) {
+					TableItem* ti = NULL;
+					if (row_index == 0 && fillTitle) {
+						ti = new TableTitle(item);
+					} else {
+						ti = new TableItem(item);
+					}
+					tr->append(ti, remi::utils::sformat("%d", col_index));
+					col_index++;
+				}
+				this->append(tr, remi::utils::sformat("%d", row_index));
+				row_index++;
+			}
+		}
+
+		std::string append(TableRow* w, std::string key = std::string("")) {
+			LINK_EVENT_TO_CLASS_MEMBER(TableRow::onrowitemclick, w->event_onrowitemclick, this, &Table::onRowItemClick);
+
+			return Container::append(w, key);
+		}
+
+	};
 }
 
 #endif //CPORT_REMI_H

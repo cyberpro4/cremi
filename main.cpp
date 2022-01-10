@@ -32,7 +32,8 @@ class TestApp : public remi::server::App,
 	public FileUploader::ondata::EventListener, 
 	public Event<string, string>::EventListener, 
 	public Event<string>::EventListener,
-	public ListView::onselection::EventListener{
+	public ListView::onselection::EventListener,
+	public Table::ontablerowclick::EventListener{
 private:
 	remi::AsciiContainer* mainContainer;
 
@@ -55,6 +56,8 @@ private:
 
 	remi::DropDown*     dropDown;
 
+	remi::Table*		table;
+
 	int counter;
 
 public:
@@ -72,9 +75,9 @@ public:
 			|   |image  |   | listView |
 			|label | button | listView |
 			|button2 |bt3   | dropdown |
-			|button2 |txt   |          |
-			|progress       |          |
-		    |file_uploader  |          |
+			|button2 |txt   | table    |
+			|progress       | table    |
+		    |file_uploader  | table    |
 			)", 1.0, 1.0
 		);
 
@@ -141,6 +144,12 @@ public:
 		mainContainer->append(dropDown, "dropdown");
 		LINK_EVENT_TO_CLASS_MEMBER(DropDown::onchange, dropDown->event_onchange, this, &TestApp::onDropDownChange);
 
+		table = new Table();
+		table->appendFromVectorOfVectorOfStrings(vector<vector<string>>{ vector<string>{ "item11", "item12", "item13", "item14" },
+																		 vector<string>{ "item21", "item22", "item23", "item24" }});
+		mainContainer->append(table, "table");
+		LINK_EVENT_TO_CLASS_MEMBER(Table::ontablerowclick, table->event_ontablerowclick, this, &TestApp::onTableRowClick);
+
 		return mainContainer;
 	}
 
@@ -151,6 +160,10 @@ public:
 
 	void onDropDownChange(EventSource* dropDown, std::string value, void* userdata) {
 		std::cout << "event dropdown onchange value: " << value << endl;
+	}
+
+	void onTableRowClick(EventSource* dropDown, TableRow* row, TableItem* item, void* userdata) {
+		std::cout << "event table ontablerowclick value: " << item->text() << endl;
 	}
 
 	void txtInputOnkeyup(EventSource* emitter, std::string newValue, std::string keycode, void* userdata){

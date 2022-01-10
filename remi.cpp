@@ -1565,5 +1565,30 @@ ListView::ListView(std::vector<std::string> values, bool selectable) : ListView(
 DropDownItem::DropDownItem(std::string text) :TextWidget() {
 	type = "option";
 	setText(text);
-	setClass(CLASS_NAME(ListItem));
+	setClass(CLASS_NAME(DropDownItem));
+}
+
+TableItem::TableItem(std::string text) :TextWidget() {
+	type = "td";
+	setText(text);
+	setClass(CLASS_NAME(TableItem));
+}
+
+TableTitle::TableTitle(std::string text) :TableItem(text) {
+	type = "th";
+	setClass(CLASS_NAME(TableTitle));
+}
+
+TableRow::TableRow() : Container() {
+	type = "tr";
+	this->css_float = "none";
+	setClass(CLASS_NAME(TableRow));
+	this->event_onrowitemclick = new TableRow::onrowitemclick(this);
+}
+
+Table::Table() : Container() {
+	type = "table";
+	this->css_float = "none";
+	setClass(CLASS_NAME(Table));
+	this->event_ontablerowclick = new Table::ontablerowclick(this);
 }
