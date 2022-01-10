@@ -1934,7 +1934,7 @@ Args:
 
 	};
 
-	class ListView : public Container {
+	class ListView : public Container, public ListItem::onclick::EventListener {
 		/*
 		List widget it can contain ListItems.Add items to it by using the standard append(item, key) function or
 		generate a filled list from a string list by means of the function new_from_list.Use the list in conjunction of
@@ -1949,20 +1949,19 @@ Args:
 
 		static ListView* newFromVectorOfStrings(std::vector<std::string> values);
 
-		class onselection :public Event<ListItem*>, public Button::onclick::EventListener {
+		void onItemSelected(EventSource* source, void* params) {
+			for (std::string key : this->children.keys()) {
+				if (static_cast<ListItem*>(source) == this->children[key]) {
+					this->selectByKey(key);
+					break;
+				}
+			}
+			this->event_onselection->operator()(this->selectedItem);
+		}
+		class onselection :public Event<ListItem*> {
 		public:
 			onselection(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(onselection)) {
 				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
-			}
-			void onItemSelected(EventSource* source, void* params) {
-				ListView* listView = static_cast<ListView*>(this->_eventSource);
-				for (std::string key : listView->children.keys()) {
-					if (static_cast<ListItem*>(source) == listView->children[key]) {
-						listView->selectByKey(key);
-						break;
-					}
-				}
-				operator()(listView->selectedItem);
 			}
 			void operator()(ListItem* item) {
 				if (this->_listener_function != NULL) {
@@ -1980,7 +1979,7 @@ Args:
 		}*event_onselection;
 
 		std::string append(ListItem* w, std::string key = std::string("")) {
-			LINK_EVENT_TO_CLASS_MEMBER(ListItem::onclick, w->event_onclick, this->event_onselection, &ListView::onselection::onItemSelected);
+			LINK_EVENT_TO_CLASS_MEMBER(ListItem::onclick, w->event_onclick, this, &ListView::onItemSelected);
 			w->attr_selected = "false";
 			return Container::append(w, key);
 		}
