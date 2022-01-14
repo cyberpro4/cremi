@@ -1324,7 +1324,7 @@ TextInput::TextInput(bool singleLine, std::string hint) :TextWidget() {
 	}
 
 
-	this->attr_placeholder = hint;
+	this->attr_placeholder = hint.c_str();
 
 	this->attr_autocomplete = "off";
 }
@@ -1436,7 +1436,7 @@ Input<T>::Input(std::string input_type, T defaultValue) {
 	this->type = "input";
 
 	this->attr_autocomplete = "off";
-	this->attr_type = input_type;
+	this->attr_type = input_type.c_str();
 	this->attr_value = defaultValue;
 }
 

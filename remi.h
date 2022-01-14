@@ -607,9 +607,8 @@ namespace remi {
 	};
 
 	
-	template <class T>
 	class TagProperty{
-	private:
+	protected:
 		VersionedDictionary<std::string>* _dictionary;
 		std::string	_name;
 	public:
@@ -622,99 +621,26 @@ namespace remi {
 			
 		}
 
-		void operator = (T value) {};
-
-		operator T() {};
-
-		void remove() {
-			//if (this->_dictionary->has(this->_name)) { //redundant
-				this->_dictionary->remove(this->_name);
-			//}
-		}
-
-	};
-
-	template <>
-	class TagProperty<std::string> {
-	private:
-		VersionedDictionary<std::string>* _dictionary;
-		std::string	_name;
-	public:
-		TagProperty(std::string name, VersionedDictionary<std::string>* dictionary) {
-			this->_name = name;
-			this->_dictionary = dictionary;
-		}
-
-		void operator = (std::string value) {
+		void operator = (const char* value) {
 			this->_dictionary->set(this->_name, value);
 		}
 
-		operator std::string() {
-			return this->_dictionary->get(this->_name);
-		}
-
-		void remove() {
-			//if (this->_dictionary->has(this->_name)) { //redundant
-			this->_dictionary->remove(this->_name);
-			//}
-		}
-	};
-	typedef TagProperty<std::string> TagPropertyString;
-
-	template <>
-	class TagProperty<bool>{
-	private:
-		VersionedDictionary<std::string>* _dictionary;
-		std::string	_name;
-	public:
-		TagProperty(std::string name, VersionedDictionary<std::string>* dictionary){
-			this->_name = name;
-			this->_dictionary = dictionary;
-		}
-
-		void operator = (std::string value) {
+		/*void operator = (const std::string& value) { //bool assignment gets called instead
 			this->_dictionary->set(this->_name, value);
-		}
+		}*/
 
 		operator std::string() {
 			return this->_dictionary->get(this->_name);
 		}
 
 		void operator = (bool value) {
-			this->_dictionary->set(this->_name, value?"true":"false");
+			this->_dictionary->set(this->_name, value ? "true" : "false");
 		}
 
 		operator bool() {
 			std::string v = this->_dictionary->get(this->_name);
 			if (v.length() < 1)return false;
 			return (v[0] == 'T') || (v[0] == 't') || (v[0] == '1');
-		}
-
-		void remove() {
-			//if (this->_dictionary->has(this->_name)) { //redundant
-			this->_dictionary->remove(this->_name);
-			//}
-		}
-	};
-	typedef TagProperty<bool> TagPropertyBool;
-
-	template<>
-	class TagProperty<int>{
-	private:
-		VersionedDictionary<std::string>* _dictionary;
-		std::string	_name;
-	public:
-		TagProperty(std::string name, VersionedDictionary<std::string>* dictionary) {
-			this->_name = name;
-			this->_dictionary = dictionary;
-		}
-
-		void operator = (std::string value) {
-			this->_dictionary->set(this->_name, value);
-		}
-
-		operator std::string() {
-			return this->_dictionary->get(this->_name);
 		}
 
 		void operator = (int value) {
@@ -731,34 +657,28 @@ namespace remi {
 			return res;
 		}
 
-		void remove() {
-			//if (this->_dictionary->has(this->_name)) { //redundant
-			this->_dictionary->remove(this->_name);
-			//}
-		}
-	};
-	typedef TagProperty<int> TagPropertyInt;
-
-	/*
-	template <float T>
-	class TagPropertyFloat :public TagProperty<T> {
-	public:
-		TagPropertyFloat<T>(std::string name, VersionedDictionary<std::string>* dictionary) :TagProperty(name, dictionary) {}
-
-		void operator = (T value) {
+		void operator = (float value) {
 			std::stringstream s;
 			s << value;
-			this->_dictionary->set(this->_name, s);
+			this->_dictionary->set(this->_name, s.str());
 		}
 
-		operator T() {
-			std::stringstream value = this->_dictionary->get(this->_name);
-			T res;
+		operator float() {
+			std::stringstream value;
+			value << this->_dictionary->get(this->_name);
+			float res;
 			value >> res;
 			return res;
 		}
+
+		void remove() {
+			//if (this->_dictionary->has(this->_name)) { //redundant
+				this->_dictionary->remove(this->_name);
+			//}
+		}
+
 	};
-	*/
+
 
 	class Represantable {
 	public:
@@ -1375,48 +1295,48 @@ namespace remi {
 		void addChild(Represantable* child, std::string key = "");
 
 	public: //properties
-		TagPropertyString css_color = TagPropertyString("color", &style); //Text color
-		TagPropertyString css_float = TagPropertyString("float", &style);
-		TagPropertyString css_margin = TagPropertyString("margin", &style); //Margins allows to define spacing around element
-		TagPropertyString css_visibility = TagPropertyString("visibility", &style); //Specifies whether or not an element is visible
-		TagPropertyString css_width = TagPropertyString("width", &style); //Widget width
-		TagPropertyString css_height = TagPropertyString("height", &style); //Widget height
-		TagPropertyString css_left = TagPropertyString("left", &style); //Widget x position
-		TagPropertyString css_right = TagPropertyString("right", &style); //Widget x position
-		TagPropertyString css_top = TagPropertyString("top", &style); //Widget y position
-		TagPropertyString css_bottom = TagPropertyString("bottom", &style); //Widget y position
-		TagPropertyString css_position = TagPropertyString("position", &style); //The position property specifies the type of positioning method used for an element.''', 'DropDown', { 'possible_values': ('static', 'absolute', 'fixed', 'relative', 'initial', 'inherit') }
-		TagPropertyString css_overflow = TagPropertyString("overflow", &style); //Visibility behavior in case of content does not fit in size
-		TagPropertyString css_background_color = TagPropertyString("background-color", &style);
-		TagPropertyString css_background_image = TagPropertyString("background-image", &style); //An optional background image
-		TagPropertyString css_background_position = TagPropertyString("background-position", &style); //The position of an optional background in the form 0% 0%
-		TagPropertyString css_background_repeat = TagPropertyString("background-repeat", &style); //The repeat behaviour of an optional background image
-		TagPropertyString css_opacity = TagPropertyString("opacity", &style); //The opacity level describes the transparency , where 1 is not transparent at all, 0.5 is 50 % and 0 is completely transparent
-		TagPropertyString css_border_color = TagPropertyString("border-color", &style);
-		TagPropertyString css_border_width = TagPropertyString("border-width", &style); //Border thickness
-		TagPropertyString css_border_style = TagPropertyString("border-style", &style); //{ 'possible_values': ('none', 'solid', 'dotted', 'dashed') }
-		TagPropertyString css_border_radius = TagPropertyString("border-radius", &style); //Border rounding radius
-		TagPropertyString css_font_family = TagPropertyString("font-family", &style);
-		TagPropertyString css_font_size = TagPropertyString("font-size", &style);
-		TagPropertyString css_font_style = TagPropertyString("font-style", &style); //{ 'possible_values': ('normal', 'italic', 'oblique', 'inherit') }
-		TagPropertyString css_font_weight = TagPropertyString("font-weight", &style); //{ 'possible_values': ('normal', 'bold', 'bolder', 'lighter', '100', '200', '300', '400', '500', '600', '700', '800', '900', 'inherit') }
-		TagPropertyString css_line_height = TagPropertyString("line-height", &style); //The line height in pixels
-		TagPropertyString css_white_space = TagPropertyString("white-space", &style); //{ 'possible_values': ('normal', 'nowrap', 'pre', 'pre-line', 'pre-wrap', 'initial', 'inherit') }
-		TagPropertyString css_letter_spacing = TagPropertyString("letter-spacing", &style); //Increases or decreases the space between characters in a text
+		TagProperty css_color = TagProperty("color", &style); //Text color
+		TagProperty css_float = TagProperty("float", &style);
+		TagProperty css_margin = TagProperty("margin", &style); //Margins allows to define spacing around element
+		TagProperty css_visibility = TagProperty("visibility", &style); //Specifies whether or not an element is visible
+		TagProperty css_width = TagProperty("width", &style); //Widget width
+		TagProperty css_height = TagProperty("height", &style); //Widget height
+		TagProperty css_left = TagProperty("left", &style); //Widget x position
+		TagProperty css_right = TagProperty("right", &style); //Widget x position
+		TagProperty css_top = TagProperty("top", &style); //Widget y position
+		TagProperty css_bottom = TagProperty("bottom", &style); //Widget y position
+		TagProperty css_position = TagProperty("position", &style); //The position property specifies the type of positioning method used for an element.''', 'DropDown', { 'possible_values': ('static', 'absolute', 'fixed', 'relative', 'initial', 'inherit') }
+		TagProperty css_overflow = TagProperty("overflow", &style); //Visibility behavior in case of content does not fit in size
+		TagProperty css_background_color = TagProperty("background-color", &style);
+		TagProperty css_background_image = TagProperty("background-image", &style); //An optional background image
+		TagProperty css_background_position = TagProperty("background-position", &style); //The position of an optional background in the form 0% 0%
+		TagProperty css_background_repeat = TagProperty("background-repeat", &style); //The repeat behaviour of an optional background image
+		TagProperty css_opacity = TagProperty("opacity", &style); //The opacity level describes the transparency , where 1 is not transparent at all, 0.5 is 50 % and 0 is completely transparent
+		TagProperty css_border_color = TagProperty("border-color", &style);
+		TagProperty css_border_width = TagProperty("border-width", &style); //Border thickness
+		TagProperty css_border_style = TagProperty("border-style", &style); //{ 'possible_values': ('none', 'solid', 'dotted', 'dashed') }
+		TagProperty css_border_radius = TagProperty("border-radius", &style); //Border rounding radius
+		TagProperty css_font_family = TagProperty("font-family", &style);
+		TagProperty css_font_size = TagProperty("font-size", &style);
+		TagProperty css_font_style = TagProperty("font-style", &style); //{ 'possible_values': ('normal', 'italic', 'oblique', 'inherit') }
+		TagProperty css_font_weight = TagProperty("font-weight", &style); //{ 'possible_values': ('normal', 'bold', 'bolder', 'lighter', '100', '200', '300', '400', '500', '600', '700', '800', '900', 'inherit') }
+		TagProperty css_line_height = TagProperty("line-height", &style); //The line height in pixels
+		TagProperty css_white_space = TagProperty("white-space", &style); //{ 'possible_values': ('normal', 'nowrap', 'pre', 'pre-line', 'pre-wrap', 'initial', 'inherit') }
+		TagProperty css_letter_spacing = TagProperty("letter-spacing", &style); //Increases or decreases the space between characters in a text
 
-		TagPropertyString css_flex_direction = TagPropertyString("flex-direction", &style); //The flex-direction property specifies the direction of the flexible items. Note: If the element is not a flexible item, the flex-direction property has no effect.''', 'DropDown', { 'possible_values': ('row', 'row-reverse', 'column', 'column-reverse', 'initial', 'inherit') }
-		TagPropertyString css_display = TagPropertyString("display", &style); //The display property specifies the type of box used for an HTML element { 'possible_values': ('inline', 'block', 'contents', 'flex', 'grid', 'inline-block', 'inline-flex', 'inline-grid', 'inline-table', 'list-item', 'run-in', 'table', 'none', 'inherit') }
-		TagPropertyString css_justify_content = TagPropertyString("justify-content", &style); //The justify-content property aligns the flexible container's items when the items do not use all available space on the main - axis(horizontally)''', 'DropDown', {'possible_values': ('flex - start', 'flex - end', 'center', 'space - between', 'space - around', 'initial', 'inherit')}
-		TagPropertyString css_align_items = TagPropertyString("align-items", &style); //The align-items property specifies the default alignment for items inside the flexible container''', 'DropDown', { 'possible_values': ('stretch', 'center', 'flex-start', 'flex-end', 'baseline', 'initial', 'inherit') }
-		TagPropertyString css_align_content = TagPropertyString("align-content", &style); //The align-content property modifies the behavior of the flex-wrap property. It is similar to align - items, but instead of aligning flex items, it aligns flex lines.Tip: Use the justify - content property to align the items on the main - axis(horizontally).Note : There must be multiple lines of items for this property to have any effect.''', 'DropDown', {'possible_values': ('stretch', 'center', 'flex - start', 'flex - end', 'space - between', 'space - around', 'initial', 'inherit')}
-		TagPropertyString css_flex_wrap = TagPropertyString("flex-wrap", &style); //The flex-wrap property specifies whether the flexible items should wrap or not. Note: If the elements are not flexible items, the flex-wrap property has no effect''', 'DropDown', { 'possible_values': ('nowrap', 'wrap', 'wrap-reverse', 'initial', 'inherit') }
-		TagPropertyString css_flex_flow = TagPropertyString("flex-flow", &style); //The flex-flow property is a shorthand property for the flex-direction and the flex-wrap properties. The flex-direction property specifies the direction of the flexible items.''', 'DropDown', { 'possible_values': ('flex-direction', 'flex-wrap', 'initial', 'inherit') }
-		TagPropertyString css_order = TagPropertyString("order", &style); //The order property specifies the order of a flexible item relative to the rest of the flexible items inside the same container. Note: If the element is not a flexible item, the order property has no effect
-		TagPropertyString css_align_self = TagPropertyString("align-self", &style); //The align-self property specifies the alignment for the selected item inside the flexible container. Note: The align-self property overrides the flexible container's align - items property''', 'DropDown', {'possible_values': ('auto', 'stretch', 'center', 'flex - start', 'flex - end', 'baseline', 'initial', 'inherit')}
-		TagPropertyString css_flex = TagPropertyString("flex", &style); //The flex property specifies the length of the item, relative to the rest of the flexible items inside the same container. The flex property is a shorthand for the flex-grow, flex-shrink, and the flex-basis properties. Note: If the element is not a flexible item, the flex property has no effect
+		TagProperty css_flex_direction = TagProperty("flex-direction", &style); //The flex-direction property specifies the direction of the flexible items. Note: If the element is not a flexible item, the flex-direction property has no effect.''', 'DropDown', { 'possible_values': ('row', 'row-reverse', 'column', 'column-reverse', 'initial', 'inherit') }
+		TagProperty css_display = TagProperty("display", &style); //The display property specifies the type of box used for an HTML element { 'possible_values': ('inline', 'block', 'contents', 'flex', 'grid', 'inline-block', 'inline-flex', 'inline-grid', 'inline-table', 'list-item', 'run-in', 'table', 'none', 'inherit') }
+		TagProperty css_justify_content = TagProperty("justify-content", &style); //The justify-content property aligns the flexible container's items when the items do not use all available space on the main - axis(horizontally)''', 'DropDown', {'possible_values': ('flex - start', 'flex - end', 'center', 'space - between', 'space - around', 'initial', 'inherit')}
+		TagProperty css_align_items = TagProperty("align-items", &style); //The align-items property specifies the default alignment for items inside the flexible container''', 'DropDown', { 'possible_values': ('stretch', 'center', 'flex-start', 'flex-end', 'baseline', 'initial', 'inherit') }
+		TagProperty css_align_content = TagProperty("align-content", &style); //The align-content property modifies the behavior of the flex-wrap property. It is similar to align - items, but instead of aligning flex items, it aligns flex lines.Tip: Use the justify - content property to align the items on the main - axis(horizontally).Note : There must be multiple lines of items for this property to have any effect.''', 'DropDown', {'possible_values': ('stretch', 'center', 'flex - start', 'flex - end', 'space - between', 'space - around', 'initial', 'inherit')}
+		TagProperty css_flex_wrap = TagProperty("flex-wrap", &style); //The flex-wrap property specifies whether the flexible items should wrap or not. Note: If the elements are not flexible items, the flex-wrap property has no effect''', 'DropDown', { 'possible_values': ('nowrap', 'wrap', 'wrap-reverse', 'initial', 'inherit') }
+		TagProperty css_flex_flow = TagProperty("flex-flow", &style); //The flex-flow property is a shorthand property for the flex-direction and the flex-wrap properties. The flex-direction property specifies the direction of the flexible items.''', 'DropDown', { 'possible_values': ('flex-direction', 'flex-wrap', 'initial', 'inherit') }
+		TagProperty css_order = TagProperty("order", &style); //The order property specifies the order of a flexible item relative to the rest of the flexible items inside the same container. Note: If the element is not a flexible item, the order property has no effect
+		TagProperty css_align_self = TagProperty("align-self", &style); //The align-self property specifies the alignment for the selected item inside the flexible container. Note: The align-self property overrides the flexible container's align - items property''', 'DropDown', {'possible_values': ('auto', 'stretch', 'center', 'flex - start', 'flex - end', 'baseline', 'initial', 'inherit')}
+		TagProperty css_flex = TagProperty("flex", &style); //The flex property specifies the length of the item, relative to the rest of the flexible items inside the same container. The flex property is a shorthand for the flex-grow, flex-shrink, and the flex-basis properties. Note: If the element is not a flexible item, the flex property has no effect
 
-		TagPropertyString attr_class = TagPropertyString("class", &attributes); //The html class attribute, allows to assign a css style class. Multiple classes have to be separed by space.
-		TagPropertyString attr_title = TagPropertyString("title", &attributes); //Advisory information for the element
+		TagProperty attr_class = TagProperty("class", &attributes); //The html class attribute, allows to assign a css style class. Multiple classes have to be separed by space.
+		TagProperty attr_title = TagProperty("title", &attributes); //Advisory information for the element
 
 	};
 
@@ -1632,9 +1552,9 @@ namespace remi {
 
 	class TextWidget : public Widget {
 	public:
-		TagPropertyString css_writing_mode = TagPropertyString("writing-mode", &style); //'none', 'horizontal-tb', 'vertical-rl', 'vertical-lr'
-		TagPropertyString css_text_align = TagPropertyString("text-align", &style); //'none', 'center', 'left', 'right', 'justify'
-		TagPropertyString css_direction = TagPropertyString("direction", &style); //'none', 'ltr', 'rtl'
+		TagProperty css_writing_mode = TagProperty("writing-mode", &style); //'none', 'horizontal-tb', 'vertical-rl', 'vertical-lr'
+		TagProperty css_text_align = TagProperty("text-align", &style); //'none', 'center', 'left', 'right', 'justify'
+		TagProperty css_direction = TagProperty("direction", &style); //'none', 'ltr', 'rtl'
 			
 	public:
 		void setText(std::string text);
@@ -1768,11 +1688,11 @@ namespace remi {
 		}*event_onkeydown;
 
 	public:
-		TagPropertyString attr_maxlength = TagPropertyString("maxlength", &attributes);
-		TagPropertyString attr_placeholder = TagPropertyString("placeholder", &attributes);
-		TagPropertyString attr_rows = TagPropertyString("rows", &attributes);
-		TagPropertyString attr_autocomplete = TagPropertyString("autocomplete", &attributes);
-		TagPropertyString css_resize = TagPropertyString("resize", &style);
+		TagProperty attr_maxlength = TagProperty("maxlength", &attributes);
+		TagProperty attr_placeholder = TagProperty("placeholder", &attributes);
+		TagProperty attr_rows = TagProperty("rows", &attributes);
+		TagProperty attr_autocomplete = TagProperty("autocomplete", &attributes);
+		TagProperty css_resize = TagProperty("resize", &style);
 		
 	public:
 		/*Args:
@@ -1799,8 +1719,8 @@ namespace remi {
 	class Progress : public Widget {
 		/* Progress bar widget. */
 	public:
-		TagPropertyString attr_value = TagPropertyString("value", &attributes);
-		TagPropertyString attr_max = TagPropertyString("max", &attributes);
+		TagProperty attr_value = TagProperty("value", &attributes);
+		TagProperty attr_max = TagProperty("max", &attributes);
 
 	public:
 		Progress(int value = 0, int max = 100) {
@@ -1811,11 +1731,11 @@ namespace remi {
 			*/
 			type = "progress";
 			setValue(value);
-			this->attr_max = std::to_string(max);
+			this->attr_max = std::to_string(max).c_str();
 		}
 
 		void setValue(int value) {
-			this->attr_value = std::to_string(value);
+			this->attr_value = std::to_string(value).c_str();
 		}
 
 		int getValue() {
@@ -1823,7 +1743,7 @@ namespace remi {
 		}
 
 		void setMax(int value) {
-			this->attr_max = std::to_string(value);
+			this->attr_max = std::to_string(value).c_str();
 		}
 
 		int getMax() {
@@ -1902,7 +1822,7 @@ namespace remi {
 
 	class Image : public Widget {
 	public:
-		TagPropertyString attr_src = TagPropertyString("src", &attributes);
+		TagProperty attr_src = TagProperty("src", &attributes);
 	public:
 		Image(std::string url);
 		void setURL(std::string);
@@ -1914,9 +1834,9 @@ namespace remi {
 	template <class T>
 	class Input : public Widget {
 	public:
-		TagProperty<T> attr_value = TagProperty<T>("value", &attributes);
-		TagPropertyString attr_type = TagPropertyString("type", &attributes);
-		TagPropertyString attr_autocomplete = TagPropertyString("autocomplete", &attributes);
+		TagProperty attr_value = TagProperty("value", &attributes);
+		TagProperty attr_type = TagProperty("type", &attributes);
+		TagProperty attr_autocomplete = TagProperty("autocomplete", &attributes);
 
 		class onchange : public EventJS<T> {
 		public:
@@ -1959,7 +1879,25 @@ namespace remi {
 
 	class CheckBox : public Input<bool> {
 	public:
-		TagPropertyBool attr_value = TagPropertyBool("checked", &attributes);
+		class TagPropertyChecked:public TagProperty{
+			void operator = (const char* value){
+				/*operator = (string) overloading to intercept and call the boolean one*/
+				TagProperty::operator=(value);
+				this->operator=((bool)(*this));
+			}
+			void operator = (bool value) {
+				if (value) {
+					this->_dictionary->set(this->_name, "checked");
+				}else{
+					remove();
+				}
+			}
+
+			operator bool() {
+				return this->_dictionary->has(this->_name);
+			}
+		};
+		TagProperty attr_value = TagProperty("checked", &attributes);
 
 		class onchange : public EventJS<bool> {
 		public:
@@ -1970,8 +1908,8 @@ namespace remi {
 			}
 			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
 				static_cast<CheckBox*>(_eventSource)->disableUpdate();
-				static_cast<CheckBox*>(_eventSource)->attr_value = parameters->get("value")->str();
-				if (static_cast<CheckBox*>(_eventSource)->attr_value == false) {
+				static_cast<CheckBox*>(_eventSource)->attr_value = parameters->get("value")->str().c_str();
+				if (((bool)static_cast<CheckBox*>(_eventSource)->attr_value) == false) {
 					static_cast<CheckBox*>(_eventSource)->attr_value.remove();
 					static_cast<CheckBox*>(_eventSource)->enableUpdate();
 					operator()(false);
@@ -2101,7 +2039,7 @@ namespace remi {
 		the ListView.
 		*/
 	public:
-		TagPropertyString attr_selected = TagPropertyString("selected", &attributes); //Selection status
+		TagProperty attr_selected = TagProperty("selected", &attributes); //Selection status
 	public:
 		ListItem(std::string text = "");
 
@@ -2218,7 +2156,7 @@ namespace remi {
 		DropDownItems are characterized by a textual content.
 		*/
 	public:
-		TagPropertyString attr_selected = TagPropertyString("selected", &attributes); //Selection status
+		TagProperty attr_selected = TagProperty("selected", &attributes); //Selection status
 	public:
 		DropDownItem(std::string text = "");
 

@@ -95,7 +95,7 @@ public:
 		label = new remi::Label("CRemi");
 		label->css_background_color = "yellow";
 		label->css_text_align = "center";
-		label->css_font_size = "100px";
+		label->css_font_size = "50px";
 		mainContainer->append(label, "label");
 
 		btn1 = new remi::Button("Show generic dialog");
