@@ -1431,25 +1431,17 @@ std::string Image::url() {
 	return this->attributes["src"];
 }
 
-Input::Input() {
-	type = "input";
-	/*
-	attributes[Event_OnClick] = "";
-	attributes[Event_OnChange] = utils::sformat( \
-			"var params={};params['value']=document.getElementById('%(id)s').value;" \
-			"sendCallbackParam('%s','%s',params);" , getIdentifier().c_str() , Event_OnChange.c_str() );
-	*/
+template <class T>
+Input<T>::Input(std::string input_type, T defaultValue) {
+	this->type = "input";
+
+	this->attr_autocomplete = "off";
+	this->attr_type = input_type;
+	this->attr_value = defaultValue;
 }
 
-void Input::setValue(std::string value) {
-	attributes["value"] = value;
-}
-
-std::string Input::getValue() {
-	return attributes["value"];
-}
-
-void Input::setEnable(bool on) {
+template <class T>
+void Input<T>::setEnable(bool on) {
 
 	if (on)
 		attributes.remove("disabled");
@@ -1458,11 +1450,13 @@ void Input::setEnable(bool on) {
 
 }
 
-bool Input::isEnable() {
+template <class T>
+bool Input<T>::isEnable() {
 	return attributes.has("disabled");
 }
 
-void Input::setReadOnly(bool on) {
+template <class T>
+void Input<T>::setReadOnly(bool on) {
 
 	if (on)
 		attributes.remove("readonly");
@@ -1471,10 +1465,14 @@ void Input::setReadOnly(bool on) {
 
 }
 
-bool Input::isReadOnly() {
+template <class T>
+bool Input<T>::isReadOnly() {
 	return attributes.has("readonly");
 }
 
+CheckBox::CheckBox():Input<bool>::Input("checkbox", false) {
+	this->event_onchange = new CheckBox::onchange(this);
+}
 
 FileUploader::FileUploader(std::string path, bool multipleSelectionAllowed) {
 	this->event_onsuccess = new FileUploader::onsuccess(this);

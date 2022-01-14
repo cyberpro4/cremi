@@ -58,6 +58,8 @@ private:
 
 	remi::Table*		table;
 
+	remi::CheckBox*		checkbox;
+
 	int counter;
 
 public:
@@ -78,6 +80,7 @@ public:
 			|button2 |txt   | table    |
 			|progress       | table    |
 		    |file_uploader  | table    |
+            |checkbox       | table    |
 			)", 1.0, 1.0
 		);
 
@@ -150,7 +153,15 @@ public:
 		mainContainer->append(table, "table");
 		LINK_EVENT_TO_CLASS_MEMBER(Table::ontablerowclick, table->event_ontablerowclick, this, &TestApp::onTableRowClick);
 
+		checkbox = new CheckBox();
+		mainContainer->append(checkbox, "checkbox");
+		LINK_EVENT_TO_CLASS_MEMBER(CheckBox::onchange, checkbox->event_onchange, this, &TestApp::onCheckBoxChanged);
+
 		return mainContainer;
+	}
+
+	void onCheckBoxChanged(EventSource* chk, bool value, void* userdata) {
+		cout << "event checkbox onchange: " << value << endl;
 	}
 
 	void onListItemSelected(EventSource* listView, ListItem* item, void* userdata) {
