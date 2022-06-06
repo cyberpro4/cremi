@@ -754,6 +754,7 @@ void AsciiContainer::set_from_asciiart(std::string asciipattern, float gap_horiz
 		std::list<std::string> columns = utils::split(row, "|");
 
 		float left_value = 0.0;
+		int column_index = 0;
 		for (std::string c : columns) {
 			std::string widget_key = utils::strip(c, ' ');
 			float widget_width = (c).length();
@@ -763,16 +764,17 @@ void AsciiContainer::set_from_asciiart(std::string asciipattern, float gap_horiz
 					height is instead initialized at 1 and incremented by 1 each row the key is present
 					at the end of algorithm the height will be converted in percent
 				*/
-				widget_layout_map[widget_key] = new std::map<std::string, float>{ {"width", widget_width / (row_width) * 100.0 - gap_horizontal},
+				widget_layout_map[widget_key] = new std::map<std::string, float>{ {"width", widget_width / (row_width) * 100.0 - gap_horizontal/2.0},
 					{"height", 1},
 					{"top", (row_index / layout_height_in_chars) * 100.0 + (gap_vertical / 2.0)},
-					{"left", (left_value / row_width) * 100.0 + (gap_horizontal / 2.0)}
+					{"left", (left_value / row_width) * 100.0 + (gap_horizontal / 2.0) + gap_horizontal*column_index}
 				};
 			}
 			else {
 				(*(std::map<std::string, float>*)widget_layout_map.get(widget_key))["height"] += 1;
 			}
 			left_value += widget_width;
+			column_index++;
 		}
 		row_index++;
 	}
