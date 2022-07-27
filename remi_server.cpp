@@ -159,7 +159,7 @@ __remi_server_answer(void* cls, struct MHD_Connection* connection,
 	unsigned int* upload_data_size, void** con_cls) {
 
 	struct MHD_Response* response;
-	MHD_Result ret;
+	MHD_Result ret = MHD_Result();
 
 	const char* sessionCookieValue = MHD_lookup_connection_value(connection, MHD_COOKIE_KIND, "remi_session");
 	if (strcmp(method, "POST") == 0) {
@@ -271,6 +271,8 @@ __remi_server_answer(void* cls, struct MHD_Connection* connection,
 					cout << ">>>>>> host:" << host << endl << endl;
 					_guiInstance->init(std::string(host));
 					((AnonymousServer*)cls)->_guiInstances.set(newSessionValue, _guiInstance);
+
+					LINK_EVENT_TO_CLASS_MEMBER(App::onexpired, _guiInstance->event_onexpired, ((AnonymousServer*)cls), &AnonymousServer::onAppExpired);
 				}
 
 				ServerResponse* serverResponse;
@@ -302,6 +304,22 @@ __remi_server_answer(void* cls, struct MHD_Connection* connection,
 		}
 	}
 	return ret;
+}
+
+void AnonymousServer::onAppExpired(EventSource* emitter, void* userdata) {
+	//TODO the _guiInstances manipulation must be protected by concurrent access
+	std::string key = "";
+	bool found = false;
+	for (std::string _key : _guiInstances.keys()) {
+		if (_guiInstances.get(_key) == (App*)emitter) {
+			key = _key;
+			found = true;
+			break;
+		}
+	}
+	if (found) {
+		_guiInstances.remove(key);
+	}
 }
 
 AnonymousServer::AnonymousServer() {
@@ -345,7 +363,10 @@ void AnonymousServer::start(const char* address, int port) {
 }
 
 
-App::App() {
+App::App(int expireTimeoutSeconds) {
+	event_onexpired = new App::onexpired(this);
+	_expireTimeoutSeconds = expireTimeoutSeconds;
+	_secondsSinceLastWebsocketClientDropped = remi_timestamp();
 	_rootWidget = NULL;
 }
 
@@ -491,16 +512,32 @@ void App::onTimer() {
 	while (this->_mutex_blocked_webSocketClients)
 		Sleep(1);
 	_mutex_blocked_webSocketClients = true;
+
+	bool websocket_expired = false;
 	std::list<WebsocketClientInterface*> diedClients;
 	for (WebsocketClientInterface* wci : _webSocketClients) {
-		if (wci->isDead())
+		if (wci->isDead() || wci->isExpired())
 			diedClients.push_back(wci);
+		websocket_expired |= wci->isExpired();
 	}
 	for (WebsocketClientInterface* wci : diedClients) {
 		_webSocketClients.remove(wci);
 		std::cout << "Deleting died websocket client" << std::endl;
 		delete wci;
 	}
+
+	if (_webSocketClients.size() > 0)_secondsSinceLastWebsocketClientDropped = remi_timestamp();
+
+	//the application can expire if its last websocket gets deleted for expiration
+	// or if its last websocket was deleted for a time greater than the expire timeout
+	if(( websocket_expired && (_webSocketClients.size() < 1)) || 
+		((_expireTimeoutSeconds > 0) && ((remi_timestamp() - _secondsSinceLastWebsocketClientDropped) > _expireTimeoutSeconds)) ){
+		_updateTimer.stop();
+		(*event_onexpired)(); //triggering event to inform the server about expired status
+		delete this;
+		return;
+	}
+
 	_mutex_blocked_webSocketClients = false;
 
 	//update ui

@@ -13,23 +13,33 @@
 
 #include <regex>
 
+#include <chrono>
+
 using namespace remi;
+using namespace std::chrono;
 
 long long int	remi_timestamp() {
 #ifdef _WIN32
-
+	/*
 	FILETIME ft = { 0 };
 
 	GetSystemTimeAsFileTime(&ft);
 
-	LARGE_INTEGER li = { 0 };
+	ULARGE_INTEGER li = { 0 };
 
 	li.LowPart = ft.dwLowDateTime;
 	li.HighPart = ft.dwHighDateTime;
 
 	long long int hns = li.QuadPart;
 
-	return (int)(hns / 1000 / 1000);
+	return (hns / 1000 / 1000);
+	*/
+	// get the current time
+	system_clock::time_point tp = system_clock::now();
+	system_clock::duration dtn = tp.time_since_epoch();
+
+	// return the number of seconds
+	return duration_cast<std::chrono::seconds>(dtn).count();
 #else
 
 	return time(NULL);

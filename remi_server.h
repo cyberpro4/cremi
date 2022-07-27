@@ -61,12 +61,34 @@ namespace remi {
 			public remi::Event<float,float>::EventListener,
 			public remi::HEAD::onerror::EventListener,
 			public CommonAppInterface, 
-			private utils::TimerListener {
+			private utils::TimerListener,
+			public remi::EventSource{
+		public: //events
+			class onexpired :public Event<>{
+			public:
+				onexpired(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(onexpired)) {
+					//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
+				}
+				void operator()() {
+					if (this->_listener_function != NULL) {
+						this->_listener_function(_eventSource, this->_userData);
+						return;
+					}
+					if (this->_listener_member != NULL) {
+						CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, this->_userData);
+					}
+					if (this->_listener_context_lambda != NULL) {
+						this->_listener_context_lambda(_eventSource, this->_userData);
+						return;
+					}
+				}
+			}*event_onexpired;
 		public:
 
-			App();
+			App(int expireTimeoutSeconds = 60);
 
 			~App() {
+				delete event_onexpired;
 				for (WebsocketClientInterface* wci : _webSocketClients) {
 					delete wci;
 				}
@@ -115,6 +137,9 @@ namespace remi {
 
 			bool                _mutex_blocked_webSocketClients;
 
+			int					_expireTimeoutSeconds;
+			long long int		_secondsSinceLastWebsocketClientDropped;
+
 		protected:
 
 			//std::string		_staticResourcesPath;
@@ -130,7 +155,7 @@ namespace remi {
 			remi::BODY* body;
 		};
 
-		class AnonymousServer : private utils::TimerListener {
+		class AnonymousServer : private utils::TimerListener, public App::onexpired::EventListener {
 
 		public:
 
@@ -143,6 +168,8 @@ namespace remi {
 			void onTimer();
 
 			virtual App* buildInstance() = 0;
+
+			void onAppExpired(EventSource* emitter, void* userdata);
 
 		private:
 
