@@ -70,6 +70,8 @@ public:
 	}
 
 	Widget* main() {
+		this->setExpireTimeout(60);
+		
 		counter = 0;
 
 		mainContainer = new remi::AsciiContainer(

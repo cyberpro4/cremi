@@ -363,9 +363,9 @@ void AnonymousServer::start(const char* address, int port) {
 }
 
 
-App::App(int expireTimeoutSeconds) {
+App::App() {
 	event_onexpired = new App::onexpired(this);
-	_expireTimeoutSeconds = expireTimeoutSeconds;
+	_expireTimeoutSeconds = 0;
 	_secondsSinceLastWebsocketClientDropped = remi_timestamp();
 	_rootWidget = NULL;
 }
@@ -434,6 +434,10 @@ std::string App::getStaticFile(std::string filename) {
 		result = result.replace(result.find("//"), 2, "/");
 	}
 	return result;
+}
+
+void App::setExpireTimeout(int seconds) {
+	_expireTimeoutSeconds = seconds;
 }
 
 ServerResponse* App::serve(std::string url) {

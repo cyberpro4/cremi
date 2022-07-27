@@ -85,7 +85,7 @@ namespace remi {
 			}*event_onexpired;
 		public:
 
-			App(int expireTimeoutSeconds = 60);
+			App();
 
 			~App() {
 				delete event_onexpired;
@@ -109,6 +109,8 @@ namespace remi {
 			void _notifyParentForUpdate(EventSource*, void*);
 
 			std::string getStaticFile(std::string filename);
+
+			void setExpireTimeout(int seconds);
 
 			/* these method must handle a mutex for the access to websocket list */
 			void addWebsocketClientInterface(WebsocketClientInterface* wci);
