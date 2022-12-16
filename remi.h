@@ -606,37 +606,11 @@ namespace remi {
 		std::string _elementKey; //this is the key to be accessed from the operator[]
 	};
 
-
-	//A generic property class that triggers an onchange event
-	template <class T>
-	class Property: public EventSource {
-	public:
-		EVENT_VOID(onchange);
-
-		Property() {
-			this->event_onchange = new onchange(this);
-		}
-
-		~Property() {
-			delete this->event_onchange;
-		}
-
-		void operator = (T value) {
-			this->_value = value;
-			this->event_onchange->operator()();
-		}
-
-		operator T(){
-			return this->_value;
-		}
-
-	private:
-		T _value;
-
-	};
-
 	
 	class TagProperty{
+	protected:
+		VersionedDictionary<std::string>* _dictionary;
+		std::string	_name;
 	public:
 		TagProperty(std::string name, VersionedDictionary<std::string>* dictionary) {
 			this->_name = name;
@@ -647,17 +621,62 @@ namespace remi {
 			
 		}
 
-		void operator = (std::string value) {
+		void operator = (const char* value) {
 			this->_dictionary->set(this->_name, value);
 		}
+
+		/*void operator = (const std::string& value) { //bool assignment gets called instead
+			this->_dictionary->set(this->_name, value);
+		}*/
 
 		operator std::string() {
 			return this->_dictionary->get(this->_name);
 		}
 
-	private:
-		VersionedDictionary<std::string>* _dictionary;
-		std::string	_name;
+		void operator = (bool value) {
+			this->_dictionary->set(this->_name, value ? "true" : "false");
+		}
+
+		operator bool() {
+			std::string v = this->_dictionary->get(this->_name);
+			if (v.length() < 1)return false;
+			return (v[0] == 'T') || (v[0] == 't') || (v[0] == '1');
+		}
+
+		void operator = (int value) {
+			std::stringstream s;
+			s << value;
+			this->_dictionary->set(this->_name, s.str());
+		}
+
+		operator int() {
+			std::stringstream value;
+			value << this->_dictionary->get(this->_name);
+			int res;
+			value >> res;
+			return res;
+		}
+
+		void operator = (float value) {
+			std::stringstream s;
+			s << value;
+			this->_dictionary->set(this->_name, s.str());
+		}
+
+		operator float() {
+			std::stringstream value;
+			value << this->_dictionary->get(this->_name);
+			float res;
+			value >> res;
+			return res;
+		}
+
+		void remove() {
+			//if (this->_dictionary->has(this->_name)) { //redundant
+				this->_dictionary->remove(this->_name);
+			//}
+		}
+
 	};
 
 
@@ -1564,12 +1583,12 @@ namespace remi {
 	    */
 	public:
 		/*Called when the user changes the TextInput content.
-With single_line=True it fires in case of focus lost and Enter key pressed.
-With single_line=False it fires at each key released.
+		With single_line=True it fires in case of focus lost and Enter key pressed.
+		With single_line=False it fires at each key released.
 
-Args:
-	new_value (str): the new string content of the TextInput.
-*/
+		Args:
+			new_value (str): the new string content of the TextInput.
+		*/
 		class onchange : public EventJS<std::string> {
 		public:
 			onchange(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onchange), utils::sformat(R"(var params={};
@@ -1712,11 +1731,11 @@ Args:
 			*/
 			type = "progress";
 			setValue(value);
-			this->attr_max = std::to_string(max);
+			this->attr_max = std::to_string(max).c_str();
 		}
 
 		void setValue(int value) {
-			this->attr_value = std::to_string(value);
+			this->attr_value = std::to_string(value).c_str();
 		}
 
 		int getValue() {
@@ -1724,7 +1743,7 @@ Args:
 		}
 
 		void setMax(int value) {
-			this->attr_max = std::to_string(value);
+			this->attr_max = std::to_string(value).c_str();
 		}
 
 		int getMax() {
@@ -1812,18 +1831,110 @@ Args:
 	};
 
 
+	template <class T>
 	class Input : public Widget {
 	public:
-		Input();
+		TagProperty attr_value = TagProperty("value", &attributes);
+		TagProperty attr_type = TagProperty("type", &attributes);
+		TagProperty attr_autocomplete = TagProperty("autocomplete", &attributes);
 
-		void setValue(std::string value);
-		std::string getValue();
+		class onchange : public EventJS<T> {
+		public:
+			onchange(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onchange), utils::sformat(R"(var params={};
+				params['value']=this.value;
+				remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(onchange))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				static_cast<Input*>(_eventSource)->disableUpdate();
+				static_cast<Input*>(_eventSource)->attr_value = parameters->get("value")->str();
+				static_cast<Input*>(_eventSource)->enableUpdate();
+				operator()(static_cast<Input*>(_eventSource)->attr_value);
+			}
+			virtual void operator()(T newValue) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, newValue, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, newValue, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, newValue, this->_userData);
+					return;
+				}
+			}
+		}*event_onchange;
+	public:
+		Input(std::string input_type, T defaultValue);
 
 		void setEnable(bool on);
 		bool isEnable();
 
 		void setReadOnly(bool on);
 		bool isReadOnly();
+
+	};
+
+
+	class CheckBox : public Input<bool> {
+	public:
+		class TagPropertyChecked:public TagProperty{
+			void operator = (const char* value){
+				/*operator = (string) overloading to intercept and call the boolean one*/
+				TagProperty::operator=(value);
+				this->operator=((bool)(*this));
+			}
+			void operator = (bool value) {
+				if (value) {
+					this->_dictionary->set(this->_name, "checked");
+				}else{
+					remove();
+				}
+			}
+
+			operator bool() {
+				return this->_dictionary->has(this->_name);
+			}
+		};
+		TagProperty attr_value = TagProperty("checked", &attributes);
+
+		class onchange : public EventJS<bool> {
+		public:
+			onchange(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onchange), utils::sformat(R"(var params={};
+				params['value']=this.checked;
+				remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(onchange))) {
+				((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				static_cast<CheckBox*>(_eventSource)->disableUpdate();
+				static_cast<CheckBox*>(_eventSource)->attr_value = parameters->get("value")->str().c_str();
+				if (((bool)static_cast<CheckBox*>(_eventSource)->attr_value) == false) {
+					static_cast<CheckBox*>(_eventSource)->attr_value.remove();
+					static_cast<CheckBox*>(_eventSource)->enableUpdate();
+					operator()(false);
+				}else {
+					static_cast<CheckBox*>(_eventSource)->enableUpdate();
+					operator()(true);
+				}
+			}
+			virtual void operator()(bool newValue) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, newValue, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, newValue, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, newValue, this->_userData);
+					return;
+				}
+			}
+		}*event_onchange;
+
+	public:
+		CheckBox();
 	};
 
 
@@ -1934,7 +2045,7 @@ Args:
 
 	};
 
-	class ListView : public Container {
+	class ListView : public Container, public ListItem::onclick::EventListener {
 		/*
 		List widget it can contain ListItems.Add items to it by using the standard append(item, key) function or
 		generate a filled list from a string list by means of the function new_from_list.Use the list in conjunction of
@@ -1947,22 +2058,21 @@ Args:
 	public:
 		ListView(bool selectable = true);
 
-		static ListView* newFromVectorOfStrings(std::vector<std::string> values);
+		ListView(std::vector<std::string> values, bool selectable = true);
 
-		class onselection :public Event<ListItem*>, public Button::onclick::EventListener {
+		void onItemSelected(EventSource* source, void* params) {
+			for (std::string key : this->children.keys()) {
+				if (static_cast<ListItem*>(source) == this->children[key]) {
+					this->selectByKey(key);
+					break;
+				}
+			}
+			this->event_onselection->operator()(this->selectedItem);
+		}
+		class onselection :public Event<ListItem*> {
 		public:
 			onselection(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(onselection)) {
 				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
-			}
-			void onItemSelected(EventSource* source, void* params) {
-				ListView* listView = static_cast<ListView*>(this->_eventSource);
-				for (std::string key : listView->children.keys()) {
-					if (static_cast<ListItem*>(source) == listView->children[key]) {
-						listView->selectByKey(key);
-						break;
-					}
-				}
-				operator()(listView->selectedItem);
 			}
 			void operator()(ListItem* item) {
 				if (this->_listener_function != NULL) {
@@ -1980,7 +2090,7 @@ Args:
 		}*event_onselection;
 
 		std::string append(ListItem* w, std::string key = std::string("")) {
-			LINK_EVENT_TO_CLASS_MEMBER(ListItem::onclick, w->event_onclick, this->event_onselection, &ListView::onselection::onItemSelected);
+			LINK_EVENT_TO_CLASS_MEMBER(ListItem::onclick, w->event_onclick, this, &ListView::onItemSelected);
 			w->attr_selected = "false";
 			return Container::append(w, key);
 		}
@@ -2035,6 +2145,259 @@ Args:
 				std::string : The key of the selected item or "" if no item is selected.
 			*/
 			return this->selectedKey;
+		}
+
+	};
+
+	class DropDownItem : public TextWidget {
+		/*
+		Item widget for the DropDown.
+
+		DropDownItems are characterized by a textual content.
+		*/
+	public:
+		TagProperty attr_selected = TagProperty("selected", &attributes); //Selection status
+	public:
+		DropDownItem(std::string text = "");
+
+	};
+
+	class DropDown : public Container {
+		/* 
+		Drop down selection widget.Implements the onchange(value) event.
+		*/
+	private:
+		bool			selectable;
+		DropDownItem*	selectedItem;
+		std::string		selectedKey;
+
+	public:
+		class onchange : public EventJS<std::string> {
+		public:
+			onchange(Tag* emitter) :EventJS::EventJS(emitter, CLASS_NAME(onchange), utils::sformat(R"(var params={};
+				params['value']=this.value;
+				remi.sendCallbackParam('%s','%s',params);)", emitter->getIdentifier().c_str(), CLASS_NAME(onchange))) {
+					((Tag*)emitter)->event_handlers.set(this->_eventName, this);
+			}
+			void handle_websocket_event(Dictionary<Buffer*>* parameters = NULL) {
+				static_cast<DropDown*>(_eventSource)->disableUpdate();
+				static_cast<DropDown*>(_eventSource)->selectByValue(parameters->get("value")->str());
+				static_cast<DropDown*>(_eventSource)->enableUpdate();
+				operator()(parameters->get("value")->str());
+			}
+			virtual void operator()(std::string value) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, value, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, value, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, value, this->_userData);
+					return;
+				}
+			}
+		}*event_onchange;
+
+		DropDown(){
+			type = "select";
+			setClass(CLASS_NAME(DropDown));
+			this->selectedItem = NULL;
+			this->selectedKey = "";
+			this->event_onchange = new DropDown::onchange(this);
+		}
+
+		DropDown(std::vector<std::string> values):DropDown(){
+			for (std::string value : values) {
+				this->append(new DropDownItem(value));
+			}
+		}
+
+		DropDownItem* get_item() {
+			/*
+				Returns :
+				DropDownItem* : The selected item or NULL
+			*/
+			return this->selectedItem;
+		}
+
+		std::string get_value() {
+			/*
+				Returns :
+				std::string : The value of the selected item or None
+			*/
+			if (this->selectedItem == NULL)return "";
+			return this->selectedItem->text();
+		}
+
+		std::string get_key() {
+			/*
+				Returns :
+				std::string : The key of the selected item or "" if no item is selected.
+			*/
+			return this->selectedKey;
+		}
+
+		std::string append(DropDownItem* w, std::string key = std::string("")) {
+			key = Container::append(w, key);
+			if (this->children.size() == 1) {
+				this->selectByKey(key);
+			}
+			return key;
+		}
+
+		void empty() {
+			/*
+			* Removes all children from the list
+			*/
+			this->resetSelection();
+			Container::empty();
+		}
+
+		void resetSelection() {
+			if (this->selectedItem != NULL) {
+				this->selectedItem->attr_selected.remove();
+			}
+			this->selectedItem = NULL;
+			this->selectedKey = "";
+		}
+
+		bool selectByKey(std::string key) {
+			this->resetSelection();
+			if (!this->children.has(key))return false;
+			this->selectedItem = reinterpret_cast<DropDownItem*>(this->getChild(key));
+			this->selectedKey = key;
+			if (this->selectable) {
+				this->selectedItem->attr_selected = "true";
+			}
+			return true;
+		}
+
+		bool selectByValue(std::string value) {
+			this->resetSelection();
+			for (std::string key : this->children.keys()) {
+				if (reinterpret_cast<DropDownItem*>(this->getChild(key))->text() == value) {
+					this->selectByKey(key);
+				}
+			}
+			return (this->selectedItem != NULL);
+		}
+	};
+
+	class TableItem : public TextWidget {
+	public:
+		TableItem(std::string text = "");
+	};
+
+	class TableTitle : public TableItem {
+	public:
+		TableTitle(std::string text = "");
+	};
+
+	class TableRow : public Container, public TableItem::onclick::EventListener {
+	public:
+		void onTableItemClick(EventSource* source, void* userdata) {
+			std::string key = "";
+			for (std::string _key : this->children.keys()) {
+				if (reinterpret_cast<TableItem*>(source) == this->children[_key]) {
+					key = _key;
+					break;
+				}
+			}
+			this->event_onrowitemclick->operator()(static_cast<TableItem*>(source));
+		}
+		class onrowitemclick :public Event<TableItem*> {
+		public:
+			onrowitemclick(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(onrowitemclick)) {
+				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
+			}
+			void operator()(TableItem* item) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, item, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, item, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, item, this->_userData);
+					return;
+				}
+			}
+		}*event_onrowitemclick;
+	public:
+		TableRow();
+
+		std::string append(TableItem* w, std::string key = std::string("")) {
+			LINK_EVENT_TO_CLASS_MEMBER(TableItem::onclick, w->event_onclick, this, &TableRow::onTableItemClick);
+			
+			return Container::append(w, key);
+		}
+
+	};
+
+	class Table : public Container, public TableRow::onrowitemclick::EventListener {
+		/*
+			table widget - it will contains TableRow
+		*/
+	public:
+		void onRowItemClick(EventSource* source, TableItem* item, void* userdata) {
+			std::string key = "";
+			for (std::string _key : this->children.keys()) {
+				if (static_cast<TableRow*>(source) == this->children[_key]) {
+					key = _key;
+					break;
+				}
+			}
+			this->event_ontablerowclick->operator()(static_cast<TableRow*>(source), item);
+		}
+		class ontablerowclick :public Event<TableRow*, TableItem*> {
+		public:
+			ontablerowclick(EventSource* eventSource) :Event::Event(eventSource, CLASS_NAME(ontablerowclick)) {
+				//THIS IS NOT A JAVASCRIPT EVENT HANDLER eventSource->event_handlers.set(this->_eventName, this);
+			}
+			void operator()(TableRow* row, TableItem* item) {
+				if (this->_listener_function != NULL) {
+					this->_listener_function(_eventSource, row, item, this->_userData);
+					return;
+				}
+				if (this->_listener_member != NULL) {
+					CALL_MEMBER_FN(*this->_listener_instance, this->_listener_member)(_eventSource, row, item, this->_userData);
+				}
+				if (this->_listener_context_lambda != NULL) {
+					this->_listener_context_lambda(_eventSource, row, item, this->_userData);
+					return;
+				}
+			}
+		}*event_ontablerowclick;
+	public:
+		Table();
+			
+		void appendFromVectorOfVectorOfStrings(std::vector<std::vector<std::string>> data, bool fillTitle = false) {
+			unsigned int row_index = 0;
+			for (std::vector<std::string> row : data) {
+				unsigned int col_index = 0;
+				TableRow* tr = new TableRow();
+				for (std::string item : row) {
+					TableItem* ti = NULL;
+					if (row_index == 0 && fillTitle) {
+						ti = new TableTitle(item);
+					} else {
+						ti = new TableItem(item);
+					}
+					tr->append(ti, remi::utils::sformat("%d", col_index));
+					col_index++;
+				}
+				this->append(tr, remi::utils::sformat("%d", row_index));
+				row_index++;
+			}
+		}
+
+		std::string append(TableRow* w, std::string key = std::string("")) {
+			LINK_EVENT_TO_CLASS_MEMBER(TableRow::onrowitemclick, w->event_onrowitemclick, this, &Table::onRowItemClick);
+
+			return Container::append(w, key);
 		}
 
 	};

@@ -13,25 +13,35 @@
 
 #include <regex>
 
+#include <chrono>
+
 #pragma warning(disable : 4996).
 
 using namespace remi;
+using namespace std::chrono;
 
 long long int	remi_timestamp() {
 #ifdef _WIN32
-
+	/*
 	FILETIME ft = { 0 };
 
 	GetSystemTimeAsFileTime(&ft);
 
-	LARGE_INTEGER li = { 0 };
+	ULARGE_INTEGER li = { 0 };
 
 	li.LowPart = ft.dwLowDateTime;
 	li.HighPart = ft.dwHighDateTime;
 
 	long long int hns = li.QuadPart;
 
-	return (int)(hns / 1000 / 1000);
+	return (hns / 1000 / 1000);
+	*/
+	// get the current time
+	system_clock::time_point tp = system_clock::now();
+	system_clock::duration dtn = tp.time_since_epoch();
+
+	// return the number of seconds
+	return duration_cast<std::chrono::seconds>(dtn).count();
 #else
 
 	return time(NULL);
@@ -756,6 +766,7 @@ void AsciiContainer::set_from_asciiart(std::string asciipattern, float gap_horiz
 		std::list<std::string> columns = utils::split(row, "|");
 
 		float left_value = 0.0;
+		int column_index = 0;
 		for (std::string c : columns) {
 			std::string widget_key = utils::strip(c, ' ');
 			float widget_width = (c).length();
@@ -765,16 +776,17 @@ void AsciiContainer::set_from_asciiart(std::string asciipattern, float gap_horiz
 					height is instead initialized at 1 and incremented by 1 each row the key is present
 					at the end of algorithm the height will be converted in percent
 				*/
-				widget_layout_map[widget_key] = new std::map<std::string, float>{ {"width", widget_width / (row_width) * 100.0 - gap_horizontal},
+				widget_layout_map[widget_key] = new std::map<std::string, float>{ {"width", widget_width / (row_width) * 100.0 - gap_horizontal/2.0},
 					{"height", 1},
 					{"top", (row_index / layout_height_in_chars) * 100.0 + (gap_vertical / 2.0)},
-					{"left", (left_value / row_width) * 100.0 + (gap_horizontal / 2.0)}
+					{"left", (left_value / row_width) * 100.0 + (gap_horizontal / 2.0) + gap_horizontal*column_index}
 				};
 			}
 			else {
 				(*(std::map<std::string, float>*)widget_layout_map.get(widget_key))["height"] += 1;
 			}
 			left_value += widget_width;
+			column_index++;
 		}
 		row_index++;
 	}
@@ -1326,7 +1338,7 @@ TextInput::TextInput(bool singleLine, std::string hint) :TextWidget() {
 	}
 
 
-	this->attr_placeholder = hint;
+	this->attr_placeholder = hint.c_str();
 
 	this->attr_autocomplete = "off";
 }
@@ -1433,25 +1445,17 @@ std::string Image::url() {
 	return this->attributes["src"];
 }
 
-Input::Input() {
-	type = "input";
-	/*
-	attributes[Event_OnClick] = "";
-	attributes[Event_OnChange] = utils::sformat( \
-			"var params={};params['value']=document.getElementById('%(id)s').value;" \
-			"sendCallbackParam('%s','%s',params);" , getIdentifier().c_str() , Event_OnChange.c_str() );
-	*/
+template <class T>
+Input<T>::Input(std::string input_type, T defaultValue) {
+	this->type = "input";
+
+	this->attr_autocomplete = "off";
+	this->attr_type = input_type.c_str();
+	this->attr_value = defaultValue;
 }
 
-void Input::setValue(std::string value) {
-	attributes["value"] = value;
-}
-
-std::string Input::getValue() {
-	return attributes["value"];
-}
-
-void Input::setEnable(bool on) {
+template <class T>
+void Input<T>::setEnable(bool on) {
 
 	if (on)
 		attributes.remove("disabled");
@@ -1460,11 +1464,13 @@ void Input::setEnable(bool on) {
 
 }
 
-bool Input::isEnable() {
+template <class T>
+bool Input<T>::isEnable() {
 	return attributes.has("disabled");
 }
 
-void Input::setReadOnly(bool on) {
+template <class T>
+void Input<T>::setReadOnly(bool on) {
 
 	if (on)
 		attributes.remove("readonly");
@@ -1473,10 +1479,14 @@ void Input::setReadOnly(bool on) {
 
 }
 
-bool Input::isReadOnly() {
+template <class T>
+bool Input<T>::isReadOnly() {
 	return attributes.has("readonly");
 }
 
+CheckBox::CheckBox():Input<bool>::Input("checkbox", false) {
+	this->event_onchange = new CheckBox::onchange(this);
+}
 
 FileUploader::FileUploader(std::string path, bool multipleSelectionAllowed) {
 	this->event_onsuccess = new FileUploader::onsuccess(this);
@@ -1558,11 +1568,39 @@ ListView::ListView(bool selectable) : Container() {
 	this->event_onselection = new ListView::onselection(this);
 }
 
-ListView* ListView::newFromVectorOfStrings(std::vector<std::string> values) {
-	ListView* result = new ListView();
-
+ListView::ListView(std::vector<std::string> values, bool selectable) : ListView(selectable){
 	for (std::string value : values) {
-		result->append(new ListItem(value));
+		this->append(new ListItem(value));
 	}
-	return result;
+}
+
+DropDownItem::DropDownItem(std::string text) :TextWidget() {
+	type = "option";
+	setText(text);
+	setClass(CLASS_NAME(DropDownItem));
+}
+
+TableItem::TableItem(std::string text) :TextWidget() {
+	type = "td";
+	setText(text);
+	setClass(CLASS_NAME(TableItem));
+}
+
+TableTitle::TableTitle(std::string text) :TableItem(text) {
+	type = "th";
+	setClass(CLASS_NAME(TableTitle));
+}
+
+TableRow::TableRow() : Container() {
+	type = "tr";
+	this->css_float = "none";
+	setClass(CLASS_NAME(TableRow));
+	this->event_onrowitemclick = new TableRow::onrowitemclick(this);
+}
+
+Table::Table() : Container() {
+	type = "table";
+	this->css_float = "none";
+	setClass(CLASS_NAME(Table));
+	this->event_ontablerowclick = new Table::ontablerowclick(this);
 }

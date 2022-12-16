@@ -13,7 +13,7 @@ remi_thread_result WebsocketClientInterface_threadEntry(remi_thread_param param)
 	return 0;
 }
 
-WebsocketClientInterface::WebsocketClientInterface(remi_socket clientSock, bool doHandshake = true) {
+WebsocketClientInterface::WebsocketClientInterface(remi_socket clientSock, bool doHandshake, int expireTimeoutSeconds) {
 	_sock = clientSock;
 	/*Since the socket already exists ( it comes from microhttpd ) we cannot set WSA_FLAG_OVERLAPPED
 		and so we cannot set a timeout. *select* function will be used instead
@@ -25,6 +25,7 @@ WebsocketClientInterface::WebsocketClientInterface(remi_socket clientSock, bool 
 		*/
 	_stopFlag = false;
 	_handshakeDone = !doHandshake;
+	_expireTimeoutSeconds = expireTimeoutSeconds;
 
 	_t = remi_createThread((remi_thread_callback)& WebsocketClientInterface_threadEntry, this);
 
@@ -61,6 +62,8 @@ void* WebsocketClientInterface::_run() {
 				_handshakeDone = false;
 				std::cout << "ws: read next message has failed";
 				_stopFlag = true;
+			} else {
+				_secondsSinceLastPing = remi_timestamp();
 			}
 		}
 	}

@@ -33,7 +33,8 @@ class TestApp : public remi::server::App,
 	public FileUploader::ondata::EventListener, 
 	public Event<string, string>::EventListener, 
 	public Event<string>::EventListener,
-	public Event<ListItem*>::EventListener {
+	public ListView::onselection::EventListener,
+	public Table::ontablerowclick::EventListener{
 private:
 	remi::AsciiContainer* mainContainer;
 
@@ -54,6 +55,12 @@ private:
 
 	remi::ListView*		listView;
 
+	remi::DropDown*     dropDown;
+
+	remi::Table*		table;
+
+	remi::CheckBox*		checkbox;
+
 	int counter;
 
 public:
@@ -64,16 +71,19 @@ public:
 	}
 
 	Widget* main() {
+		this->setExpireTimeout(60);
+		
 		counter = 0;
 
 		mainContainer = new remi::AsciiContainer(
 			R"(
 			|   |image  |   | listView |
 			|label | button | listView |
-			|button2 |bt3   | listView |
-			|button2 |txt   | listView |
-			|progress       | listView |
-		    |file_uploader  | listView |
+			|button2 |bt3   | dropdown |
+			|button2 |txt   | table    |
+			|progress       | table    |
+		    |file_uploader  | table    |
+            |checkbox       | table    |
 			)", 1.0, 1.0
 		);
 
@@ -88,7 +98,7 @@ public:
 		label = new remi::Label("CRemi");
 		label->css_background_color = "yellow";
 		label->css_text_align = "center";
-		label->css_font_size = "100px";
+		label->css_font_size = "50px";
 		mainContainer->append(label, "label");
 
 		btn1 = new remi::Button("Show generic dialog");
@@ -132,16 +142,42 @@ public:
 		LINK_EVENT_TO_CLASS_MEMBER(remi::FileUploader::onfail, fileUploader->event_onfail, this, &TestApp::onFail);
 		mainContainer->append(fileUploader, "file_uploader");
 
-		listView = ListView::newFromVectorOfStrings(vector<std::string>{ "item1", "item2", "item3", "item4" });
+		listView = new ListView(vector<std::string>{ "item1", "item2", "item3", "item4" });
 		mainContainer->append(listView, "listView");
-		LINK_EVENT_TO_CLASS_MEMBER(Event<ListItem*>, listView->event_onselection, this, &TestApp::onListItemSelected);
+		LINK_EVENT_TO_CLASS_MEMBER(ListView::onselection, listView->event_onselection, this, &TestApp::onListItemSelected);
+
+		dropDown = new DropDown(vector<std::string>{ "item1", "item2", "item3", "item4" });
+		mainContainer->append(dropDown, "dropdown");
+		LINK_EVENT_TO_CLASS_MEMBER(DropDown::onchange, dropDown->event_onchange, this, &TestApp::onDropDownChange);
+
+		table = new Table();
+		table->appendFromVectorOfVectorOfStrings(vector<vector<string>>{ vector<string>{ "item11", "item12", "item13", "item14" },
+																		 vector<string>{ "item21", "item22", "item23", "item24" }});
+		mainContainer->append(table, "table");
+		LINK_EVENT_TO_CLASS_MEMBER(Table::ontablerowclick, table->event_ontablerowclick, this, &TestApp::onTableRowClick);
+
+		checkbox = new CheckBox();
+		mainContainer->append(checkbox, "checkbox");
+		LINK_EVENT_TO_CLASS_MEMBER(CheckBox::onchange, checkbox->event_onchange, this, &TestApp::onCheckBoxChanged);
 
 		return mainContainer;
+	}
+
+	void onCheckBoxChanged(EventSource* chk, bool value, void* userdata) {
+		cout << "event checkbox onchange: " << value << endl;
 	}
 
 	void onListItemSelected(EventSource* listView, ListItem* item, void* userdata) {
 		std::cout << "event onselection " << item->text() << endl;
 		item->setText(item->text() + "!");
+	}
+
+	void onDropDownChange(EventSource* dropDown, std::string value, void* userdata) {
+		std::cout << "event dropdown onchange value: " << value << endl;
+	}
+
+	void onTableRowClick(EventSource* dropDown, TableRow* row, TableItem* item, void* userdata) {
+		std::cout << "event table ontablerowclick value: " << item->text() << endl;
 	}
 
 	void txtInputOnkeyup(EventSource* emitter, std::string newValue, std::string keycode, void* userdata){

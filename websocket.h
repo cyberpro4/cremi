@@ -18,13 +18,17 @@ namespace remi {
 		class WebsocketClientInterface {
 
 		public:
-			WebsocketClientInterface(remi_socket clientSock, bool doHandshake);
+			WebsocketClientInterface(remi_socket clientSock, bool doHandshake = true, int expireTimeoutSeconds = 60);
 			void* _run();
 
 			void stop();
 
 			bool isDead() {
 				return _stopFlag;
+			}
+
+			bool isExpired() {
+				return (_expireTimeoutSeconds > 0) && (remi_timestamp() - _secondsSinceLastPing) > _expireTimeoutSeconds;
 			}
 
 			void handshake();
@@ -51,7 +55,9 @@ namespace remi {
 
 			bool	_stopFlag;
 
-			int		_secondsSinceLastPing;
+			long long int	_secondsSinceLastPing;
+
+			int		_expireTimeoutSeconds;
 
 		};
 
