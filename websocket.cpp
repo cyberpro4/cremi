@@ -314,9 +314,10 @@ void WebsocketClientInterface::on_message(const char* message, unsigned long lon
 
 			std::cout << "ws: call id = " << s_widget_id << "." << function_name << std::endl;
 
-			int widget_id;
-			if (utils::sscan(s_widget_id, "%d", &widget_id) != 1)
-				return;
+			unsigned long long int widget_id = 0;
+			widget_id = atoll(s_widget_id.c_str());
+			//if (utils::sscan(s_widget_id, "%20lld", &widget_id) != 1)
+			//	return;
 
 
 

@@ -13,6 +13,7 @@
 #include <fstream>
 
 #pragma execution_character_set( "utf-8" )
+#pragma warning(disable : 4996)
 
 using namespace std;
 using namespace remi;

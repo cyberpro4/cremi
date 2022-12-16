@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string>
 
+#pragma warning(disable : 4996).
 
 using namespace remi::server;
 using namespace remi;

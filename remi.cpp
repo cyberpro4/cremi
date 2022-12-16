@@ -13,6 +13,8 @@
 
 #include <regex>
 
+#pragma warning(disable : 4996).
+
 using namespace remi;
 
 long long int	remi_timestamp() {
