@@ -8,6 +8,7 @@
 #include <list>
 #include <sstream>
 #include <map>
+#include <deque>
 #include <codecvt>
 #include <string>
 #include <locale>
@@ -607,7 +608,7 @@ namespace remi {
 	};
 
 	
-	class TagProperty{
+	class TagProperty {
 	protected:
 		VersionedDictionary<std::string>* _dictionary;
 		std::string	_name;
@@ -618,11 +619,19 @@ namespace remi {
 		}
 
 		~TagProperty() {
-			
+
+		}
+
+		void operator = (const char* value) const {
+			this->_dictionary->set(this->_name, value);
 		}
 
 		void operator = (const char* value) {
 			this->_dictionary->set(this->_name, value);
+		}
+
+		void operator = (std::string value) const {
+			this->_dictionary->set(this->_name, value.c_str());
 		}
 
 		/*void operator = (const std::string& value) { //bool assignment gets called instead
@@ -633,7 +642,7 @@ namespace remi {
 			return this->_dictionary->get(this->_name);
 		}
 
-		void operator = (bool value) {
+		void operator = (bool value) const {
 			this->_dictionary->set(this->_name, value ? "true" : "false");
 		}
 
@@ -643,7 +652,7 @@ namespace remi {
 			return (v[0] == 'T') || (v[0] == 't') || (v[0] == '1');
 		}
 
-		void operator = (int value) {
+		void operator = (int value) const {
 			std::stringstream s;
 			s << value;
 			this->_dictionary->set(this->_name, s.str());
@@ -657,7 +666,7 @@ namespace remi {
 			return res;
 		}
 
-		void operator = (float value) {
+		void operator = (float value) const {
 			std::stringstream s;
 			s << value;
 			this->_dictionary->set(this->_name, s.str());
@@ -673,7 +682,7 @@ namespace remi {
 
 		void remove() {
 			//if (this->_dictionary->has(this->_name)) { //redundant
-				this->_dictionary->remove(this->_name);
+			this->_dictionary->remove(this->_name);
 			//}
 		}
 
@@ -2401,6 +2410,577 @@ namespace remi {
 		}
 
 	};
+
+
+
+	class ISvgStroke {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", '''Color for svg elements.''', 'ColorPicker', {})
+		TagProperty attr_stroke;
+		TagProperty attr_stroke_width;
+
+		ISvgStroke(Tag* tagInstance) :
+			attr_stroke(TagProperty("stroke", &tagInstance->attributes)),
+			attr_stroke_width(TagProperty("stroke-width", &tagInstance->attributes))
+		{}
+
+		void set_stroke(float width = 1, std::string color = "black") {
+			/*
+			Sets the stroke properties.
+
+			Args :
+			width(float) : stroke width
+			color(str) : stroke color
+			*/
+			this->attr_stroke = color;
+			this->attr_stroke_width = std::to_string(width);
+		}
+	};
+
+	class ISvgTransformable {
+	public:
+		//@editor_attribute_decorator("Transformation", """Transform commands (i.e. rotate(45), translate(30,100)).""", str, {})
+		TagProperty css_transform;
+		//@editor_attribute_decorator("Transformation", """Transform origin as percent or absolute x,y pair value or ["center","top","bottom","left","right"] .""", str, {})
+		TagProperty css_transform_origin;
+		//@editor_attribute_decorator("Transformation", """Alters the behaviour of tranform and tranform-origin by defining the transform box.""", "DropDown", { "possible_values": ("content-box","border-box","fill-box","stroke-box","view-box") })
+		TagProperty css_transform_box;
+
+		ISvgTransformable(Tag* tagInstance) :
+			css_transform(TagProperty("transform", &tagInstance->style)),
+			css_transform_origin(TagProperty("transform-origin", &tagInstance->style)),
+			css_transform_box(TagProperty("transform-box", &tagInstance->style))
+		{}
+	};
+
+	class ISvgFill {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """Fill color for svg elements.""", "ColorPicker", {})
+		TagProperty attr_fill;
+		//@editor_attribute_decorator("WidgetSpecific", """Fill opacity for svg elements.""", float, { "possible_values": "", "min" : 0.0, "max" : 1.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_fill_opacity;
+
+		ISvgFill(Tag* tagInstance) :
+			attr_fill(TagProperty("fill", &tagInstance->attributes)),
+			attr_fill_opacity(TagProperty("fill-opacity", &tagInstance->attributes)) {
+
+		}
+
+		void set_fill(std::string color = "black") {
+			/*Sets the fill color.
+
+			Args :
+			color(str) : stroke color
+			*/
+			this->attr_fill = color;
+		}
+	};
+
+	class ISvgPosition {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """Coordinate for Svg element.""", float, { "possible_values": "", "min" : -65635.0, "max" : 65635.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_x;
+		//@editor_attribute_decorator("WidgetSpecific", """Coordinate for Svg element.""", float, { "possible_values": "", "min" : -65635.0, "max" : 65635.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_y;
+
+		ISvgPosition(Tag* tagInstance) :
+			attr_x(TagProperty("x", &tagInstance->attributes)),
+			attr_y(TagProperty("y", &tagInstance->attributes)) {
+
+		}
+
+		void set_position(float x, float y) {
+			/*
+			Sets the shape position.
+
+			Args :
+			x(float) : the x coordinate
+			y(float) : the y coordinate
+			*/
+			this->attr_x = x;
+			this->attr_y = y;
+		}
+	};
+
+	class ISvgSize {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """Width for Svg element.""", float, { "possible_values": "", "min" : 0.0, "max" : 65635.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_width;
+		//@editor_attribute_decorator("WidgetSpecific", """Height for Svg element.""", float, { "possible_values": "", "min" : 0.0, "max" : 65635.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_height;
+
+		ISvgSize(Tag* tagInstance) :
+			attr_width(TagProperty("width", &tagInstance->attributes)),
+			attr_height(TagProperty("height", &tagInstance->attributes)) {
+
+		}
+
+		void set_size(float w, float h) {
+			/*
+			Sets the rectangle size.
+
+			Args :
+			w(int) : width of the rectangle
+			h(int) : height of the rectangle
+			*/
+			this->attr_width = w;
+			this->attr_height = h;
+		}
+	};
+
+	class SvgStop :public Tag {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """Gradient color""", "ColorPicker", {})
+		TagProperty css_stop_color = TagProperty("stop-color", &style);
+		/*@editor_attribute_decorator("WidgetSpecific", """The opacity property sets the opacity level for the gradient.
+				The opacity - level describes the transparency - level, where 1 is not transparent at all, 0.5 is 50 % see - through, and 0 is completely transparent.""", float, {"possible_values": "", "min": 0.0, "max": 1.0, "default": 1.0, "step": 0.1})
+		*/
+		TagProperty css_stop_opactity = TagProperty("stop-opacity", &style);
+		//@editor_attribute_decorator("WidgetSpecific", """The offset value for the gradient stop. It is in percentage""", float, { "possible_values": "", "min" : 0, "max" : 100, "default" : 0, "step" : 1 })
+		TagProperty attr_offset = TagProperty("offset", &attributes);
+
+		SvgStop(std::string offset = "0%", std::string color = "rgb(255,255,0)", float opacity = 1.0) : Tag::Tag() {
+			this->type = "stop";
+			this->attr_offset = offset;
+			this->css_stop_color = color;
+			this->css_stop_opactity = opacity;
+		}
+	};
+
+	class SvgGradientLinear :public Tag {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """Gradient coordinate value. It is expressed in percentage""", float, { "possible_values": "", "min" : 0, "max" : 100, "default" : 0, "step" : 1 })
+		TagProperty attr_x1 = TagProperty("x1", &attributes);
+		//@editor_attribute_decorator("WidgetSpecific", """Gradient coordinate value. It is expressed in percentage""", float, { "possible_values": "", "min" : 0, "max" : 100, "default" : 0, "step" : 1 })
+		TagProperty attr_y1 = TagProperty("y1", &attributes);
+		//@editor_attribute_decorator("WidgetSpecific", """Gradient coordinate value. It is expressed in percentage""", float, { "possible_values": "", "min" : 0, "max" : 100, "default" : 0, "step" : 1 })
+		TagProperty attr_x2 = TagProperty("x2", &attributes);
+		//@editor_attribute_decorator("WidgetSpecific", """Gradient coordinate value. It is expressed in percentage""", float, { "possible_values": "", "min" : 0, "max" : 100, "default" : 0, "step" : 1 })
+		TagProperty attr_y2 = TagProperty("y2", &attributes);
+
+		SvgGradientLinear(std::string x1, std::string y1, std::string x2, std::string y2) : Tag::Tag() {
+			this->type = "linearGradient";
+			this->attr_x1 = x1;
+			this->attr_y1 = y1;
+			this->attr_x2 = x2;
+			this->attr_y2 = y2;
+		}
+	};
+
+	class SvgGradientRadial :public Tag {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """Gradient coordinate value. It is expressed in percentage""", float, { "possible_values": "", "min" : 0, "max" : 100, "default" : 0, "step" : 1 })
+		TagProperty attr_cx = TagProperty("cx", &attributes);
+		//@editor_attribute_decorator("WidgetSpecific", """Gradient coordinate value. It is expressed in percentage""", float, { "possible_values": "", "min" : 0, "max" : 100, "default" : 0, "step" : 1 })
+		TagProperty attr_cy = TagProperty("cy", &attributes);
+		//@editor_attribute_decorator("WidgetSpecific", """Gradient coordinate value. It is expressed in percentage""", float, { "possible_values": "", "min" : 0, "max" : 100, "default" : 0, "step" : 1 })
+		TagProperty attr_fx = TagProperty("fx", &attributes);
+		//@editor_attribute_decorator("WidgetSpecific", """Gradient coordinate value. It is expressed in percentage""", float, { "possible_values": "", "min" : 0, "max" : 100, "default" : 0, "step" : 1 })
+		TagProperty attr_fy = TagProperty("fy", &attributes);
+		//@editor_attribute_decorator("WidgetSpecific", """Gradient radius value. It is expressed in percentage""", float, { "possible_values": "", "min" : 0, "max" : 100, "default" : 0, "step" : 1 })
+		TagProperty attr_r = TagProperty("r", &attributes);
+
+		SvgGradientRadial(std::string cx = "20%", std::string cy = "30%", std::string r = "30%", std::string fx = "50%", std::string fy = "50%") : Tag::Tag() {
+
+			this->type = "radialGradient";
+			this->attr_cx = cx;
+			this->attr_cy = cy;
+			this->attr_fx = fx;
+			this->attr_fy = fy;
+			this->attr_r = r;
+		}
+	};
+
+	class SvgDefs :public Tag {
+	public:
+		SvgDefs() {
+			this->type = "defs";
+		}
+	};
+
+	class Svg :public Container {
+		//svg widget - is a container for graphic widgets such as SvgCircle, SvgLine and so on.
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """preserveAspectRatio" """, "DropDown", {"possible_values": ("none","xMinYMin meet","xMidYMin meet","xMaxYMin meet","xMinYMid meet","xMidYMid meet","xMaxYMid meet","xMinYMax meet","xMidYMax meet","xMaxYMax meet","xMinYMin slice","xMidYMin slice","xMaxYMin slice","xMinYMid slice","xMidYMid slice","xMaxYMid slice","xMinYMax slice","xMidYMax slice","xMaxYMax slice")})
+		TagProperty attr_preserveAspectRatio = TagProperty("preserveAspectRatio", &attributes);
+		//@editor_attribute_decorator("WidgetSpecific", """viewBox of the svg drawing. es="x, y, width, height" """, "str", {})
+		TagProperty attr_viewBox = TagProperty("viewBox", &attributes);
+
+		Svg() :
+			Container::Container() {
+			this->type = "svg";
+			setClass(CLASS_NAME(Svg));
+		}
+
+		void set_viewbox(float x, float y, float w, float h) {
+			/*
+			Sets the originand size of the viewbox, describing a virtual view area.
+
+			Args :
+			x(int) : x coordinate of the viewbox origin
+			y(int) : y coordinate of the viewbox origin
+			w(int) : width of the viewBox
+			h(int) : height of the viewBox
+			*/
+			std::stringstream ss;
+			ss << x << " " << y << " " << w << " " << h;
+			this->attr_viewBox = ss.str();
+			this->attr_preserveAspectRatio = "none";
+		}
+	};
+
+	class SvgSubcontainer : public Svg, public ISvgPosition, public ISvgSize {
+		//svg widget to nest within another Svg element - is a container for graphic widgets such as SvgCircle, SvgLineand so on.
+	public:
+		SvgSubcontainer(float x = 0, float y = 0, float width = 100, float height = 100) :
+			Svg(),
+			ISvgPosition(this),
+			ISvgSize(this) {
+			/*
+			Args :
+			width(float) : the viewBox width in pixel
+			height(float) : the viewBox height in pixel
+			*/
+			this->set_position(x, y);
+			this->set_size(width, height);
+			this->setClass(CLASS_NAME(SvgSubcontainer));
+		}
+	};
+
+	class SvgGroup :public Container, public ISvgStroke, public ISvgFill, public ISvgTransformable {
+		/* svg group - a non visible container for svg widgets,
+			this have to be appended into Svg elements. */
+		SvgGroup() : Container(),
+			ISvgStroke(this),
+			ISvgFill(this),
+			ISvgTransformable(this) {
+			Tag::type = "g";
+		}
+	};
+
+	class SvgRectangle :public Widget, public ISvgPosition, public ISvgSize, public ISvgStroke, public ISvgFill, public ISvgTransformable {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """Horizontal round corners value.""", float, { "possible_values": "", "min" : 0.0, "max" : 10000.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_round_corners_h;
+		//@editor_attribute_decorator("WidgetSpecific", """Vertical round corners value. Defaults to attr_round_corners_h.""", float, { "possible_values": "", "min" : 0.0, "max" : 10000.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_round_corners_y;
+
+		SvgRectangle(float x = 0, float y = 0, float w = 100, float h = 100) :
+			Widget::Widget(CLASS_NAME(SvgRectangle)),
+			ISvgPosition(this),
+			ISvgSize(this),
+			ISvgStroke(this),
+			ISvgFill(this),
+			ISvgTransformable(this),
+			attr_round_corners_h(TagProperty("rx", &this->attributes)),
+			attr_round_corners_y(TagProperty("ry", &this->attributes)) {
+			/*
+			Args :
+			x(float) : the x coordinate of the top left corner of the rectangle
+			y(float) : the y coordinate of the top left corner of the rectangle
+			w(float) : width of the rectangle
+			h(float) : height of the rectangle
+			*/
+			ISvgPosition::set_position(x, y);
+			ISvgSize::set_size(w, h);
+			this->type = "rect";
+
+		}
+	};
+
+	class SvgImage :public Widget, public ISvgPosition, public ISvgSize, public ISvgTransformable {
+		/*svg image - a raster image element for svg graphics,
+			this have to be appended into Svg elements.*/
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """preserveAspectRatio" """, "DropDown", {"possible_values": ("none","xMinYMin meet","xMidYMin meet","xMaxYMin meet","xMinYMid meet","xMidYMid meet","xMaxYMid meet","xMinYMax meet","xMidYMax meet","xMaxYMax meet","xMinYMin slice","xMidYMin slice","xMaxYMin slice","xMinYMid slice","xMidYMid slice","xMaxYMid slice","xMinYMax slice","xMidYMax slice","xMaxYMax slice")})
+		TagProperty attr_preserveAspectRatio;
+		//@editor_attribute_decorator("WidgetSpecific", """Image data or url  or a base64 data string, html attribute xlink:href""", "base64_image", {})
+		TagProperty image_data;
+
+		SvgImage(std::string image_data = "", float x = 0, float y = 0, float w = 100, float h = 100) :
+			Widget::Widget(CLASS_NAME(SvgImage)),
+			ISvgPosition(this),
+			ISvgSize(this),
+			ISvgTransformable(this),
+			attr_preserveAspectRatio(TagProperty("preserveAspectRatio", &this->attributes)),
+			image_data(TagProperty("xlink:href", &this->attributes)) {
+			/*
+			Args :
+			image_data(str) : an url to an image
+			x(float) : the x coordinate of the top left corner of the rectangle
+			y(float) : the y coordinate of the top left corner of the rectangle
+			w(float) : width of the rectangle
+			h(float) : height of the rectangle
+			kwargs : See Widget.__init__()
+			*/
+			Tag::type = "image";
+			this->image_data = image_data;
+			ISvgPosition::set_position(x, y);
+			ISvgSize::set_size(w, h);
+		}
+	};
+
+	class SvgCircle :public Widget, public ISvgStroke, public ISvgFill, public ISvgTransformable {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """Center coordinate for SvgCircle.""", float, { "possible_values": "", "min" : -65535.0, "max" : 65535.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_cx;
+		//@editor_attribute_decorator("WidgetSpecific", """Center coordinate for SvgCircle.""", float, { "possible_values": "", "min" : -65535.0, "max" : 65535.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_cy;
+		//@editor_attribute_decorator("WidgetSpecific", """Radius of SvgCircle.""", float, { "possible_values": "", "min" : 0.0, "max" : 65535.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_r;
+
+		SvgCircle(float x = 0, float y = 0, float radius = 50) :
+			Widget::Widget(CLASS_NAME(SvgCircle)),
+			ISvgStroke(this),
+			ISvgFill(this),
+			ISvgTransformable(this),
+			attr_cx(TagProperty("cx", &this->attributes)),
+			attr_cy(TagProperty("cy", &this->attributes)),
+			attr_r(TagProperty("r", &this->attributes)) {
+			/*
+			Args :
+			x(float) : the x center point of the circle
+			y(float) : the y center point of the circle
+			radius(float) : the circle radius
+			*/
+
+			this->set_position(x, y);
+			this->set_radius(radius);
+			this->type = "circle";
+		}
+
+		void set_radius(float radius) {
+			/*
+			Sets the circle radius.
+
+			Args :
+			radius(int) : the circle radius
+			*/
+			this->attr_r = radius;
+		}
+
+		void set_position(float x, float y) {
+			/*
+			Sets the circle position.
+
+			Args :
+			x(int) : the x coordinate
+			y(int) : the y coordinate
+			*/
+			this->attr_cx = x;
+			this->attr_cy = y;
+		}
+	};
+
+	class SvgEllipse :public Widget, public ISvgStroke, public ISvgFill, public ISvgTransformable {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """Coordinate for SvgEllipse.""", float, { "possible_values": "", "min" : -65535.0, "max" : 65535.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_cx;
+		//@editor_attribute_decorator("WidgetSpecific", """Coordinate for SvgEllipse.""", float, { "possible_values": "", "min" : -65535.0, "max" : 65535.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_cy;
+		//@editor_attribute_decorator("WidgetSpecific", """Radius of SvgEllipse.""", float, { "possible_values": "", "min" : 0.0, "max" : 10000.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_rx;
+		//@editor_attribute_decorator("WidgetSpecific", """Radius of SvgEllipse.""", float, { "possible_values": "", "min" : 0.0, "max" : 65535.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_ry;
+		SvgEllipse(float x = 0, float y = 0, float rx = 50, float ry = 30) :
+			Widget::Widget(CLASS_NAME(SvgEllipse)),
+			ISvgStroke(this),
+			ISvgFill(this),
+			ISvgTransformable(this),
+			attr_cx(TagProperty("cx", &this->attributes)),
+			attr_cy(TagProperty("cy", &this->attributes)),
+			attr_rx(TagProperty("rx", &this->attributes)),
+			attr_ry(TagProperty("ry", &this->attributes)) {
+			/*
+			Args :
+			x(float) : the x center point of the ellipse
+			y(float) : the y center point of the ellipse
+			rx(float) : the ellipse radius
+			ry(float) : the ellipse radius
+			*/
+			this->set_position(x, y);
+			this->set_radius(rx, ry);
+			this->type = "ellipse";
+		}
+
+		void set_radius(float rx, float ry) {
+			/*
+			Sets the ellipse radius.
+
+			Args :
+			rx(int) : the ellipse radius
+			ry(int) : the ellipse radius
+			*/
+			this->attr_rx = rx;
+			this->attr_ry = ry;
+		}
+
+		void set_position(float x, float y) {
+			/*
+			Sets the ellipse position.
+
+			Args :
+			x(int) : the x coordinate
+			y(int) : the y coordinate
+			*/
+			this->attr_cx = x;
+			this->attr_cy = y;
+		}
+	};
+
+	class SvgLine :public Widget, public ISvgStroke, public ISvgTransformable {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """P1 coordinate for SvgLine.""", float, { "possible_values": "", "min" : -65535.0, "max" : 65535.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_x1;
+		//@editor_attribute_decorator("WidgetSpecific", """P1 coordinate for SvgLine.""", float, { "possible_values": "", "min" : -65535.0, "max" : 65535.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_y1;
+		//@editor_attribute_decorator("WidgetSpecific", """P2 coordinate for SvgLine.""", float, { "possible_values": "", "min" : -65535.0, "max" : 65535.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_x2;
+		//@editor_attribute_decorator("WidgetSpecific", """P2 coordinate for SvgLine.""", float, { "possible_values": "", "min" : -65535.0, "max" : 65535.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_y2;
+
+		SvgLine(float x1 = 0, float y1 = 0, float x2 = 50, float y2 = 50) :
+			Widget::Widget(CLASS_NAME(SvgEllipse)),
+			ISvgStroke(this),
+			ISvgTransformable(this),
+			attr_x1(TagProperty("x1", &this->attributes)),
+			attr_y1(TagProperty("y1", &this->attributes)),
+			attr_x2(TagProperty("x2", &this->attributes)),
+			attr_y2(TagProperty("y2", &this->attributes)) {
+
+			this->set_coords(x1, y1, x2, y2);
+			Tag::type = "line";
+		}
+
+		void set_coords(float x1, float y1, float x2, float y2) {
+			this->set_p1(x1, y1);
+			this->set_p2(x2, y2);
+		}
+
+		void set_p1(float x1, float y1) {
+			this->attr_x1 = x1;
+			this->attr_y1 = y1;
+		}
+
+		void set_p2(float x2, float y2) {
+			this->attr_x2 = x2;
+			this->attr_y2 = y2;
+		}
+	};
+
+	class SvgPolyline :public Widget, public ISvgStroke, public ISvgFill, public ISvgTransformable {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """Defines the maximum values count.""", int, { "possible_values": "", "min" : 0, "max" : 65535, "default" : 0, "step" : 1 })
+		std::deque<float> coordsX;
+		std::deque<float> coordsY;
+		int __maxlen;
+		int maxlen() {
+			return this->__maxlen;
+		}
+		void maxlen(int value) {
+			this->__maxlen = value;
+			this->coordsX = std::deque<float>(this->__maxlen);
+			this->coordsY = std::deque<float>(this->__maxlen);
+		}
+
+		SvgPolyline(int _maxlen = 1000) :
+			Widget::Widget(CLASS_NAME(SvgPolyline)),
+			ISvgStroke(this),
+			ISvgFill(this),
+			ISvgTransformable(this) {
+			this->__maxlen = 0;
+			Tag::type = "polyline";
+			this->maxlen(_maxlen);
+			Tag::attributes["points"] = "";
+			Tag::attributes["vector-effect"] = "non-scaling-stroke";
+		}
+
+		void add_coord(float x, float y) {
+			int spacepos = 0;
+			if (this->coordsX.size() == this->maxlen()) {
+				spacepos = static_cast<std::string>(Tag::attributes["points"]).find(" ", 0);
+			}
+			if (spacepos > 0) {
+				Tag::attributes["points"] = static_cast<std::string>(Tag::attributes["points"]).substr(spacepos + 1);
+			}
+			this->coordsX.push_back(x);
+			this->coordsY.push_back(y);
+			std::stringstream ss;
+			ss << static_cast<std::string>(Tag::attributes["points"]) << std::to_string(x) << "," << std::to_string(y) << " ";
+			Tag::attributes["points"] = ss.str();
+		}
+	};
+
+	class SvgPolygon :public SvgPolyline {
+	public:
+		SvgPolygon(int _maxlen = 1000) : SvgPolyline(_maxlen) {
+			Tag::type = "polygon";
+			Widget::setClass(CLASS_NAME(SvgPolygon));
+		}
+	};
+
+	class SvgText : public TextWidget, public ISvgPosition, public ISvgStroke, public ISvgFill, public ISvgTransformable {
+
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """Length for svg text elements.""", int, { "possible_values": "", "min" : 0.0, "max" : 10000.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_textLength;
+		//@editor_attribute_decorator("WidgetSpecific", """Controls how text is stretched to fit the length.""", "DropDown", { "possible_values": ("spacing","spacingAndGlyphs") })
+		TagProperty attr_lengthAdjust;
+		//@editor_attribute_decorator("WidgetSpecific", """Rotation angle for svg elements.""", float, { "possible_values": "", "min" : -360.0, "max" : 360.0, "default" : 1.0, "step" : 0.1 })
+		TagProperty attr_rotate;
+		//@editor_attribute_decorator("WidgetSpecific", """Description.""", "DropDown", { "possible_values": ("start", "middle", "end") })
+		TagProperty attr_text_anchor;
+		//@editor_attribute_decorator("WidgetSpecific", """Description.""", "DropDown", { "possible_values": ("auto", "text-bottom", "alphabetic", "ideographic", "middle", "central", "mathematical", "hanging", "text-top") })
+		TagProperty attr_dominant_baseline;
+
+		SvgText(float x = 10, float y = 10, std::string text = "svg text") :
+			TextWidget(),
+			ISvgPosition(this),
+			ISvgStroke(this),
+			ISvgFill(this),
+			ISvgTransformable(this),
+			attr_textLength(TagProperty("textLength", &this->attributes)),
+			attr_lengthAdjust(TagProperty("lengthAdjust", &this->attributes)),
+			attr_rotate(TagProperty("rotate", &this->attributes)),
+			attr_text_anchor(TagProperty("text-anchor", &this->attributes)),
+			attr_dominant_baseline(TagProperty("dominant-baseline", &this->attributes)) {
+			setClass(CLASS_NAME(SvgText)),
+				this->type = "text";
+			ISvgPosition::set_position(x, y);
+			this->setText(text);
+		}
+	};
+
+	class SvgPath :public Widget, public ISvgStroke, public ISvgFill, public ISvgTransformable {
+	public:
+		//@editor_attribute_decorator("WidgetSpecific", """Instructions for SvgPath.""", str, {})
+		TagProperty attr_d;
+
+		SvgPath(std::string path_value = "") :
+			Widget::Widget(CLASS_NAME(SvgPath)),
+			ISvgStroke(this),
+			ISvgFill(this),
+			ISvgTransformable(this),
+			attr_d(TagProperty("d", &this->attributes)) {
+			this->type = "path";
+			static_cast<Widget*>(this)->attributes["d"] = path_value;
+		}
+
+		void add_position(float x, float y) {
+			std::stringstream ss;
+			ss << static_cast<std::string>(Widget::attributes["d"]) << "M " << x << " " << y;
+			Widget::attributes["d"] = ss.str();
+		}
+
+		void add_arc(float x, float y, float rx, float ry, float x_axis_rotation, bool large_arc_flag, bool sweep_flag) {
+			// A rx ry x - axis - rotation large - arc - flag sweep - flag x y
+			std::stringstream ss;
+			//"A %(rx)s %(ry)s, %(x-axis-rotation)s, %(large-arc-flag)s, %(sweep-flag)s, %(x)s %(y)s"% {"x":x, "y" : y, "rx" : rx, "ry" : ry, "x-axis-rotation" : x_axis_rotation, "large-arc-flag" : large_arc_flag, "sweep-flag" : sweep_flag}
+			ss << static_cast<std::string>(Widget::attributes["d"]) << "A " << rx << " " << ry << ", " << x_axis_rotation << ", " << large_arc_flag << ", " << sweep_flag << ", " << x << " " << y;
+			Widget::attributes["d"] = ss.str();
+		}
+	};
+
 }
 
 #endif //CPORT_REMI_H
